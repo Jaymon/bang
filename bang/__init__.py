@@ -13,6 +13,9 @@ import glob
 import markdown
 from jinja2 import Environment, FileSystemLoader
 
+#from bang.server import Server
+from server import Server
+
 __version__ = "0.0.2"
 
 class Template(object):
@@ -309,6 +312,13 @@ def console():
         default=None,
         help='directory, defaults to project-dir/template'
     )
+    parser.add_argument(
+        '--port', '-p',
+        dest='port',
+        default=8000,
+        type=int,
+        help='the port for serve command'
+    )
     parser.add_argument("-v", "--version", action='version', version="%(prog)s {}".format(__version__))
     parser.add_argument('command', nargs='?', default="compile")
     args = parser.parse_args()
@@ -326,8 +336,10 @@ def console():
 
         s = Site(input_dir, output_dir, template_dir)
         s.write()
-    else:
-        pout.h()
+
+    elif args.command == 'serve':
+        s = Server(normalize_dir(output_dir), args.port)
+        s.serve_forever()
 
     return 0
 
