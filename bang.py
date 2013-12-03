@@ -8,6 +8,7 @@ import fnmatch
 import datetime
 from operator import attrgetter
 import re
+import glob
 
 import markdown
 from jinja2 import Environment, FileSystemLoader
@@ -50,10 +51,10 @@ def clear_dir(d):
 
     return True
 
-
-class Post(object):
+class Index(object):
     template = 'index'
     output_file = 'index.html'
+    input_file = 'index'
 
     @property
     def body_filepath(self):
@@ -114,15 +115,29 @@ class Post(object):
             self._relative_output = v
         return v
 
+    @property
+    def body_file(self):
+        v = getattr(self, '_body_file', None)
+        if not v:
+            v, body_files = self.normalize_files()
+            self._body_file = v
+            self._files = body_files
+        return v
 
-    def __init__(self, input_dir, relative, body_file, files=None):
+    @property
+    def files(self):
+        v = getattr(self, '_files', None)
+        if not v:
+            body_file, v = self.normalize_files()
+            self._body_file = body_file
+            self._files = v
+        return v
+
+    def __init__(self, input_dir, relative):
         self.input_dir = input_dir
-        self.body_file = body_file
         self.relative = relative
-        _, fileext = os.path.splitext(body_file)
+        _, fileext = os.path.splitext(self.body_file)
         self.ext = fileext.lstrip('.')
-        self.files = []
-        if files: self.files = files
 
     def normalize_md(self, text):
         return markdown.markdown(text)
@@ -132,6 +147,23 @@ class Post(object):
 
     def normalize_txt(self, text):
         return text
+
+    def normalize_files(self):
+        input_root = os.path.join(self.input_dir, self.relative)
+        for _, _, files in os.walk(input_root, topdown=True):
+            break
+
+        body = None
+        body_files = []
+        pattern = "{}.*".format(self.input_file)
+        for f in files:
+            if fnmatch.fnmatch(f, pattern):
+                body = f
+
+            else:
+                body_files.append(f)
+
+        return body, body_files
 
     def move_files(self, output_dir):
         dir_util.mkpath(os.path.join(output_dir, self.relative_output))
@@ -155,13 +187,25 @@ class Post(object):
 
         self.output_file = output_file
 
+    @classmethod
+    def is_type(cls, root):
+        ret = False
+        pattern = "{}.*".format(cls.input_file)
+        for f in glob.iglob(os.path.join(root, pattern)):
+            ret = True
+        return ret
+
+
+class Post(Index):
+    input_file = 'post'
+
+
 class Site(object):
 
-    def __init__(self, project_dir, output_dir):
+    def __init__(self, input_dir, output_dir, template_dir):
         self.output_dir = normalize_dir(output_dir)
-        self.project_dir = normalize_dir(project_dir)
-        self.input_dir = os.path.join(self.project_dir, "input")
-        self.template_dir = os.path.join(self.project_dir, "template")
+        self.input_dir = normalize_dir(input_dir)
+        self.template_dir = normalize_dir(template_dir)
         self.tmpl = Template(self.template_dir)
 
         # clear the output directory
@@ -169,7 +213,7 @@ class Site(object):
 
         # go through and compile all the posts and other files
         self.posts = []
-        self.other = []
+        self.indexes = []
         self.files = []
         for input_root, dirs, files in os.walk(self.input_dir, topdown=True):
             basename = os.path.basename(input_root)
@@ -177,17 +221,19 @@ class Site(object):
             if basename.startswith('_'): continue
 
             relative = input_root.replace(self.input_dir, '').strip(os.sep)
-            #output_root = os.path.join(self.output_dir, relative)
-
-            body_file, body_files = self.get_body("post", input_root, files)
-            if body_file:
+            if Post.is_type(input_root):
                 p = Post(
                     input_dir=self.input_dir,
-                    body_file=body_file,
                     relative=relative,
-                    files=body_files
                 )
                 self.posts.append(p)
+
+            elif Index.is_type(input_root):
+                i = Index(
+                    input_dir=self.input_dir,
+                    relative=relative,
+                )
+                self.indexes.append(i)
 
             else:
                 for f in files:
@@ -200,19 +246,6 @@ class Site(object):
 
         # sort the posts
         self.posts.sort(key=attrgetter('modified'), reverse=True)
-
-    def get_body(self, template_name, root, files):
-        body = None
-        body_files = []
-        pattern = "{}.*".format(template_name)
-        for f in files:
-            if fnmatch.fnmatch(f, pattern):
-                body = f
-
-            else:
-                body_files.append(f)
-
-        return body, body_files
 
     def write(self, **template_kwargs):
         # go through each post and write it out
@@ -235,15 +268,21 @@ class Site(object):
                 **template_kwargs
             )
 
+        for i in self.indexes:
+            i.write(
+                self.output_dir,
+                self.tmpl
+            )
+
         for input_file, output_file in self.files:
             d, _ = os.path.split(output_file)
             dir_util.mkpath(d)
             shutil.copy(input_file, output_file)
 
-
         # the latest post will be the index
         if self.posts:
             shutil.copy(self.posts[0].output_file, os.path.join(self.output_dir, 'index.html'))
+
 
 def console():
     '''
@@ -262,68 +301,36 @@ def console():
         '--output-dir', '-o',
         dest='output_dir',
         default=None,
-        help='directory, defaults to project_dir/output'
+        help='directory, defaults to project-dir/output'
+    )
+    parser.add_argument(
+        '--template-dir', '-t',
+        dest='template_dir',
+        default=None,
+        help='directory, defaults to project-dir/template'
     )
     parser.add_argument("-v", "--version", action='version', version="%(prog)s {}".format(__version__))
+    parser.add_argument('command', nargs='?', default="compile")
     args = parser.parse_args()
 
     output_dir = args.output_dir
     if not output_dir:
         output_dir = os.path.join(args.project_dir, 'output')
 
-    s = Site(args.project_dir, output_dir)
-    s.write()
+    if args.command == 'compile':
+        template_dir = args.template_dir
+        if not template_dir:
+            template_dir = os.path.join(args.project_dir, 'template')
+
+        input_dir = os.path.join(args.project_dir, 'input')
+
+        s = Site(input_dir, output_dir, template_dir)
+        s.write()
+    else:
+        pout.h()
+
     return 0
 
-
-
-
-    project_dir = os.path.abspath(os.path.expanduser(args.project_dir))
-    srcdir = os.path.join(project_dir, "src")
-    bindir = os.path.join(project_dir, "bin")
-    tmpl = Template(os.path.join(project_dir, "template"))
-    ext_callback = {
-        'md': normalize_markdown,
-        'html': normalize_html
-    }
-
-    # we are about to start all over again, so remove the bin directory
-    shutil.rmtree(bindir)
-    dir_util.mkpath(bindir)
-
-    for srcroot, dirs, files in os.walk(srcdir, topdown=True):
-        # ignore private dirs
-        if srcdir.startswith('_'): continue
-
-        binroot = os.path.join(bindir, srcroot.replace(srcdir, '').strip(os.sep))
-        dir_util.mkpath(binroot)
-
-        for f in files:
-            # ignore private files
-            if f.startswith('_'): continue
-
-            filename, fileext = os.path.splitext(f)
-            fileext = fileext.lstrip('.')
-            filepath = os.path.join(srcroot, f)
-
-            if fileext in ext_callback:
-                if tmpl.has(filename):
-                    with codecs.open(filepath, 'r+', 'utf-8') as fp:
-                        text = fp.read()
-                        html = ext_callback[fileext](text)
-                        tmpl.write(
-                            filename,
-                            os.path.join(binroot, 'index.html'),
-                            content=html,
-                            title="test title"
-                        )
-
-            else:
-                shutil.copy(filepath, binroot)
-
-
-
-    return ret_code
 
 if __name__ == u'__main__':
     sys.exit(console())
