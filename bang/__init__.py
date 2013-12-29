@@ -15,6 +15,8 @@ from jinja2 import Environment, FileSystemLoader
 
 #from bang.server import Server
 from server import Server
+from path import Directory, ProjectDirectory
+from generator import Site
 
 __version__ = "0.0.2"
 
@@ -35,24 +37,6 @@ class Template(object):
         tmpl = self.env.get_template("{}.html".format(template))
         return tmpl.stream(**kwargs).dump(filepath)
 
-
-def normalize_dir(d):
-    """completely normalize a relative path (a path with ../, ./, or ~/)"""
-    return os.path.abspath(os.path.expanduser(d))
-
-def clear_dir(d):
-    """this will clear a directory path of all files and folders"""
-    dir_util.mkpath(d)
-    for root, dirs, files in os.walk(d, topdown=True):
-        for td in dirs:
-            shutil.rmtree(os.path.join(root, td))
-
-        for tf in files:
-            os.unlink(os.path.join(root, tf))
-
-        break
-
-    return True
 
 class Index(object):
     template = 'index'
@@ -203,7 +187,7 @@ class Post(Index):
     input_file = 'post'
 
 
-class Site(object):
+class Site2(object):
 
     def __init__(self, input_dir, output_dir, template_dir):
         self.output_dir = normalize_dir(output_dir)
@@ -307,12 +291,6 @@ def console():
         help='directory, defaults to project-dir/output'
     )
     parser.add_argument(
-        '--template-dir', '-t',
-        dest='template_dir',
-        default=None,
-        help='directory, defaults to project-dir/template'
-    )
-    parser.add_argument(
         '--port', '-p',
         dest='port',
         default=8000,
@@ -320,22 +298,19 @@ def console():
         help='the port for serve command'
     )
     parser.add_argument("-v", "--version", action='version', version="%(prog)s {}".format(__version__))
-    parser.add_argument('command', nargs='?', default="compile")
+    parser.add_argument('command', nargs='?', default="compile", choices=["compile", "serve"])
     args = parser.parse_args()
 
     output_dir = args.output_dir
-    if not output_dir:
-        output_dir = os.path.join(args.project_dir, 'output')
+    if output_dir:
+        output_dir = Directory(output_dir)
+    else:
+        output_dir = Directory(args.project_dir, 'output')
 
     if args.command == 'compile':
-        template_dir = args.template_dir
-        if not template_dir:
-            template_dir = os.path.join(args.project_dir, 'template')
 
-        input_dir = os.path.join(args.project_dir, 'input')
-
-        s = Site(input_dir, output_dir, template_dir)
-        s.write()
+        s = Site(ProjectDirectory(args.project_dir), output_dir)
+        s.output()
 
     elif args.command == 'serve':
         s = Server(normalize_dir(output_dir), args.port)
