@@ -2,24 +2,52 @@ import os
 import re
 from distutils import dir_util
 import shutil
+import types
 
 class Directory(object):
+
+    content_file_regex = ur'\.(md|html|txt)'
 
     @property
     def basename(self):
         return os.path.basename(self.path)
 
+    @property
+    def content_file(self):
+        for f in self.files(self.content_file_regex):
+            break
+        return f
+
+    @property
+    def other_files(self):
+        for f in self.files():
+            if not re.search(self.content_file_regex, f, re.I):
+                yield f
+
     def __init__(self, *bits):
         self.path = ''
+        self.ancestor_dir = None
         if bits:
             bits = list(bits)
             bits[0] = self.normalize(bits[0])
+            for i in xrange(1, len(bits)):
+                bits[i] = bits[i].strip('\\/')
             self.path = os.path.join(*bits)
 
     @classmethod
     def normalize(cls, d):
         """completely normalize a relative path (a path with ../, ./, or ~/)"""
         return os.path.abspath(os.path.expanduser(d))
+
+    def copy_file(self, input_file):
+        """copy the input_file to this directory"""
+        basename = os.path.basename(input_file)
+        output_file = os.path.join(self.path, basename)
+        return shutil.copy(input_file, output_file)
+
+    def create(self):
+        """create the directory path"""
+        return dir_util.mkpath(self.path)
 
     def clear(self):
         """this will clear a directory path of all files and folders"""
@@ -36,17 +64,30 @@ class Directory(object):
 
         return True
 
+    def __div__(self, bits):
+        if isinstance(bits, types.StringTypes):
+            bits = [bits]
+        else:
+            bits = list(bits)
+
+        return Directory(self.path, *bits)
+
+    def __truediv__(self, bits):
+        return self.__div__(bits)
+
     def __str__(self):
         return self.path
 
     def __unicode__(self):
-        return u"" + self.path
+        return unicode(self.path)
 
     def __iter__(self):
         for root_dir, dirs, _ in os.walk(self.path, topdown=True):
             dirs.sort()
             for basename in dirs:
-                yield Directory(root_dir, basename)
+                d = Directory(root_dir, basename)
+                d.ancestor_dir = self
+                yield d
 
     def files(self, regex=None):
         fs = []
@@ -62,12 +103,12 @@ class Directory(object):
 
     def is_post(self):
         """return true if this directory has a blog post in it"""
-        return not self.is_aux() and self.files('\.(md|html|txt)$')
+        return not self.is_aux() and self.files(self.content_file_regex)
 
     def is_aux(self):
         """return True if this is a directory with an index.* file in it"""
         ret_bool = False
-        if self.files('^index\.'):
+        if self.files(ur'^index{}'.format(self.content_file_regex)):
             ret_bool = True
 
         return ret_bool
@@ -75,6 +116,26 @@ class Directory(object):
     def is_private(self):
         basename = self.basename
         return basename.startswith('_')
+
+    def relative(self, ancestor_dir=None):
+        """
+        returns the relative bits to the parent_dir
+
+        example --
+            d = Directory("/foo/bar/baz/che")
+            d.relative("/foo/bar") # baz/che
+            d.relative("/foo") # bar/baz/che
+
+        ancestor_dir -- string|Directory -- the directory you want to return that self
+            is a child of, if parent_dir is empty than it will use self.ancestor_dir
+        return -- string -- the part of the path that is relative
+        """
+        if not ancestor_dir:
+            ancestor_dir = self.ancestor_dir
+        assert ancestor_dir, "no ancestor_dir found"
+
+        relative = self.path.replace(str(ancestor_dir), '').strip(os.sep)
+        return relative
 
 
 class ProjectDirectory(Directory):
