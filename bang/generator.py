@@ -93,6 +93,13 @@ class Post(object):
         d = self.directory
         ext = os.path.splitext(d.content_file)[1][1:]
         body = self.body
+        permalink = self.url
+        for input_file in d.other_files:
+            basename = os.path.basename(input_file)
+            file_permalink = "{}/{}".format(permalink, basename)
+            #pout.v(basename, file_permalink)
+            body = body.replace(basename, file_permalink)
+
         ext_callback = getattr(self, "normalize_{}".format(ext), None)
         if ext_callback:
             html = ext_callback(body)
@@ -175,6 +182,5 @@ class Site(object):
 
         # the root index will point to the last post
         p = posts.last_post
-        p.output_dir = self.output_dir
-        p.output()
+        self.output_dir.copy_file(p.output_file)
 
