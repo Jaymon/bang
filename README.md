@@ -71,7 +71,16 @@ This is designed to be used on the remote server that will host your site in a c
 
 -------------------------------------------------------------------------------
 
-# TODO
+## Install
+
+Use pip:
+
+    pip install bangtext
+
+
+-------------------------------------------------------------------------------
+
+## TODO
 
 The folders should allow tagging with #hashtags
 

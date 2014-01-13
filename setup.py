@@ -20,7 +20,7 @@ if not version:
     raise RuntimeError('Unable to find version number')
 
 setup(
-    name=name,
+    name="{}text".format(name),
     version=version,
     description='A static site generator',
     author='Jay Marcyes',
