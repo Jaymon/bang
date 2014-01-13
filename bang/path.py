@@ -37,7 +37,10 @@ class Directory(object):
     @classmethod
     def normalize(cls, d):
         """completely normalize a relative path (a path with ../, ./, or ~/)"""
-        return os.path.abspath(os.path.expanduser(d))
+        return os.path.abspath(os.path.expanduser(str(d)))
+
+    def exists(self):
+        return os.path.isdir(self.path)
 
     def copy_file(self, input_file):
         """copy the input_file to this directory"""
