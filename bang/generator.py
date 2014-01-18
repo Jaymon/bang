@@ -113,6 +113,10 @@ class Post(object):
         self.output_dir = output_dir
         self.tmpl = tmpl
 
+    def normalize_markdown(self, text):
+        """alternate file extension .markdown should point to .md"""
+        return self.normalize_md(text)
+
     def normalize_md(self, text):
         return markdown.markdown(text)
 

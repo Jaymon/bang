@@ -11,7 +11,7 @@ from path import Directory, ProjectDirectory
 from generator import Site
 
 
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 
 
 def console():
@@ -72,7 +72,7 @@ def console():
         if d.exists():
             try:
                 output = subprocess.check_output(["git", "pull", "origin", "master"], stderr=subprocess.STDOUT)
-                if output.find("Updating") >= 0:
+                if (output.find("Updating") >= 0) or not output_dir.exists():
                     # there are new changes, let's recompile the project
                     s = Site(project_dir, output_dir)
                     s.output()

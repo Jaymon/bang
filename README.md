@@ -65,9 +65,9 @@ Use this to fire up a local server so you can see your compiled site. You can se
 
 ### watch
 
-This is designed to be used on the remote server that will host your site in a cron job, it will try and pull down the code using a git repo, if there are changes, then it will compile the new changes.
+This is designed to be used on the remote server that will host your site in a cron job, it will try and pull down the code using a git repo, if there are changes, then it will compile the new changes, since it is run in cron, you should include the full path:
 
-    $ bang watch --project-dir=...
+    $ /usr/local/bin/bang watch --project-dir=...
 
 -------------------------------------------------------------------------------
 
@@ -83,4 +83,8 @@ Use pip:
 ## TODO
 
 The folders should allow tagging with #hashtags
+
+a project should be able to include a plugins directory (python module) that will allow customization, there should be events added around all the major things during execution (eg, a post_compiled event, a pre_compile event) that the plugins module the user adds can hook into.
+
+There should be a few default plugins, a sitemap plugin that takes the posts_compiled event and creates a sitemap.xml file, and an rss plugin that also takes posts_compiled and produces an rss feed of the last 10 posts or something.
 

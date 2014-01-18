@@ -6,7 +6,7 @@ import types
 
 class Directory(object):
 
-    content_file_regex = ur'\.(md|html|txt)'
+    content_file_regex = ur'\.(md|html|txt|markdown)$'
 
     @property
     def basename(self):
