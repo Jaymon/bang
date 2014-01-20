@@ -4,6 +4,9 @@ from distutils import dir_util
 import shutil
 import types
 
+#from . import echo
+import echo
+
 class Directory(object):
 
     content_file_regex = ur'\.(md|html|txt|markdown)$'
@@ -46,15 +49,18 @@ class Directory(object):
         """copy the input_file to this directory"""
         basename = os.path.basename(input_file)
         output_file = os.path.join(self.path, basename)
+        echo.out("copy file {} to {}", input_file, output_file)
         return shutil.copy(input_file, output_file)
 
     def create(self):
         """create the directory path"""
+        echo.out("create dir: {}", self.path)
         return dir_util.mkpath(self.path)
 
     def clear(self):
         """this will clear a directory path of all files and folders"""
         # http://stackoverflow.com/a/1073382/5006
+        echo.out("clearing {}", self.path)
         dir_util.mkpath(self.path)
         for root, dirs, files in os.walk(self.path, topdown=True):
             for td in dirs:

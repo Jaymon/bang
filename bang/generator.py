@@ -7,6 +7,10 @@ import datetime
 import markdown
 from jinja2 import Environment, FileSystemLoader
 
+#from . import echo
+import echo
+
+
 class Template(object):
     def __init__(self, template_dir):
         self.template_dir = template_dir
@@ -21,9 +25,9 @@ class Template(object):
     def has(self, template_name):
         return template_name in self.templates
 
-    def output(self, template, filepath, **kwargs):
-        tmpl = self.env.get_template("{}.html".format(template))
-        return tmpl.stream(**kwargs).dump(filepath)
+    def output(self, template_name, filepath, **kwargs):
+        tmpl = self.env.get_template("{}.html".format(template_name))
+        return tmpl.stream(**kwargs).dump(filepath, encoding='utf-8')
 
 
 class Posts(object):
@@ -97,7 +101,6 @@ class Post(object):
         for input_file in d.other_files:
             basename = os.path.basename(input_file)
             file_permalink = "{}/{}".format(permalink, basename)
-            #pout.v(basename, file_permalink)
             body = body.replace(basename, file_permalink)
 
         ext_callback = getattr(self, "normalize_{}".format(ext), None)
@@ -124,23 +127,29 @@ class Post(object):
         return self.directory.path
 
     def output(self):
+        echo.out("output {}", self.title)
         d = self.directory
         output_dir = self.output_dir
         output_dir.create()
         for input_file in d.other_files:
             output_dir.copy_file(input_file)
 
-        html = self.html
+        #html = self.html
         output_file = os.path.join(str(output_dir), self.output_basename)
-        template_kwargs = {}
+        self.output_file = output_file
+
+        echo.out(
+            'templating {} with template "{}" to output file {}',
+            d.content_file,
+            self.template_name,
+            output_file
+        )
         self.tmpl.output(
             self.template_name,
             output_file,
-            post=self,
-            **template_kwargs
+            post=self
         )
 
-        self.output_file = output_file
 
 class Aux(Post):
     @property
@@ -163,14 +172,17 @@ class Site(object):
         for d in self.project_dir.input_dir:
             output_dir = self.output_dir / d.relative()
             if d.is_aux():
+                echo.out("aux dir: {}", d)
                 a = Aux(d, output_dir, tmpl)
                 auxs.append(a)
 
             elif d.is_post():
+                echo.out("post dir: {}", d)
                 p = Post(d, output_dir, tmpl)
                 posts.append(p)
 
             else:
+                echo.out("uncategorized dir: {}", d)
                 output_dir.create()
                 for f in d.files():
                     output_dir.copy_file(f)
@@ -186,5 +198,6 @@ class Site(object):
 
         # the root index will point to the last post
         p = posts.last_post
-        self.output_dir.copy_file(p.output_file)
+        if p:
+            self.output_dir.copy_file(p.output_file)
 

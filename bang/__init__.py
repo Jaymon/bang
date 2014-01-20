@@ -9,9 +9,10 @@ from jinja2 import Environment, FileSystemLoader
 from server import Server
 from path import Directory, ProjectDirectory
 from generator import Site
+import echo
 
 
-__version__ = "0.0.6"
+__version__ = "0.0.9"
 
 
 def console():
@@ -48,8 +49,11 @@ def console():
 #        help='Used with "watch" command, the git repo to monitor'
 #    )
     parser.add_argument("-v", "--version", action='version', version="%(prog)s {}".format(__version__))
+    parser.add_argument("--debug", action='store_true', dest='debug')
     parser.add_argument('command', nargs='?', default="compile", choices=["compile", "serve", "watch"])
     args = parser.parse_args()
+
+    echo.quiet = not args.debug
 
     project_dir = ProjectDirectory(args.project_dir)
     output_dir = args.output_dir
@@ -60,19 +64,26 @@ def console():
         output_dir = Directory(args.project_dir, 'output')
 
     if args.command == 'compile':
+        echo.out("compiling directory {} to {}...", project_dir.input_dir, output_dir)
         s = Site(project_dir, output_dir)
         s.output()
 
     elif args.command == 'serve':
+        echo.out("serving directory {} on port {}...", output_dir, args.port)
         s = Server(str(output_dir), args.port)
         s.serve_forever()
 
     elif args.command == 'watch':
+        echo.out("running watch...")
         d = Directory(project_dir, '.git')
         if d.exists():
             try:
                 git_path = subprocess.check_output(['which', 'git']).strip()
-                output = subprocess.check_output([git_path, "pull", "origin", "master"], stderr=subprocess.STDOUT)
+                output = subprocess.check_output(
+                    [git_path, "pull", "origin", "master"],
+                    stderr=subprocess.STDOUT,
+                    cwd=str(project_dir)
+                )
                 if (output.find("Updating") >= 0) or not output_dir.exists():
                     # there are new changes, let's recompile the project
                     s = Site(project_dir, output_dir)
@@ -88,6 +99,7 @@ def console():
                 raise e
                 pass
 
+    echo.out("...done")
     return 0
 
 
