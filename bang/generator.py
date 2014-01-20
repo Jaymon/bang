@@ -55,6 +55,9 @@ class Posts(object):
             yield p
             p = p.next_post
 
+    def __len__(self):
+        return self.total
+
 
 class Post(object):
     """this is a node to the Posts linked list"""
@@ -200,4 +203,7 @@ class Site(object):
         p = posts.last_post
         if p:
             self.output_dir.copy_file(p.output_file)
+
+        self.posts = posts
+        self.auxs = auxs
 

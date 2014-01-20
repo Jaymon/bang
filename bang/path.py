@@ -96,7 +96,8 @@ class Directory(object):
             for basename in dirs:
                 d = Directory(root_dir, basename)
                 d.ancestor_dir = self
-                yield d
+                if not d.is_private():
+                    yield d
 
     def files(self, regex=None):
         fs = []

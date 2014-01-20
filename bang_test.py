@@ -6,6 +6,23 @@ import testdata
 from bang.generator import Post, Site
 from bang.path import Directory, ProjectDirectory
 
+def get_dirs(input_files):
+
+    d = {
+        'template/index.html': "{{ post.title }}\n{{ post.html }}\n{{ post.modified.strftime('%Y-%m-%d') }}\n"
+    }
+    d.update(input_files)
+
+    output_dir = Directory(testdata.create_dir())
+    project_dir = ProjectDirectory(testdata.create_dir())
+
+    testdata.create_files(d, tmpdir=str(project_dir))
+    return project_dir, output_dir
+
+
+class ProjectDirectoryTest(TestCase):
+    pass
+
 class SiteTest(TestCase):
     def test_unicode_output(self):
         output_dir = Directory(testdata.create_dir())
@@ -22,6 +39,20 @@ class SiteTest(TestCase):
         s.output()
 
         self.assertTrue(os.path.isfile(os.path.join(str(output_dir), 'aux', 'index.html')))
+
+    def test_drafts(self):
+        project_dir, output_dir = get_dirs({
+            'input/_draft/foo.md': testdata.get_words(),
+            'input/notdraft/_bar.md': testdata.get_words(),
+        })
+
+        s = Site(project_dir, output_dir)
+        s.output()
+
+        self.assertFalse(os.path.isfile(os.path.join(str(output_dir), '_draft', 'index.html')))
+        self.assertFalse(os.path.isfile(os.path.join(str(output_dir), 'notdraft', 'index.html')))
+        self.assertEqual(0, len(s.posts))
+
 
 class PostTest(TestCase):
     def test_post(self):
