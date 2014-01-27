@@ -127,7 +127,7 @@ class Post(object):
         # http://packages.python.org/Markdown/extensions/index.html
         return markdown.markdown(
             text, 
-            extensions=['fenced_code', 'codehilite', 'tables', 'footnotes', 'nl2br']
+            extensions=['fenced_code', 'codehilite(guess_lang=False)', 'tables', 'footnotes', 'nl2br']
         )
 
     def __str__(self):
