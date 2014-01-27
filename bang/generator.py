@@ -124,7 +124,11 @@ class Post(object):
         return self.normalize_md(text)
 
     def normalize_md(self, text):
-        return markdown.markdown(text)
+        # http://packages.python.org/Markdown/extensions/index.html
+        return markdown.markdown(
+            text, 
+            extensions=['fenced_code', 'codehilite', 'tables', 'footnotes', 'nl2br']
+        )
 
     def __str__(self):
         return self.directory.path
