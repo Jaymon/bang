@@ -3,7 +3,7 @@ import os
 
 import testdata
 
-from bang.generator import Post, Site
+from bang.generator import Post, Site, Template
 from bang.path import Directory, ProjectDirectory
 
 def get_dirs(input_files):
@@ -55,6 +55,24 @@ class SiteTest(TestCase):
 
 
 class PostTest(TestCase):
+    def test_codeblocks(self):
+        project_dir, output_dir = get_dirs({
+            'input/code/blocks.md': "\n".join([
+                "```python",
+                #"```no-highlight",
+                "s = 'here we are'",
+                "```"
+            ])
+        })
+
+        d = Directory(project_dir.input_dir, 'code')
+        d.ancestor_dir = project_dir.input_dir
+        tmpl = Template(project_dir.template_dir)
+        p = Post(d, output_dir, tmpl)
+        #pout.v(p.html)
+
+
+
     def test_post(self):
         return # I'm pretty sure this test is outdated
         relative = "Foo Bar"

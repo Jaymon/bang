@@ -12,7 +12,7 @@ from generator import Site
 import echo
 
 
-__version__ = "0.0.12"
+__version__ = "0.0.13"
 
 
 def console():
