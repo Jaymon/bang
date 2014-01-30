@@ -1,4 +1,10 @@
-"""in this module, we fix all the problems with markdown's default code display stuff"""
+"""
+in this module, we fix all the problems with markdown's default code display stuff
+
+extension for the markdown lib I use: https://github.com/waylan/Python-Markdown
+
+http://pythonhosted.org/Markdown/extensions/api.html
+"""
 import re
 
 from markdown.extensions import codehilite, fenced_code
@@ -12,6 +18,9 @@ class HighlightExtension(fenced_code.FencedCodeExtension):
     A compatible extenstion to highlight.js for python-markdown
 
     http://highlightjs.org
+    https://github.com/isagalaev/highlight.js
+
+    extends this markdown ext: http://pythonhosted.org/Markdown/extensions/fenced_code_blocks.html
     """
     def extendMarkdown(self, md, md_globals):
         """ Add FencedBlockPreprocessor to the Markdown instance. """
@@ -27,6 +36,8 @@ class HighlightExtension(fenced_code.FencedCodeExtension):
 class CodeBlockFormatter(HtmlFormatter):
     """
     based off the example found here: http://pygments.org/docs/formatters/
+
+    http://pygments.org/docs/
     """
     def wrap(self, source, outfile):
         return self._wrap_code(source)
