@@ -1,3 +1,4 @@
+import echo
 
 events = {}
 
@@ -11,6 +12,9 @@ def listen(event_name, callback):
 def broadcast(event_name, *args, **kwargs):
     global events
 
-    for callback in events.get(event_name, []):
+    callbacks = events.get(event_name, [])
+    echo.out("broadcast event {} to {} callbacks", event_name, len(callbacks))
+
+    for callback in callbacks:
         callback(event_name, *args, **kwargs)
 
