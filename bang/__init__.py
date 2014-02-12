@@ -10,9 +10,11 @@ from server import Server
 from path import Directory, ProjectDirectory
 from generator import Site
 import echo
+import event
+from plugins import sitemap
 
 
-__version__ = "0.0.13"
+__version__ = "0.1"
 
 
 def console():
@@ -65,6 +67,7 @@ def console():
 
     if args.command == 'compile':
         echo.out("compiling directory {} to {}...", project_dir.input_dir, output_dir)
+
         s = Site(project_dir, output_dir)
         s.output()
 

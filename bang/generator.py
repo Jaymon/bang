@@ -10,6 +10,7 @@ from jinja2 import Environment, FileSystemLoader
 #from . import echo
 import echo
 from md import HighlightExtension
+import event
 
 
 class Template(object):
@@ -55,6 +56,12 @@ class Posts(object):
         while p:
             yield p
             p = p.next_post
+
+    def __reversed__(self):
+        p = self.last_post
+        while p:
+            yield p
+            p = p.prev_post
 
     def __len__(self):
         return self.total
@@ -168,12 +175,14 @@ class Aux(Post):
 
 
 class Site(object):
+    """this is where all the magic happens. Output generates all the posts and compiles
+    files from input to output dirs"""
     def __init__(self, project_dir, output_dir):
         self.project_dir = project_dir
         self.output_dir = output_dir
 
     def output(self):
-        #pout.v(self.project_dir, self.output_dir)
+        """go through input/ dir and compile the files and move them to output/ dir"""
         self.output_dir.clear()
         tmpl = Template(self.project_dir.template_dir)
         posts = Posts()
@@ -212,4 +221,6 @@ class Site(object):
 
         self.posts = posts
         self.auxs = auxs
+
+        event.broadcast('output_stop', self)
 
