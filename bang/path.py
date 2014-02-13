@@ -4,8 +4,7 @@ from distutils import dir_util
 import shutil
 import types
 
-#from . import echo
-import echo
+from . import echo
 
 class Directory(object):
 

@@ -1,10 +1,21 @@
 from unittest import TestCase
 import os
+import codecs
 
 import testdata
 
 from bang.generator import Post, Site, Template
 from bang.path import Directory, ProjectDirectory
+from bang import echo
+
+# turn on all logging for the tests
+echo.quiet = False
+
+def get_body(filepath):
+    v = u''
+    with codecs.open(filepath, 'r+', 'utf-8') as fp:
+        v = fp.read()
+    return v
 
 def get_dirs(input_files):
 
@@ -22,6 +33,51 @@ def get_dirs(input_files):
 
 class ProjectDirectoryTest(TestCase):
     pass
+
+class PluginTest(TestCase):
+    def test_feed(self):
+        project_dir, output_dir = get_dirs({
+            'input/1/one.md': u'1. {}'.format(testdata.get_unicode_words()),
+            'input/2/two.md': u'2. {}'.format(testdata.get_unicode_words()),
+            'input/3/three.md': u'3. {}'.format(testdata.get_unicode_words()),
+            'config.py': "\n".join([
+                "host = 'example.com'",
+                "name = 'example site'",
+                ""
+            ])
+        })
+        s = Site(project_dir, output_dir)
+        s.output()
+
+        p = os.path.join(str(s.output_dir), 'feed.rss')
+        self.assertTrue(os.path.isfile(p))
+
+        feed = get_body(p)
+        self.assertTrue('example.com/1' in feed)
+        self.assertTrue('example.com/2' in feed)
+        self.assertTrue('example.com/3' in feed)
+
+    def test_sitemap(self):
+        project_dir, output_dir = get_dirs({
+            'input/1/one.md': u'1. {}'.format(testdata.get_unicode_words()),
+            'input/2/two.md': u'2. {}'.format(testdata.get_unicode_words()),
+            'input/3/three.md': u'3. {}'.format(testdata.get_unicode_words()),
+            'config.py': "\n".join([
+                "host = 'example.com'",
+                ""
+            ])
+        })
+        s = Site(project_dir, output_dir)
+
+        s.output()
+        smpath = os.path.join(str(s.output_dir), 'sitemap.xml')
+        self.assertTrue(os.path.isfile(smpath))
+
+        sitemap = get_body(smpath)
+        self.assertTrue('example.com/1' in sitemap)
+        self.assertTrue('example.com/2' in sitemap)
+        self.assertTrue('example.com/3' in sitemap)
+
 
 class SiteTest(TestCase):
     def test_unicode_output(self):

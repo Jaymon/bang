@@ -1,4 +1,4 @@
-import echo
+from . import echo
 
 events = {}
 

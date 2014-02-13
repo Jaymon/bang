@@ -26,9 +26,10 @@ setup(
     author='Jay Marcyes',
     author_email='jay@marcyes.com',
     url='http://github.com/jaymon/{}'.format(name),
-    packages=[name],
+    packages=[name, '{}.plugins'.format(name)],
     license="MIT",
-    install_requires=['Jinja2', 'markdown', 'pygments'],
+    install_requires=['Jinja2', 'markdown', 'pygments', 'feedgen'],
+    # feedgen requires lxml and dateutils, lxml was a real pain to install on Mavericks
     classifiers=[ # https://pypi.python.org/pypi?:action=list_classifiers
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',

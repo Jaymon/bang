@@ -1,17 +1,14 @@
-import sys
 import os
 import argparse
 import subprocess
 
-import markdown
-from jinja2 import Environment, FileSystemLoader
 
-from server import Server
-from path import Directory, ProjectDirectory
-from generator import Site
-import echo
-import event
-from plugins import sitemap
+from .server import Server
+from .path import Directory, ProjectDirectory
+from .generator import Site
+from . import echo
+from . import event
+from .plugins import sitemap, feed
 
 
 __version__ = "0.1"
@@ -104,8 +101,4 @@ def console():
 
     echo.out("...done")
     return 0
-
-
-if __name__ == u'__main__':
-    sys.exit(console())
 

@@ -7,7 +7,7 @@ import SocketServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 
 # first party
-import echo
+from . import echo
 
 
 class DirTCPServer(SocketServer.TCPServer, object):

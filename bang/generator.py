@@ -3,14 +3,36 @@ import codecs
 from distutils import dir_util
 import fnmatch
 import datetime
+import imp
 
 import markdown
 from jinja2 import Environment, FileSystemLoader
 
-#from . import echo
-import echo
-from md import HighlightExtension
-import event
+from . import echo
+from .md import HighlightExtension
+from . import event
+
+
+class Config(object):
+    """small wrapper around the config module that takes care of what happens if
+    the config file doesn't actually exist"""
+    def __init__(self, project_dir):
+        self.module = None
+
+        config_file = os.path.join(str(project_dir), 'config.py')
+        if os.path.isfile(config_file):
+            # http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
+            self.module = imp.load_source('config_module', config_file)
+
+    def get(self, k, default_val=None):
+        ret = default_val
+        if self.module:
+            ret = getattr(self.module, k, default_val)
+
+        return ret
+
+    def __getattr__(self, k):
+        return self.get(k)
 
 
 class Template(object):
@@ -180,6 +202,7 @@ class Site(object):
     def __init__(self, project_dir, output_dir):
         self.project_dir = project_dir
         self.output_dir = output_dir
+        self.config = Config(project_dir)
 
     def output(self):
         """go through input/ dir and compile the files and move them to output/ dir"""
@@ -222,5 +245,5 @@ class Site(object):
         self.posts = posts
         self.auxs = auxs
 
-        event.broadcast('output_stop', self)
+        event.broadcast('output.finish', self)
 
