@@ -46,11 +46,27 @@ This is the default output directory when the `compile` command is used with no 
 You can add this file to configure bang when compiling:
 
 ```python
-# config.py
+# /project_dir/config.py
 name = "your site name"
 description = "your site description"
 host = "example.com"
 ```
+
+-------------------------------------------------------------------------------
+
+## Plugins
+
+bang includes a couple built-in plugins that you can include in your config.py file, to activate them per site:
+
+```python
+# /project_dir/config.py
+
+from bang.plugins import sitemap # to automatically generate a sitemap.xml file
+
+from bang.plugins import feed # generate an rss feed at host/feed.rss for the last 10 posts
+```
+
+That's it, once they are imported they will run when they need to.
 
 -------------------------------------------------------------------------------
 
@@ -95,7 +111,5 @@ Use pip:
 
 The folders should allow tagging with #hashtags
 
-a project should be able to include a plugins directory (python module) that will allow customization, there should be events added around all the major things during execution (eg, a post_compiled event, a pre_compile event) that the plugins module the user adds can hook into.
-
-There should be a few default plugins, a sitemap plugin that takes the posts_compiled event and creates a sitemap.xml file, and an rss plugin that also takes posts_compiled and produces an rss feed of the last 10 posts or something.
+a project should be able to include a plugins directory (python module) that will allow customization, there should be events added around all the major things during execution (eg, a post_compiled event, a pre_compile event) that the plugins module the user adds can hook into. Not sure this needed anymore though since you can configure the plugins in your config.py file
 
