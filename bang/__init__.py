@@ -8,10 +8,9 @@ from .path import Directory, ProjectDirectory
 from .generator import Site
 from . import echo
 from . import event
-from .plugins import sitemap, feed
 
 
-__version__ = "0.1"
+__version__ = "0.1.1"
 
 
 def console():

@@ -1,3 +1,8 @@
+"""
+a plugin to generate a sitemap
+
+http://en.wikipedia.org/wiki/Sitemaps
+"""
 from __future__ import absolute_import
 import os
 import codecs

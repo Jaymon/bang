@@ -36,6 +36,7 @@ class ProjectDirectoryTest(TestCase):
 
 class PluginTest(TestCase):
     def test_feed(self):
+        from bang.plugins import feed
         project_dir, output_dir = get_dirs({
             'input/1/one.md': u'1. {}'.format(testdata.get_unicode_words()),
             'input/2/two.md': u'2. {}'.format(testdata.get_unicode_words()),
@@ -52,12 +53,14 @@ class PluginTest(TestCase):
         p = os.path.join(str(s.output_dir), 'feed.rss')
         self.assertTrue(os.path.isfile(p))
 
-        feed = get_body(p)
-        self.assertTrue('example.com/1' in feed)
-        self.assertTrue('example.com/2' in feed)
-        self.assertTrue('example.com/3' in feed)
+        body = get_body(p)
+        pout.v(body)
+        self.assertTrue('example.com/1' in body)
+        self.assertTrue('example.com/2' in body)
+        self.assertTrue('example.com/3' in body)
 
     def test_sitemap(self):
+        from bang.plugins import sitemap
         project_dir, output_dir = get_dirs({
             'input/1/one.md': u'1. {}'.format(testdata.get_unicode_words()),
             'input/2/two.md': u'2. {}'.format(testdata.get_unicode_words()),
@@ -70,13 +73,13 @@ class PluginTest(TestCase):
         s = Site(project_dir, output_dir)
 
         s.output()
-        smpath = os.path.join(str(s.output_dir), 'sitemap.xml')
-        self.assertTrue(os.path.isfile(smpath))
+        p = os.path.join(str(s.output_dir), 'sitemap.xml')
+        self.assertTrue(os.path.isfile(p))
 
-        sitemap = get_body(smpath)
-        self.assertTrue('example.com/1' in sitemap)
-        self.assertTrue('example.com/2' in sitemap)
-        self.assertTrue('example.com/3' in sitemap)
+        body = get_body(p)
+        self.assertTrue('example.com/1' in body)
+        self.assertTrue('example.com/2' in body)
+        self.assertTrue('example.com/3' in body)
 
 
 class SiteTest(TestCase):
