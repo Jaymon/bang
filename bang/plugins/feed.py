@@ -1,10 +1,14 @@
 """
-Why do I rendner the feed myself? Because every library I found needed to many other
+Why do I render the feed myself? Because every library I found needed to many other
 dependencies and some were a real pain to install (you need lxml? Seriously?). So
 I just render the feed raw
 
 http://en.wikipedia.org/wiki/RSS
 https://github.com/lkiesow/python-feedgen
+http://cyber.law.harvard.edu/rss/rss.html
+
+alidator: http://validator.w3.org/feed/
+big list of namespaces: http://validator.w3.org/feed/docs/howto/declare_namespaces.html
 """
 import datetime
 import os
@@ -63,7 +67,7 @@ def output_rss(event_name, site):
 
         dt = datetime.datetime.utcnow()
         fp.write(u"    <pubDate>{}</pubDate>\n".format(get_datestr(dt)))
-        fp.write(u"    <lastBuildDate>{}</pubDate>\n".format(get_datestr(dt)))
+        fp.write(u"    <lastBuildDate>{}</lastBuildDate>\n".format(get_datestr(dt)))
         fp.write(u"    <generator>github.com/Jaymon/bang</generator>\n")
 
         for p in reversed(site.posts):
