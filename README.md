@@ -41,6 +41,17 @@ This is where all your Jinja templates go, they are used to compile your blog po
 
 This is the default output directory when the `compile` command is used with no `--output-dir` option set.
 
+### config.py (optional)
+
+You can add this file to configure bang when compiling:
+
+```python
+# config.py
+name = "your site name"
+description = "your site description"
+host = "example.com"
+```
+
 -------------------------------------------------------------------------------
 
 ## Commands
