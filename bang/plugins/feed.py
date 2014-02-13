@@ -76,7 +76,7 @@ def output_rss(event_name, site):
 
             fp.write(u"    <item>\n")
             fp.write(u"      <title>{}</title>\n".format(get_cdata(p.title)))
-            fp.write(u"      <description>{}</description>\n".format(get_cdata(p.html)))
+            fp.write(u"      <description>{}</description>\n".format(get_cdata(p.render_html(main_url))))
             fp.write(u"      <link>{}</link>\n".format(get_safe(item_url)))
             fp.write(u"      <guid isPermaLink=\"false\">{}</guid>\n".format(get_safe(uri)))
             fp.write(u"      <pubDate>{}</pubDate>\n".format(get_datestr(p.modified)))

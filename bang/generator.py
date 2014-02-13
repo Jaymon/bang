@@ -127,13 +127,28 @@ class Post(object):
 
     @property
     def html(self):
+        return self.render_html()
+
+    def __init__(self, directory, output_dir, tmpl):
+        self.directory = directory
+        self.output_dir = output_dir
+        self.tmpl = tmpl
+
+    def render_html(self, base_url=''):
+        """
+        return html of the post
+
+        base_url -- string -- if passed in, file links will be changed to base_url + post_url ++ filename
+
+        return -- string -- rendered html
+        """
         d = self.directory
         ext = os.path.splitext(d.content_file)[1][1:]
         body = self.body
         permalink = self.url
         for input_file in d.other_files:
             basename = os.path.basename(input_file)
-            file_permalink = "{}/{}".format(permalink, basename)
+            file_permalink = "{}{}/{}".format(base_url, permalink, basename)
             body = body.replace(basename, file_permalink)
 
         ext_callback = getattr(self, "normalize_{}".format(ext), None)
@@ -144,10 +159,6 @@ class Post(object):
 
         return html
 
-    def __init__(self, directory, output_dir, tmpl):
-        self.directory = directory
-        self.output_dir = output_dir
-        self.tmpl = tmpl
 
     def normalize_markdown(self, text):
         """alternate file extension .markdown should point to .md"""
