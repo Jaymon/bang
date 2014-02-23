@@ -169,7 +169,7 @@ class Post(object):
         return markdown.markdown(
             text, 
             #extensions=['fenced_code', 'codehilite(guess_lang=False)', 'tables', 'footnotes', 'nl2br']
-            extensions=[HighlightExtension(), 'tables', 'footnotes', 'nl2br']
+            extensions=[HighlightExtension(), 'tables', 'footnotes(UNIQUE_IDS=True)', 'nl2br']
         )
 
     def __str__(self):
