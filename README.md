@@ -113,3 +113,12 @@ The folders should allow tagging with #hashtags
 
 a project should be able to include a plugins directory (python module) that will allow customization, there should be events added around all the major things during execution (eg, a post_compiled event, a pre_compile event) that the plugins module the user adds can hook into. Not sure this needed anymore though since you can configure the plugins in your config.py file
 
+### markdown extension
+
+I need to write an extension that will look at all the a tags and convert them to full urls, so you can do a link like:
+
+    [a link](/foo/bar)
+
+and this extension will intercept the creation of the `<a>` tag and convert the href `/foo/bar` to: `http://example.com/foo/bar`
+
+http://pythonhosted.org/Markdown/extensions/api.html

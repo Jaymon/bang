@@ -165,11 +165,14 @@ class Post(object):
         return self.normalize_md(text)
 
     def normalize_md(self, text):
-        # http://packages.python.org/Markdown/extensions/index.html
+        """normalize markdown using the markdown module https://github.com/waylan/Python-Markdown"""
+        # http://pythonhosted.org/Markdown/reference.html#markdown
         return markdown.markdown(
             text, 
             #extensions=['fenced_code', 'codehilite(guess_lang=False)', 'tables', 'footnotes', 'nl2br']
-            extensions=[HighlightExtension(), 'tables', 'footnotes(UNIQUE_IDS=True)', 'nl2br']
+            # http://packages.python.org/Markdown/extensions/index.html
+            extensions=[HighlightExtension(), 'tables', 'footnotes(UNIQUE_IDS=True)', 'nl2br'],
+            output_format="html5"
         )
 
     def __str__(self):
