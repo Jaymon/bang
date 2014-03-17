@@ -4,7 +4,7 @@ import codecs
 
 import testdata
 
-from bang.generator import Post, Site, Template
+from bang.generator import Post, Site, Template, Config
 from bang.path import Directory, ProjectDirectory
 from bang import echo
 
@@ -114,6 +114,46 @@ class SiteTest(TestCase):
 
 
 class PostTest(TestCase):
+    def test_attr(self):
+        project_dir, output_dir = get_dirs({
+            'input/attr/che.jpg': "",
+            'input/attr/foo.md': "\n".join([
+                '![this is the file](che.jpg){: .centered }',
+                ""
+            ]),
+            'config.py': "\n".join([
+                "host = 'example.com'",
+                "name = 'example site'",
+                ""
+            ])
+        })
+        d = Directory(project_dir.input_dir, 'attr')
+        d.ancestor_dir = project_dir.input_dir
+        tmpl = Template(project_dir.template_dir)
+        p = Post(d, output_dir, tmpl, Config(project_dir))
+        pout.v(p.html)
+
+    def test_href(self):
+        project_dir, output_dir = get_dirs({
+            'input/href/che.txt': testdata.get_words(),
+            'input/href/foo.md': "\n".join([
+                "full [link](http://foo.com)",
+                "full [path](/bar)",
+                "file [path](che.txt)",
+                ""
+            ]),
+            'config.py': "\n".join([
+                "host = 'example.com'",
+                "name = 'example site'",
+                ""
+            ])
+        })
+        d = Directory(project_dir.input_dir, 'href')
+        d.ancestor_dir = project_dir.input_dir
+        tmpl = Template(project_dir.template_dir)
+        p = Post(d, output_dir, tmpl, Config(project_dir))
+        pout.v(p.html)
+
     def test_codeblocks(self):
         project_dir, output_dir = get_dirs({
             'input/code/blocks.md': "\n".join([

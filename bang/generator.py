@@ -9,13 +9,17 @@ import markdown
 from jinja2 import Environment, FileSystemLoader
 
 from . import echo
-from .md import HighlightExtension
+from .md import HighlightExtension, HrefExtension
 from . import event
 
 
 class Config(object):
     """small wrapper around the config module that takes care of what happens if
     the config file doesn't actually exist"""
+    @property
+    def base_url(self):
+        return u'http://{}'.format(self.host)
+
     def __init__(self, project_dir):
         self.module = None
 
@@ -127,30 +131,16 @@ class Post(object):
 
     @property
     def html(self):
-        return self.render_html()
-
-    def __init__(self, directory, output_dir, tmpl):
-        self.directory = directory
-        self.output_dir = output_dir
-        self.tmpl = tmpl
-
-    def render_html(self, base_url=''):
         """
         return html of the post
 
-        base_url -- string -- if passed in, file links will be changed to base_url + post_url ++ filename
+        base_url -- string -- if passed in, file links will be changed to base_url + post_url + filename
 
         return -- string -- rendered html
         """
         d = self.directory
         ext = os.path.splitext(d.content_file)[1][1:]
         body = self.body
-        permalink = self.url
-        for input_file in d.other_files:
-            basename = os.path.basename(input_file)
-            file_permalink = "{}{}/{}".format(base_url, permalink, basename)
-            body = body.replace(basename, file_permalink)
-
         ext_callback = getattr(self, "normalize_{}".format(ext), None)
         if ext_callback:
             html = ext_callback(body)
@@ -159,6 +149,12 @@ class Post(object):
 
         return html
 
+
+    def __init__(self, directory, output_dir, tmpl, config):
+        self.directory = directory
+        self.output_dir = output_dir
+        self.tmpl = tmpl
+        self.config = config
 
     def normalize_markdown(self, text):
         """alternate file extension .markdown should point to .md"""
@@ -171,7 +167,15 @@ class Post(object):
             text, 
             #extensions=['fenced_code', 'codehilite(guess_lang=False)', 'tables', 'footnotes', 'nl2br']
             # http://packages.python.org/Markdown/extensions/index.html
-            extensions=[HighlightExtension(), 'tables', 'footnotes(UNIQUE_IDS=True)', 'nl2br'],
+            extensions=[
+                HighlightExtension(),
+                'tables',
+                'footnotes(UNIQUE_IDS=True)',
+                'nl2br',
+                'attr_list',
+                'smart_strong',
+                HrefExtension(self)
+            ],
             output_format="html5"
         )
 
@@ -233,7 +237,7 @@ class Site(object):
 
             elif d.is_post():
                 echo.out("post dir: {}", d)
-                p = Post(d, output_dir, tmpl)
+                p = Post(d, output_dir, tmpl, self.config)
                 posts.append(p)
 
             else:

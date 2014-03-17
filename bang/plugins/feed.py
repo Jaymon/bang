@@ -43,7 +43,7 @@ def output_rss(event_name, site):
     feedpath = os.path.join(str(site.output_dir), 'feed.rss')
     echo.out("writing feed to {}", feedpath)
 
-    main_url = u'http://{}'.format(host)
+    main_url = site.config.base_url
     feed_url = u'http://{}/feed.rss'.format(host)
     max_count = 10
     count = 0
@@ -76,7 +76,7 @@ def output_rss(event_name, site):
 
             fp.write(u"    <item>\n")
             fp.write(u"      <title>{}</title>\n".format(get_cdata(p.title)))
-            fp.write(u"      <description>{}</description>\n".format(get_cdata(p.render_html(main_url))))
+            fp.write(u"      <description>{}</description>\n".format(get_cdata(p.html)))
             fp.write(u"      <link>{}</link>\n".format(get_safe(item_url)))
             fp.write(u"      <guid isPermaLink=\"false\">{}</guid>\n".format(get_safe(uri)))
             fp.write(u"      <pubDate>{}</pubDate>\n".format(get_datestr(p.modified)))

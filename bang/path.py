@@ -8,7 +8,8 @@ from . import echo
 
 class Directory(object):
 
-    content_file_regex = ur'\.(md|html|txt|markdown)$'
+    #content_file_regex = ur'\.(md|html|txt|markdown)$'
+    content_file_regex = ur'\.(md|html|markdown)$'
 
     @property
     def basename(self):
