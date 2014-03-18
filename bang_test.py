@@ -30,6 +30,25 @@ def get_dirs(input_files):
     testdata.create_files(d, tmpdir=str(project_dir))
     return project_dir, output_dir
 
+def get_post(post_files):
+        name = testdata.get_ascii(16)
+        di = {
+            'config.py': "\n".join([
+                "host = 'example.com'",
+                "name = 'example site'",
+                ""
+            ])
+        }
+        for basename, file_contents in post_files.iteritems():
+            fp = os.path.join('input', name, basename)
+            di[fp] = file_contents
+
+        project_dir, output_dir = get_dirs(di)
+        d = Directory(project_dir.input_dir, name)
+        d.ancestor_dir = project_dir.input_dir
+        tmpl = Template(project_dir.template_dir)
+        p = Post(d, output_dir, tmpl, Config(project_dir))
+        return p
 
 class ProjectDirectoryTest(TestCase):
     pass
@@ -54,7 +73,6 @@ class PluginTest(TestCase):
         self.assertTrue(os.path.isfile(p))
 
         body = get_body(p)
-        pout.v(body)
         self.assertTrue('example.com/1' in body)
         self.assertTrue('example.com/2' in body)
         self.assertTrue('example.com/3' in body)
@@ -114,49 +132,73 @@ class SiteTest(TestCase):
 
 
 class PostTest(TestCase):
-    def test_attr(self):
-        project_dir, output_dir = get_dirs({
-            'input/attr/che.jpg': "",
-            'input/attr/foo.md': "\n".join([
-                '![this is the file](che.jpg){: .centered }',
-                ""
-            ]),
-            'config.py': "\n".join([
-                "host = 'example.com'",
-                "name = 'example site'",
+    def test_image(self):
+        p = get_post({
+            'che.jpg': "",
+            'foo.md': "\n".join([
+                '![this is the file](che.jpg)',
                 ""
             ])
         })
-        d = Directory(project_dir.input_dir, 'attr')
-        d.ancestor_dir = project_dir.input_dir
-        tmpl = Template(project_dir.template_dir)
-        p = Post(d, output_dir, tmpl, Config(project_dir))
-        pout.v(p.html)
+        self.assertRegexpMatches(p.html, 'class=\"image-centered\"')
+
+        p = get_post({
+            'che.jpg': "",
+            'foo.md': "\n".join([
+                '![this is the file](che.jpg) and some text',
+                ""
+            ])
+        })
+        self.assertRegexpMatches(p.html, 'class=\"image-floating\"')
+
+        p = get_post({
+            'che.jpg': "",
+            'foo.md': "\n".join([
+                'and this has some text in front of the image ![this is the file](che.jpg)',
+                ""
+            ])
+        })
+        self.assertRegexpMatches(p.html, 'class=\"image-floating\"')
+
+        p = get_post({
+            'che.jpg': "",
+            'foo.md': "\n".join([
+                'all business in the front ![this is the file](che.jpg) and a party in the back',
+                ""
+            ])
+        })
+        self.assertRegexpMatches(p.html, 'class=\"image-floating\"')
+
+    def test_attr(self):
+        p = get_post({
+            'che.jpg': "",
+            'foo.md': "\n".join([
+                '![this is the file](che.jpg){: .centered }',
+                ""
+            ])
+        })
+
+        self.assertRegexpMatches(p.html, 'class=\"centered')
 
     def test_href(self):
-        project_dir, output_dir = get_dirs({
-            'input/href/che.txt': testdata.get_words(),
-            'input/href/foo.md': "\n".join([
+        p = get_post({
+            'che.txt': testdata.get_words(),
+            'foo.md': "\n".join([
                 "full [link](http://foo.com)",
                 "full [path](/bar)",
                 "file [path](che.txt)",
                 ""
-            ]),
-            'config.py': "\n".join([
-                "host = 'example.com'",
-                "name = 'example site'",
-                ""
             ])
         })
-        d = Directory(project_dir.input_dir, 'href')
-        d.ancestor_dir = project_dir.input_dir
-        tmpl = Template(project_dir.template_dir)
-        p = Post(d, output_dir, tmpl, Config(project_dir))
-        pout.v(p.html)
+
+        html = p.html
+        self.assertRegexpMatches(html, '\"http://foo.com\"')
+        self.assertRegexpMatches(html, '\"http://example.com/bar\"')
+        self.assertRegexpMatches(html, '\"http://example.com/[^\/]+/che.txt\"')
 
     def test_codeblocks(self):
-        project_dir, output_dir = get_dirs({
-            'input/code/blocks.md': "\n".join([
+        p = get_post({
+            'blocks.md': "\n".join([
                 "```python",
                 #"```no-highlight",
                 "s = 'here we are'",
@@ -164,38 +206,5 @@ class PostTest(TestCase):
             ])
         })
 
-        d = Directory(project_dir.input_dir, 'code')
-        d.ancestor_dir = project_dir.input_dir
-        tmpl = Template(project_dir.template_dir)
-        p = Post(d, output_dir, tmpl)
-        #pout.v(p.html)
-
-
-
-    def test_post(self):
-        return # I'm pretty sure this test is outdated
-        relative = "Foo Bar"
-        body_file = "post.md"
-        files = ["1.jpg", "2.jpg"]
-        input_root = testdata.create_dir()
-        output_root = testdata.create_dir()
-
-        # actually create the structure
-        tmpdir = testdata.create_dir(relative, input_root)
-        post_body = testdata.create_file("post.md", "blah", tmpdir)
-        fs = testdata.create_files({f: "" for f in files}, tmpdir)
-
-        p = Post(input_root, relative, body_file, files)
-
-        self.assertEqual(relative, p.title)
-        self.assertEqual("/foo-bar", p.url)
-        self.assertEqual("<p>{}</p>".format(p.body), p.html)
-
-        p.move_files(output_root)
-        for f in files:
-            filepath = os.path.join(output_root, relative, f)
-            self.assertTrue(os.path.isfile(filepath))
-
-
-
+        self.assertRegexpMatches(p.html, '<code class=\"codeblock python\">')
 

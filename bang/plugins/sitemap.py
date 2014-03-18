@@ -26,7 +26,7 @@ def output_sitemap(event_name, site):
 
             for p in reversed(site.posts):
                 fp.write(u"  <url>\n")
-                fp.write(u"    <loc>http://{}{}</loc>\n".format(host, p.url))
+                fp.write(u"    <loc>{}</loc>\n".format(p.url))
                 fp.write(u"    <lastmod>{}</lastmod>\n".format(p.modified.strftime("%Y-%m-%dT%H:%M:%S+00:00")))
                 fp.write(u"    <changefreq>weekly</changefreq>\n")
                 #fp.write(u'    <priority>0.8</priority>')

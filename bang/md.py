@@ -21,28 +21,32 @@ class HrefTreeprocessor(Treeprocessor):
     """support for HrefExtension"""
     URL_RE = re.compile(ur"^https?:\/\/", re.I)
 
+    def normalize_url(self, url):
+        """normalizes the url into a full url"""
+        m = self.URL_RE.search(url)
+        if not m:
+            post = self.config['post']
+            config = post.config
+            uri = post.uri
+            base_url = config.base_url
+
+            if url.startswith('/'):
+                url = "{}{}".format(base_url, url)
+
+            else:
+                for f in post.directory.other_files:
+                    basename = os.path.basename(f)
+                    if url == basename:
+                        url = "{}/{}".format(post.url, basename)
+
+        return url
+
     def run(self, doc):
-        post = self.config['post']
-        config = post.config
-        uri = post.url
-        base_url = config.base_url
         for elem in doc.getiterator():
             if elem.tag == 'a':
-                is_fixed = False
                 href = elem.get('href')
-                m = self.URL_RE.search(href)
-                if not m:
-                    if href.startswith('/'):
-                        permalink = "{}{}".format(base_url, uri)
-                        elem.set('href', permalink)
-
-                    else:
-                        for f in post.directory.other_files:
-                            basename = os.path.basename(f)
-                            if href == basename:
-                                file_permalink = "{}{}/{}".format(base_url, uri, basename)
-                                elem.set('href', file_permalink)
-                                is_fixed = True
+                url = self.normalize_url(href)
+                elem.set('href', url)
 
 
 class HrefExtension(Extension):
@@ -68,6 +72,67 @@ class HrefExtension(Extension):
         self.processor.config = self.getConfigs()
         #md.treeprocessors.add('href', self.processor, ">")
         md.treeprocessors['href'] = self.processor
+
+
+class ImageTreeprocessor(HrefTreeprocessor):
+    """support for ImageExtension"""
+    def iterparent(self, tree):
+        for parent in tree.getiterator():
+            for child in parent:
+                yield parent, child
+
+    def run(self, doc):
+        post = self.config['post']
+        config = post.config
+        for parent_elem, elem in self.iterparent(doc):
+            if elem.tag == 'img':
+                class_attr = elem.get('class')
+                if not class_attr: class_attr = ''
+                img_class = ''
+                if len(parent_elem) == 1:
+                    head_text = parent_elem.text
+                    if not head_text: head_text = ''
+                    head_text = head_text.strip()
+
+                    tail_text = elem.tail
+                    if not tail_text: tail_text = ''
+                    tail_text = tail_text.strip()
+
+                    if head_text or tail_text:
+                        img_class += ' image-floating'
+
+                    else:
+                        img_class += ' image-centered'
+
+                else:
+                    img_class += ' image-floating'
+
+                class_attr += img_class
+                elem.set('class', class_attr.strip())
+
+                # also normalize the url
+                src = elem.get('src')
+                url = self.normalize_url(src)
+                elem.set('src', url)
+
+
+class ImageExtension(Extension):
+    """
+    this looks at img tags and makes sure they are centered if they are solo or floating
+    if they are in paragraph's with content
+    """
+    def __init__(self, post):
+        self.config = {
+            'post' : [post, 'the post instance this extension is working on'],
+        }
+
+    def extendMarkdown(self, md, md_globals):
+        md.registerExtension(self)
+        self.processor = ImageTreeprocessor()
+        self.processor.md = md
+        self.processor.config = self.getConfigs()
+        #md.treeprocessors.add('href', self.processor, ">")
+        md.treeprocessors['image'] = self.processor
 
 
 class HighlightExtension(fenced_code.FencedCodeExtension):

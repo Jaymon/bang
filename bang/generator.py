@@ -9,7 +9,7 @@ import markdown
 from jinja2 import Environment, FileSystemLoader
 
 from . import echo
-from .md import HighlightExtension, HrefExtension
+from .md import HighlightExtension, HrefExtension, ImageExtension
 from . import event
 
 
@@ -108,12 +108,19 @@ class Post(object):
         return modified
 
     @property
-    def url(self):
+    def uri(self):
+        """the path of the post (eg, /foo/bar/post-slug)"""
         d = self.directory
         relative = d.relative()
         relative = relative.replace('\\', '/')
         v = "/".join(['', relative])
         return v
+
+    @property
+    def url(self):
+        """the full url of the post with host and everything"""
+        base_url = self.config.base_url
+        return u"{}{}".format(base_url, self.uri)
 
     @property
     def title(self):
@@ -174,7 +181,8 @@ class Post(object):
                 'nl2br',
                 'attr_list',
                 'smart_strong',
-                HrefExtension(self)
+                HrefExtension(self),
+                ImageExtension(self)
             ],
             output_format="html5"
         )
@@ -232,7 +240,7 @@ class Site(object):
             output_dir = self.output_dir / d.relative()
             if d.is_aux():
                 echo.out("aux dir: {}", d)
-                a = Aux(d, output_dir, tmpl)
+                a = Aux(d, output_dir, tmpl, self.config)
                 auxs.append(a)
 
             elif d.is_post():

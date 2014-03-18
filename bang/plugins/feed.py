@@ -71,14 +71,11 @@ def output_rss(event_name, site):
         fp.write(u"    <generator>github.com/Jaymon/bang</generator>\n")
 
         for p in reversed(site.posts):
-            uri = p.url
-            item_url = u"{}{}".format(main_url, uri)
-
             fp.write(u"    <item>\n")
             fp.write(u"      <title>{}</title>\n".format(get_cdata(p.title)))
             fp.write(u"      <description>{}</description>\n".format(get_cdata(p.html)))
-            fp.write(u"      <link>{}</link>\n".format(get_safe(item_url)))
-            fp.write(u"      <guid isPermaLink=\"false\">{}</guid>\n".format(get_safe(uri)))
+            fp.write(u"      <link>{}</link>\n".format(get_safe(p.url)))
+            fp.write(u"      <guid isPermaLink=\"false\">{}</guid>\n".format(get_safe(p.uri)))
             fp.write(u"      <pubDate>{}</pubDate>\n".format(get_datestr(p.modified)))
             fp.write(u"    </item>\n")
 
