@@ -9,7 +9,7 @@ import markdown
 from jinja2 import Environment, FileSystemLoader
 
 from . import echo
-from .md import HighlightExtension, HrefExtension, ImageExtension
+from .md import HighlightExtension, HrefExtension, ImageExtension, DomEventExtension
 from . import event
 
 
@@ -18,7 +18,7 @@ class Config(object):
     the config file doesn't actually exist"""
     @property
     def base_url(self):
-        return u'http://{}'.format(self.host)
+        return u'//{}'.format(self.host)
 
     def __init__(self, project_dir):
         self.module = None
@@ -182,7 +182,8 @@ class Post(object):
                 'attr_list',
                 'smart_strong',
                 HrefExtension(self),
-                ImageExtension(self)
+                ImageExtension(self),
+                DomEventExtension(self)
             ],
             output_format="html5"
         )

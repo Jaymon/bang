@@ -4,6 +4,8 @@ in this module, we fix all the problems with markdown's default code display stu
 extension for the markdown lib I use: https://github.com/waylan/Python-Markdown
 
 http://pythonhosted.org/Markdown/extensions/api.html
+
+https://github.com/waylan/Python-Markdown/wiki/Third-Party-Extensions
 """
 import re
 import os
@@ -15,11 +17,54 @@ from pygments.formatters import HtmlFormatter
 
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
+from . import event
+
+class DomEventTreeprocessor(Treeprocessor):
+    """support for HrefExtension"""
+    def iterparent(self, tree):
+        for parent in tree.getiterator():
+            for child in parent:
+                yield parent, child
+
+    def run(self, doc):
+        post = self.config['post']
+        for parent, elem in self.iterparent(doc):
+            elem_event_name = 'dom.{}'.format(elem.tag)
+            event.broadcast(elem_event_name, parent=parent, elem=elem, **self.config)
+
+
+class DomEventExtension(Extension):
+    """
+    this will modify all a href attributes to be full url paths
+
+    if it is an http://... url, nothing happens, if it is a path.ext then it
+    will be converted to a full url (http://domain.com/relative/path.ext), and if
+    it is a /full/path then it will be converted to http://domain.com/full/path
+
+    based off of:
+    https://github.com/waylan/Python-Markdown/blob/master/markdown/extensions/headerid.py
+    """
+    def __init__(self, post):
+        self.config = {
+            'post' : [post, 'the post instance this extension is working on'],
+        }
+
+    def extendMarkdown(self, md, md_globals):
+        md.registerExtension(self)
+        self.processor = HrefTreeprocessor()
+        self.processor.md = md
+        self.processor.config = self.getConfigs()
+        #md.treeprocessors.add('href', self.processor, ">")
+        md.treeprocessors['domevent'] = self.processor
 
 
 class HrefTreeprocessor(Treeprocessor):
-    """support for HrefExtension"""
-    URL_RE = re.compile(ur"^https?:\/\/", re.I)
+    """
+    support for HrefExtension
+
+    http://effbot.org/zone/pythondoc-elementtree-ElementTree.htm
+    """
+    URL_RE = re.compile(ur"^(?:https?:\/\/|\/\/)", re.I)
 
     def normalize_url(self, url):
         """normalizes the url into a full url"""
@@ -77,6 +122,9 @@ class HrefExtension(Extension):
 class ImageTreeprocessor(HrefTreeprocessor):
     """support for ImageExtension"""
     def iterparent(self, tree):
+        """
+        http://effbot.org/zone/element.htm
+        """
         for parent in tree.getiterator():
             for child in parent:
                 yield parent, child
@@ -86,7 +134,7 @@ class ImageTreeprocessor(HrefTreeprocessor):
         config = post.config
         for parent_elem, elem in self.iterparent(doc):
             if elem.tag == 'img':
-                class_attr = elem.get('class')
+                class_attr = parent_elem.get('class')
                 if not class_attr: class_attr = ''
                 img_class = ''
                 if len(parent_elem) == 1:
@@ -108,7 +156,7 @@ class ImageTreeprocessor(HrefTreeprocessor):
                     img_class += ' image-floating'
 
                 class_attr += img_class
-                elem.set('class', class_attr.strip())
+                parent_elem.set('class', class_attr.strip())
 
                 # also normalize the url
                 src = elem.get('src')

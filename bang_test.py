@@ -187,14 +187,16 @@ class PostTest(TestCase):
                 "full [link](http://foo.com)",
                 "full [path](/bar)",
                 "file [path](che.txt)",
+                "file [relative link](//bar.com)",
                 ""
             ])
         })
 
         html = p.html
         self.assertRegexpMatches(html, '\"http://foo.com\"')
-        self.assertRegexpMatches(html, '\"http://example.com/bar\"')
-        self.assertRegexpMatches(html, '\"http://example.com/[^\/]+/che.txt\"')
+        self.assertRegexpMatches(html, '\"//example.com/bar\"')
+        self.assertRegexpMatches(html, '\"//example.com/[^\/]+/che.txt\"')
+        self.assertRegexpMatches(html, '\"//bar.com\"')
 
     def test_codeblocks(self):
         p = get_post({
