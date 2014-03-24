@@ -22,7 +22,7 @@ class Config(object):
 
     @property
     def base_url(self):
-        return u'{}//{}'.format(self.method, self.host)
+        return u'{}://{}'.format(self.method, self.host)
 
     def __init__(self, project_dir):
         self.module = None
