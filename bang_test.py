@@ -194,8 +194,8 @@ class PostTest(TestCase):
 
         html = p.html
         self.assertRegexpMatches(html, '\"http://foo.com\"')
-        self.assertRegexpMatches(html, '\"//example.com/bar\"')
-        self.assertRegexpMatches(html, '\"//example.com/[^\/]+/che.txt\"')
+        self.assertRegexpMatches(html, '\"http//example.com/bar\"')
+        self.assertRegexpMatches(html, '\"http//example.com/[^\/]+/che.txt\"')
         self.assertRegexpMatches(html, '\"//bar.com\"')
 
     def test_codeblocks(self):

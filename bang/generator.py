@@ -16,9 +16,13 @@ from . import event
 class Config(object):
     """small wrapper around the config module that takes care of what happens if
     the config file doesn't actually exist"""
+    # TODO -- fix this, the loaded module should be checked, then the default values
+    # like method
+    method = 'http'
+
     @property
     def base_url(self):
-        return u'//{}'.format(self.host)
+        return u'{}//{}'.format(self.method, self.host)
 
     def __init__(self, project_dir):
         self.module = None
