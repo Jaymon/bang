@@ -16,26 +16,35 @@ from . import event
 class Config(object):
     """small wrapper around the config module that takes care of what happens if
     the config file doesn't actually exist"""
-    # TODO -- fix this, the loaded module should be checked, then the default values
-    # like method
-    method = 'http'
-
     @property
     def base_url(self):
         return u'{}://{}'.format(self.method, self.host)
 
     def __init__(self, project_dir):
         self.module = None
+        self.fields = {
+            'method': 'http'
+        }
 
-        config_file = os.path.join(str(project_dir), 'config.py')
+        config_file = os.path.join(str(project_dir), 'bangfile.py')
         if os.path.isfile(config_file):
             # http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
-            self.module = imp.load_source('config_module', config_file)
+            self.module = imp.load_source('bangfile_module', config_file)
+
+        # find all environment vars
+        for k, v in os.environ.iteritems():
+            if k.startswith('BANG_'):
+                name = k[5:].lower()
+                self.fields[name] = v
 
     def get(self, k, default_val=None):
+        """bangfile takes precedence, then environment variables"""
         ret = default_val
         if self.module:
-            ret = getattr(self.module, k, default_val)
+            ret = getattr(self.module, k, self.fields.get(k, default_val))
+
+        else:
+            ret = self.fields.get(k, default_val)
 
         return ret
 

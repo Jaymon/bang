@@ -3,6 +3,7 @@ import re
 from distutils import dir_util
 import shutil
 import types
+import codecs
 
 from . import echo
 
@@ -44,6 +45,21 @@ class Directory(object):
 
     def exists(self):
         return os.path.isdir(self.path)
+
+    def create_file(self, basename, contents):
+        """create the file with basename in this directory with contents"""
+        output_file = os.path.join(self.path, basename)
+        echo.out("create file {}", output_file)
+
+        oldmask = os.umask(0)
+        f = codecs.open(output_file, encoding='utf-8', mode='w+')
+        f.truncate(0)
+        f.seek(0)
+        f.write(contents)
+        f.close()
+        oldmask = os.umask(oldmask)
+
+        return output_file
 
     def copy_file(self, input_file):
         """copy the input_file to this directory"""

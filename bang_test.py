@@ -6,7 +6,9 @@ import testdata
 
 from bang.generator import Post, Site, Template, Config
 from bang.path import Directory, ProjectDirectory
+from bang import skeleton
 from bang import echo
+
 
 # turn on all logging for the tests
 echo.quiet = False
@@ -33,7 +35,7 @@ def get_dirs(input_files):
 def get_post(post_files):
         name = testdata.get_ascii(16)
         di = {
-            'config.py': "\n".join([
+            'bangfile.py': "\n".join([
                 "host = 'example.com'",
                 "name = 'example site'",
                 ""
@@ -60,7 +62,7 @@ class PluginTest(TestCase):
             'input/1/one.md': u'1. {}'.format(testdata.get_unicode_words()),
             'input/2/two.md': u'2. {}'.format(testdata.get_unicode_words()),
             'input/3/three.md': u'3. {}'.format(testdata.get_unicode_words()),
-            'config.py': "\n".join([
+            'bangfile.py': "\n".join([
                 "host = 'example.com'",
                 "name = 'example site'",
                 ""
@@ -83,7 +85,7 @@ class PluginTest(TestCase):
             'input/1/one.md': u'1. {}'.format(testdata.get_unicode_words()),
             'input/2/two.md': u'2. {}'.format(testdata.get_unicode_words()),
             'input/3/three.md': u'3. {}'.format(testdata.get_unicode_words()),
-            'config.py': "\n".join([
+            'bangfile.py': "\n".join([
                 "host = 'example.com'",
                 ""
             ])
@@ -209,4 +211,15 @@ class PostTest(TestCase):
         })
 
         self.assertRegexpMatches(p.html, '<code class=\"codeblock python\">')
+
+class SkeletonTest(TestCase):
+    def test_generate(self):
+        project_dir = ProjectDirectory(testdata.create_dir())
+        s = skeleton.Skeleton(project_dir)
+        s.output()
+
+        for file_dict in skeleton.file_skeleton:
+            d = project_dir / file_dict['dir']
+            self.assertTrue(d.exists())
+            self.assertTrue(os.path.isfile(os.path.join(str(d), file_dict['basename'])))
 

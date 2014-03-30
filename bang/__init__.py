@@ -8,9 +8,10 @@ from .path import Directory, ProjectDirectory
 from .generator import Site
 from . import echo
 from . import event
+from .skeleton import Skeleton
 
 
-__version__ = "0.1.8"
+__version__ = "0.1.9"
 
 
 def console():
@@ -48,7 +49,7 @@ def console():
 #    )
     parser.add_argument("-v", "--version", action='version', version="%(prog)s {}".format(__version__))
     parser.add_argument("--debug", action='store_true', dest='debug')
-    parser.add_argument('command', nargs='?', default="compile", choices=["compile", "serve", "watch"])
+    parser.add_argument('command', nargs='?', default="compile", choices=["compile", "serve", "watch", "generate"])
     args = parser.parse_args()
 
     echo.quiet = not args.debug
@@ -63,8 +64,12 @@ def console():
 
     if args.command == 'compile':
         echo.out("compiling directory {} to {}...", project_dir.input_dir, output_dir)
-
         s = Site(project_dir, output_dir)
+        s.output()
+
+    if args.command == 'generate':
+        echo.out("Generating new project in {}...", project_dir)
+        s = Skeleton(project_dir)
         s.output()
 
     elif args.command == 'serve':

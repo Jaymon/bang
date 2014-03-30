@@ -6,8 +6,31 @@ You run bang from the command line:
 
     $ bang command --project-dir=...
 
+-------------------------------------------------------------------------------
 
-## Setup
+## 1 minute getting started
+
+First, install bang:
+
+    $ pip install bang
+
+Make a new project:
+
+    $ bang generate --project-dir=~/bang-quickstart
+
+Then compile your new project:
+
+    $ bang compile --project-dir=~/bang-quickstart
+
+And start up the development server to take a look at your new project:
+
+    $ bang serve --project-dir=~/bang-quickstart
+
+Now, open a browser and load `localhost:8000` to see your masterpiece, that's it!
+
+-------------------------------------------------------------------------------
+
+## Setup and Configuration
 
 A bang site can have any folder structure and bang will check each folder for a markdown (extension `.md`) file, if it finds one named `index.md` it will not treat it like a blog post but just compile the folder to an `index.html` file. If it finds a markdown file with any other name, then it is considered a blog post with the file's name being the title. So, it basically uses this structure for its posts, so if you have this file structure:
 
@@ -23,6 +46,12 @@ It would compile down to a blog post with a title *This is the title of the blog
 
 Any other files (images or whatnot) will just be copied over to their respective locations.
 
+Bang can be configured using environment variables, basically, any `BANG_*` environment variables wil be put into the configuration, here are a couple you might want to set:
+
+**BANG_HOST** -- the host of your website, this is used to generate urls and stuff.
+
+**BANG_METHOD** -- the http method to use (either `http` or `https`).
+
 -------------------------------------------------------------------------------
 
 ## Project directory
@@ -35,18 +64,18 @@ This is where all your blog posts go.
 
 ### template (required)
 
-This is where all your Jinja templates go, they are used to compile your blog posts to their final form.
+This is where all your [Jinja](http://jinja.pocoo.org/) templates go, they are used to compile your blog posts to their final form.
 
 ### output (optional)
 
-This is the default output directory when the `compile` command is used with no `--output-dir` option set.
+This is the default output directory when the `compile` command is used with no `--output-dir` argument.
 
-### config.py (optional)
+### bangfile.py (optional)
 
 You can add this file to configure bang when compiling:
 
 ```python
-# /project_dir/config.py
+# /project_dir/bangfile.py
 name = "your site name"
 description = "your site description"
 host = "example.com"
@@ -96,6 +125,12 @@ This is designed to be used on the remote server that will host your site in a c
 
     $ /usr/local/bin/bang watch --project-dir=...
 
+### generate
+
+Generate a site skeleton that you can use as a starting point to your own bang site, this will take the `project_dir` and make sure it exists (or create it) and then add `input` and `template` dirs along with skeleton template files.
+
+    $ bang generate --project-dir=...
+
 -------------------------------------------------------------------------------
 
 ## Install
@@ -104,6 +139,11 @@ Use pip:
 
     pip install bangtext
 
+-------------------------------------------------------------------------------
+
+## License
+
+MIT
 
 -------------------------------------------------------------------------------
 
@@ -111,14 +151,7 @@ Use pip:
 
 The folders should allow tagging with #hashtags
 
-a project should be able to include a plugins directory (python module) that will allow customization, there should be events added around all the major things during execution (eg, a post_compiled event, a pre_compile event) that the plugins module the user adds can hook into. Not sure this needed anymore though since you can configure the plugins in your config.py file
-
-### markdown extension
-
-I need to write an extension that will look at all the a tags and convert them to full urls, so you can do a link like:
-
-    [a link](/foo/bar)
-
-and this extension will intercept the creation of the `<a>` tag and convert the href `/foo/bar` to: `http://example.com/foo/bar`
+a project should be able to include a plugins directory (python module) that will allow customization, there should be events added around all the major things during execution (eg, a post_compiled event, a pre_compile event) that the plugins module the user adds can hook into. Not sure this needed anymore though since you can configure the plugins in your `bangfile.py` file
 
 http://pythonhosted.org/Markdown/extensions/api.html
+
