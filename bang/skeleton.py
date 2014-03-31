@@ -13,7 +13,11 @@ master_skeleton = u'''<!DOCTYPE html>
 
     <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16" />
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
-  
+
+    <!-- For code syntax highlighting, see: http://highlightjs.org -->
+    <link rel="stylesheet" href="//yandex.st/highlightjs/8.0/styles/default.min.css">
+
+    <script src="//yandex.st/highlightjs/8.0/highlight.min.js"></script>
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
     <link rel="stylesheet" href="/assets/css/app.css" type="text/css" media="screen, projection">
   </head>
@@ -31,7 +35,22 @@ master_skeleton = u'''<!DOCTYPE html>
 </html>
 '''
 
-index_skeleton = u'''{{ post.title }}\n{{ post.html }}\n{{ post.modified.strftime("%Y-%m-%d") }}\n'''
+#index_skeleton = u'''{{ post.title }}\n{{ post.html }}\n{{ post.modified.strftime("%Y-%m-%d") }}\n'''
+index_skeleton = u'''{% extends "master.html" %}
+
+{% block title %}{{ post.title }}{% endblock %}
+
+{% block content %}
+  <h1><a href="{{ post.url }}">{{ post.title }}</a></h1>
+
+  {{ post.html }}
+
+  <p class="post-meta">
+    {{ post.modified.strftime("%b %d %Y") }}
+  </p>
+
+{% endblock %}
+'''
 
 bangfile_skeleton = u'''import os
 
@@ -40,7 +59,7 @@ method = os.environ.get("BANG_METHOD", "http")
 description = ""
 
 # add all the plugins
-from bang.plugins import sitemap, feed
+from bang.plugins import sitemap, feed, indexone
 '''
 
 file_skeleton = [

@@ -127,6 +127,19 @@ class Directory(object):
 
         return fs
 
+    def has_file(self, basename):
+        """return true if the file basename exists in this directory"""
+        return os.path.isfile(os.path.join(str(self), basename))
+
+    def has_index(self):
+        """returns True if this directory has an index.* file already"""
+        r = False
+        for f in self.files(ur'^index.'):
+            r = True
+            break
+
+        return r
+
     def is_post(self):
         """return true if this directory has a blog post in it"""
         return not self.is_aux() and self.files(self.content_file_regex)

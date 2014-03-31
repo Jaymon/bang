@@ -133,6 +133,46 @@ Generate a site skeleton that you can use as a starting point to your own bang s
 
 -------------------------------------------------------------------------------
 
+## Events
+
+Events are callbacks that are fired at specific times.
+
+The easiest way to hook these in to your site compiling is to define or import them into your `bangfile.py` configuration file. You can see examples of how they are used in the `bang.plugins` [module](https://github.com/Jaymon/bang/tree/master/bang/plugins).
+
+Events are basically defined like this:
+
+```python
+from .. import event, echo
+
+def callback(event_name, site):
+    """print all the post titles and urls to the screen"""
+    for p in site.posts:
+        echo.out(p.title)
+        echo.err(p.url)
+
+event.listen('output.finish', callback)
+```
+
+### output.finish
+
+This event is fired after all the posts are compiled, right now it is used to do things like generating RSS feeds and the sitemap.
+
+### dom.[TAGNAME]
+
+This event is fired for every element in a post that matches, so if you wanted to do something with `a` tags, you could hook up a callback to listen on `dom.a`.
+
+```python
+from .. import event, echo
+
+def callback(event_name, parent, elem):
+    """print all href urls in every a tag"""
+    echo.out(elem.href)
+
+event.listen('dom.a', callback)
+```
+
+-------------------------------------------------------------------------------
+
 ## Install
 
 Use pip:
@@ -154,4 +194,16 @@ The folders should allow tagging with #hashtags
 a project should be able to include a plugins directory (python module) that will allow customization, there should be events added around all the major things during execution (eg, a post_compiled event, a pre_compile event) that the plugins module the user adds can hook into. Not sure this needed anymore though since you can configure the plugins in your `bangfile.py` file
 
 http://pythonhosted.org/Markdown/extensions/api.html
+
+`index.html` should be changed to `post.html` and `aux.html` to be more flexible.
+
+make an event listening decorator that takes an event name
+
+```
+@event.callback('event_name')
+def callback(*args, **kwargs):
+    pass
+```
+
+would `generate` command be better as `start` or `skeleton`?
 

@@ -277,11 +277,6 @@ class Site(object):
         for f in self.project_dir.input_dir.files():
             self.output_dir.copy_file(f)
 
-        # the root index will point to the last post
-        p = posts.last_post
-        if p:
-            self.output_dir.copy_file(p.output_file)
-
         self.posts = posts
         self.auxs = auxs
 

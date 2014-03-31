@@ -56,6 +56,24 @@ class ProjectDirectoryTest(TestCase):
     pass
 
 class PluginTest(TestCase):
+    def test_indexone(self):
+        from bang.plugins import indexone
+        project_dir, output_dir = get_dirs({
+            'input/1/one.md': u'1. {}'.format(testdata.get_unicode_words()),
+        })
+        s = Site(project_dir, output_dir)
+        s.output()
+        self.assertTrue(s.output_dir.has_file('index.html'))
+
+        # make sure it doesn't generate the file if index already exists
+        project_dir, output_dir = get_dirs({
+            'input/1/one.md': u'1. {}'.format(testdata.get_unicode_words()),
+            'input/index.txt':u'2. {}'.format(testdata.get_unicode_words()),
+        })
+        s = Site(project_dir, output_dir)
+        s.output()
+        self.assertFalse(s.output_dir.has_file('index.html'))
+
     def test_feed(self):
         from bang.plugins import feed
         project_dir, output_dir = get_dirs({
