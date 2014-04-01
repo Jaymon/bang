@@ -52,10 +52,22 @@ def get_post(post_files):
         p = Post(d, output_dir, tmpl, Config(project_dir))
         return p
 
-class ProjectDirectoryTest(TestCase):
-    pass
 
 class PluginTest(TestCase):
+    def test_core_make_hilightable(self):
+        content = u"""
+this is the post
+
+```python
+def foo():
+    pass
+```
+"""
+        p = get_post({'this is the post.md': content})
+        r = p.html
+        pout.v(r)
+
+
     def test_indexone(self):
         from bang.plugins import indexone
         project_dir, output_dir = get_dirs({

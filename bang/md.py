@@ -11,9 +11,9 @@ import re
 import os
 
 from markdown.extensions import codehilite, fenced_code
-from pygments import highlight
-from pygments.lexers import get_lexer_by_name, guess_lexer, TextLexer
-from pygments.formatters import HtmlFormatter
+#from pygments import highlight
+#from pygments.lexers import get_lexer_by_name, guess_lexer, TextLexer
+#from pygments.formatters import HtmlFormatter
 
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
@@ -30,7 +30,7 @@ class DomEventTreeprocessor(Treeprocessor):
         post = self.config['post']
         for parent, elem in self.iterparent(doc):
             elem_event_name = 'dom.{}'.format(elem.tag)
-            event.broadcast(elem_event_name, parent=parent, elem=elem, **self.config)
+            event.broadcast(elem_event_name, parent=parent, elem=elem, config=self.config)
 
 
 class DomEventExtension(Extension):
@@ -51,7 +51,7 @@ class DomEventExtension(Extension):
 
     def extendMarkdown(self, md, md_globals):
         md.registerExtension(self)
-        self.processor = HrefTreeprocessor()
+        self.processor = DomEventTreeprocessor()
         self.processor.md = md
         self.processor.config = self.getConfigs()
         #md.treeprocessors.add('href', self.processor, ">")
@@ -203,26 +203,6 @@ class HighlightExtension(fenced_code.FencedCodeExtension):
         )
 
 
-class CodeBlockFormatter(HtmlFormatter):
-    """
-    based off the example found here: http://pygments.org/docs/formatters/
-
-    http://pygments.org/docs/
-    """
-    def wrap(self, source, outfile):
-        return self._wrap_code(source)
-
-    def _wrap_code(self, source):
-        code_tag = '<code>'
-        if self.cssclass:
-            code_tag = '<code class="{}">'.format(self.cssclass)
-
-        yield 0, '<pre>{}'.format(code_tag)
-        for i, t in source:
-            yield i, t
-        yield 0, '</code></pre>'
-
-
 class CodeBlockPreprocessor(fenced_code.FencedBlockPreprocessor):
     """
     Generates compatible code blocks that can be used with default highlight.js
@@ -235,22 +215,14 @@ class CodeBlockPreprocessor(fenced_code.FencedBlockPreprocessor):
     def run(self, lines):
         """ Match and store Fenced Code Blocks in the HtmlStash. """
         text = u"\n".join(lines)
-        while 1:
+        while True:
             m = self.FENCED_BLOCK_RE.search(text)
             if m:
-                lang = 'no-highlight'
+                lang = u' no-highlight'
                 if m.group('lang'):
-                    lang = m.group('lang')
+                    lang = u' ' + m.group('lang')
 
-                try:
-                    lexer = get_lexer_by_name(lang)
-
-                except ValueError:
-                    lexer = TextLexer()
-
-                formatter = CodeBlockFormatter(cssclass="codeblock {}".format(lang))
-                code = highlight(m.group('code'), lexer, formatter)
-
+                code = u'<pre><code class="codeblock{}">{}</code></pre>'.format(lang, m.group('code').strip())
                 placeholder = self.markdown.htmlStash.store(code, safe=True)
                 text = u'{}\n{}\n{}'.format(text[:m.start()], placeholder, text[m.end():])
 

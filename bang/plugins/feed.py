@@ -34,6 +34,7 @@ def get_datestr(dt):
     return dt.strftime("%a, %d %b %Y %H:%M:%S +0000")
 
 
+@event.bind('output.finish')
 def output_rss(event_name, site):
     host = site.config.host
     if not host:
@@ -85,7 +86,4 @@ def output_rss(event_name, site):
 
         fp.write(u"  </channel>\n")
         fp.write(u"</rss>\n")
-
-
-event.listen('output.finish', output_rss)
 

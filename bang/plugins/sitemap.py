@@ -9,6 +9,7 @@ import codecs
 
 from .. import event, echo
 
+@event.bind('output.finish')
 def output_sitemap(event_name, site):
     if not len(site.posts): return
 
@@ -41,6 +42,4 @@ def output_sitemap(event_name, site):
     else:
         echo.err("[WARNING] sitemap not generated because no config host set")
 
-
-event.listen('output.finish', output_sitemap)
 

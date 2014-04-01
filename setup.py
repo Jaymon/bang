@@ -28,7 +28,7 @@ setup(
     url='http://github.com/jaymon/{}'.format(name),
     packages=[name, '{}.plugins'.format(name)],
     license="MIT",
-    install_requires=['Jinja2', 'markdown', 'pygments'],
+    install_requires=['Jinja2', 'markdown'],
     classifiers=[ # https://pypi.python.org/pypi?:action=list_classifiers
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',

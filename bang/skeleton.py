@@ -14,11 +14,12 @@ master_skeleton = u'''<!DOCTYPE html>
     <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16" />
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
 
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
+
     <!-- For code syntax highlighting, see: http://highlightjs.org -->
     <link rel="stylesheet" href="//yandex.st/highlightjs/8.0/styles/default.min.css">
-
     <script src="//yandex.st/highlightjs/8.0/highlight.min.js"></script>
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
+
     <link rel="stylesheet" href="/assets/css/app.css" type="text/css" media="screen, projection">
   </head>
 
@@ -31,6 +32,9 @@ master_skeleton = u'''<!DOCTYPE html>
 
     <div id="footer"></div>
 
+    <script>
+      hljs.initHighlighting()
+    </script>
   </body>
 </html>
 '''

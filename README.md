@@ -197,13 +197,5 @@ http://pythonhosted.org/Markdown/extensions/api.html
 
 `index.html` should be changed to `post.html` and `aux.html` to be more flexible.
 
-make an event listening decorator that takes an event name
-
-```
-@event.callback('event_name')
-def callback(*args, **kwargs):
-    pass
-```
-
 would `generate` command be better as `start` or `skeleton`?
 

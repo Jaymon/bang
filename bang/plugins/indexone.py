@@ -9,6 +9,7 @@ import codecs
 
 from .. import event, echo
 
+@event.bind('output.finish')
 def output_index(event_name, site):
     if not len(site.posts):
         echo.err("[WARNING] cannot created index.html file because there are no posts")
@@ -23,6 +24,4 @@ def output_index(event_name, site):
         else:
             site.output_dir.copy_file(p.output_file)
 
-
-event.listen('output.finish', output_index)
 
