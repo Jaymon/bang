@@ -11,9 +11,6 @@ import re
 import os
 
 from markdown.extensions import codehilite, fenced_code
-#from pygments import highlight
-#from pygments.lexers import get_lexer_by_name, guess_lexer, TextLexer
-#from pygments.formatters import HtmlFormatter
 
 from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor

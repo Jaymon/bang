@@ -54,20 +54,6 @@ def get_post(post_files):
 
 
 class PluginTest(TestCase):
-    def test_core_make_hilightable(self):
-        content = u"""
-this is the post
-
-```python
-def foo():
-    pass
-```
-"""
-        p = get_post({'this is the post.md': content})
-        r = p.html
-        pout.v(r)
-
-
     def test_indexone(self):
         from bang.plugins import indexone
         project_dir, output_dir = get_dirs({
@@ -241,6 +227,20 @@ class PostTest(TestCase):
         })
 
         self.assertRegexpMatches(p.html, '<code class=\"codeblock python\">')
+
+    def test_codeblocks_2(self):
+        content = u"\n".join([
+            u'this is the post',
+            u'',
+            u'```python',
+            u'def foo():',
+            u'    pass',
+            u'```',
+            ''
+        ])
+        p = get_post({'this is the post.md': content})
+        r = p.html
+        self.assertRegexpMatches(r, 'class=\"codeblock python\"')
 
 class SkeletonTest(TestCase):
     def test_generate(self):
