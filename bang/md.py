@@ -16,6 +16,7 @@ from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
 from . import event
 
+
 class DomEventTreeprocessor(Treeprocessor):
     """support for HrefExtension"""
     def iterparent(self, tree):
@@ -126,39 +127,31 @@ class ImageTreeprocessor(HrefTreeprocessor):
             for child in parent:
                 yield parent, child
 
+    def normalize_str(self, text):
+        if not text: text = ''
+        text = text.strip()
+        return text
+
     def run(self, doc):
         post = self.config['post']
         config = post.config
-        for parent_elem, elem in self.iterparent(doc):
-            if elem.tag == 'img':
-                class_attr = parent_elem.get('class')
-                if not class_attr: class_attr = ''
-                img_class = ''
-                if len(parent_elem) == 1:
-                    head_text = parent_elem.text
-                    if not head_text: head_text = ''
-                    head_text = head_text.strip()
+        for child in doc.getiterator():
+            if child.tag == 'p':
+                has_image = False
+                text = self.normalize_str(child.text)
+                for grandchild in child.getiterator():
+                    if grandchild.tag == 'img':
+                        text += self.normalize_str(grandchild.tail)
+                        # also normalize the url
+                        src = grandchild.get('src')
+                        url = self.normalize_url(src)
+                        grandchild.set('src', url)
+                        has_image = True
 
-                    tail_text = elem.tail
-                    if not tail_text: tail_text = ''
-                    tail_text = tail_text.strip()
-
-                    if head_text or tail_text:
-                        img_class += ' image-floating'
-
-                    else:
-                        img_class += ' image-centered'
-
-                else:
-                    img_class += ' image-floating'
-
-                class_attr += img_class
-                parent_elem.set('class', class_attr.strip())
-
-                # also normalize the url
-                src = elem.get('src')
-                url = self.normalize_url(src)
-                elem.set('src', url)
+                if has_image:
+                    class_attr = self.normalize_str(child.get('class'))
+                    class_attr = ' image-floating' if text else ' image-centered'
+                    child.set('class', class_attr.strip())
 
 
 class ImageExtension(Extension):

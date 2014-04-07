@@ -154,6 +154,15 @@ class PostTest(TestCase):
         p = get_post({
             'che.jpg': "",
             'foo.md': "\n".join([
+                '[![this is the alt](che.jpg this is the title)](http://example.com)',
+                ""
+            ])
+        })
+        self.assertRegexpMatches(p.html, '<p\s+class=\"image-centered\"')
+
+        p = get_post({
+            'che.jpg': "",
+            'foo.md': "\n".join([
                 '![this is the file](che.jpg)',
                 ""
             ])
