@@ -78,6 +78,7 @@ class Posts(object):
     last_post = None
 
     def append(self, post):
+        post.posts = self
         if not self.first_post:
             self.first_post = post
 
@@ -101,6 +102,16 @@ class Posts(object):
         while p:
             yield p
             p = p.prev_post
+
+    def reverse(self, count=0):
+        """iterate backwards through the posts up to count"""
+        p_count = 0
+        for p in reversed(self):
+            p_count += 1
+            yield p
+
+            if count and p_count >= count:
+                break
 
     def __len__(self):
         return self.total
