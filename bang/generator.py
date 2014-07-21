@@ -9,7 +9,8 @@ import markdown
 from jinja2 import Environment, FileSystemLoader
 
 from . import echo
-from .md import HighlightExtension, HrefExtension, ImageExtension, DomEventExtension
+from .md import HighlightExtension, HrefExtension, ImageExtension, \
+    DomEventExtension, DelInsExtension
 from . import event
 
 
@@ -78,7 +79,6 @@ class Posts(object):
     last_post = None
 
     def append(self, post):
-        post.posts = self
         if not self.first_post:
             self.first_post = post
 
@@ -207,7 +207,8 @@ class Post(object):
                 'smart_strong',
                 HrefExtension(self),
                 ImageExtension(self),
-                DomEventExtension(self)
+                DomEventExtension(self),
+                DelInsExtension()
             ],
             output_format="html5"
         )
@@ -215,7 +216,10 @@ class Post(object):
     def __str__(self):
         return self.directory.path
 
-    def output(self):
+    def output(self, **kwargs):
+        """
+        **kwargs -- dict -- these will be passed to the template
+        """
         echo.out("output {}", self.title)
         d = self.directory
         output_dir = self.output_dir
@@ -236,7 +240,8 @@ class Post(object):
         self.tmpl.output(
             self.template_name,
             output_file,
-            post=self
+            post=self,
+            **kwargs
         )
 
 
@@ -280,10 +285,10 @@ class Site(object):
                     output_dir.copy_file(f)
 
         for p in posts:
-            p.output()
+            p.output(posts=posts, auxs=auxs)
 
         for a in auxs:
-            a.output()
+            a.output(posts=posts, auxs=auxs)
 
         for f in self.project_dir.input_dir.files():
             self.output_dir.copy_file(f)

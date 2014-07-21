@@ -10,11 +10,25 @@ https://github.com/waylan/Python-Markdown/wiki/Third-Party-Extensions
 import re
 import os
 
-from markdown.extensions import codehilite, fenced_code
+from markdown.extensions import codehilite, fenced_code, Extension
+from markdown.inlinepatterns import SimpleTagPattern
 
-from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor
 from . import event
+
+
+class DelInsExtension(Extension):
+    """
+    Adds delete/insert support
+
+    I cribbed this from https://github.com/aleray/mdx_del_ins/blob/master/mdx_del_ins.py
+    """
+    DEL_RE = r"(\~{2})(.+?)(\~{2})"
+    INS_RE = r"(\+{2})(.+?)(\+{2})"
+
+    def extendMarkdown(self, md, md_globals):
+        md.inlinePatterns.add('del', SimpleTagPattern(self.DEL_RE, 'del'), '<not_strong')
+        md.inlinePatterns.add('ins', SimpleTagPattern(self.INS_RE, 'ins'), '<not_strong')
 
 
 class DomEventTreeprocessor(Treeprocessor):
