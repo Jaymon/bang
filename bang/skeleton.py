@@ -1,6 +1,6 @@
 
-post_skeleton = u'''
-This is the body text
+post_body = u'''
+This is the body text.
 '''
 
 master_skeleton = u'''<!DOCTYPE html>
@@ -20,7 +20,7 @@ master_skeleton = u'''<!DOCTYPE html>
     <link rel="stylesheet" href="//yandex.st/highlightjs/8.0/styles/default.min.css">
     <script src="//yandex.st/highlightjs/8.0/highlight.min.js"></script>
 
-    <link rel="stylesheet" href="/assets/css/app.css" type="text/css" media="screen, projection">
+    <link rel="stylesheet" href="/assets/app.css" type="text/css" media="screen, projection">
   </head>
 
   <body>
@@ -40,30 +40,55 @@ master_skeleton = u'''<!DOCTYPE html>
 '''
 
 #index_skeleton = u'''{{ post.title }}\n{{ post.html }}\n{{ post.modified.strftime("%Y-%m-%d") }}\n'''
-index_skeleton = u'''{% extends "master.html" %}
-
-{% block title %}{{ post.title }}{% endblock %}
-
+single_skeleton = u'''
+<!-- Render just the html of the post, both post.html and posts.html use this -->
 {% block content %}
-  <h1><a href="{{ post.url }}">{{ post.title }}</a></h1>
+  <h1><a href="{{post.url}}">{{ post.title }}</a></h1>
 
   {{ post.html }}
 
   <p class="post-meta">
-    {{ post.modified.strftime("%b %d %Y") }}
+    {{ post.modified.strftime('%b %d %Y') }}
   </p>
 
 {% endblock %}
+'''
+
+post_skeleton = u'''
+<!-- render a post permalink -->
+{% extends "master.html" %}
+
+{% block title %}{{ post.title }}{% endblock %}
+
+{% block content %}
+  {% include 'single.html' %}
+{% endblock %}
+'''
+
+posts_skeleton = u'''
+<!-- render a group of posts -->
+{% extends "master.html" %}
+
+{% block title %}{{ config.title }}{% endblock %}
+
+{% block content %}
+  {% for post in posts.reverse(10) %}
+    {% include 'single.html' %}
+    <hr>
+  {% endfor %}
+{% endblock %}
+
 '''
 
 bangfile_skeleton = u'''import os
 
 host = os.environ.get("BANG_HOST", "")
 method = os.environ.get("BANG_METHOD", "http")
+title = ""
 description = ""
 
 # add all the plugins
-from bang.plugins import sitemap, feed, indexone
+from bang.plugins import sitemap, feed
 '''
 
 file_skeleton = [
@@ -75,7 +100,7 @@ file_skeleton = [
     {
         'dir': ("input", "hello-world"),
         'basename': 'Hello World.md',
-        'content': post_skeleton
+        'content': post_body
     },
     {
         'dir': ("template"),
@@ -84,8 +109,18 @@ file_skeleton = [
     },
     {
         'dir': ("template"),
-        'basename': 'index.html',
-        'content': index_skeleton
+        'basename': 'post.html',
+        'content': post_skeleton
+    },
+    {
+        'dir': ("template"),
+        'basename': 'posts.html',
+        'content': posts_skeleton
+    },
+    {
+        'dir': ("template"),
+        'basename': 'single.html',
+        'content': single_skeleton
     },
     {
         'dir': [],

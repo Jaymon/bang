@@ -60,11 +60,14 @@ Your project directory is where all the magic happens. It has to contain a few f
 
 ### input (required)
 
-This is where all your blog posts go.
+This is where everything you want to be in the final output folder should go, this includes your blog posts and any other files/folders you want your *live* static site to contain.
 
 ### template (required)
 
-This is where all your [Jinja](http://jinja.pocoo.org/) templates go, they are used to compile your blog posts to their final form.
+This is where all your [Jinja](http://jinja.pocoo.org/) templates go, they are used to compile your blog posts to their final form. Bang looks for a few template files by default for blog posts:
+
+* `post.html` - This contains the html for rendering a post's permalink page.
+* `posts.html` - This contains the html for rendering a list of posts.
 
 ### output (optional)
 

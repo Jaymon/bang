@@ -1,5 +1,5 @@
 """
-Why do I render the feed myself? Because every library I found needed to many other
+Why do I render the feed myself? Because every library I found needed too many other
 dependencies and some were a real pain to install (you need lxml? Seriously?). So
 I just render the feed raw
 
@@ -7,7 +7,7 @@ http://en.wikipedia.org/wiki/RSS
 https://github.com/lkiesow/python-feedgen
 http://cyber.law.harvard.edu/rss/rss.html
 
-alidator: http://validator.w3.org/feed/
+validator: http://validator.w3.org/feed/
 big list of namespaces: http://validator.w3.org/feed/docs/howto/declare_namespaces.html
 """
 import datetime

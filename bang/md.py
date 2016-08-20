@@ -91,10 +91,12 @@ class HrefTreeprocessor(Treeprocessor):
                 url = "{}{}".format(base_url, url)
 
             else:
-                for f in post.directory.other_files:
-                    basename = os.path.basename(f)
-                    if url == basename:
-                        url = "{}/{}".format(post.url, basename)
+                url = "{}/{}".format(post.url, url)
+#                 for f in post.directory.other_files:
+#                     basename = os.path.basename(f)
+#                     pout.v(basename, url)
+#                     if url == basename:
+#                         url = "{}/{}".format(post.url, basename)
 
         return url
 

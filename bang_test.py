@@ -32,25 +32,33 @@ def get_dirs(input_files):
     testdata.create_files(d, tmpdir=str(project_dir))
     return project_dir, output_dir
 
-def get_post(post_files):
+def get_post(post_files, name=""):
+    if not name:
         name = testdata.get_ascii(16)
-        di = {
-            'bangfile.py': "\n".join([
-                "host = 'example.com'",
-                "name = 'example site'",
-                ""
-            ])
-        }
-        for basename, file_contents in post_files.iteritems():
-            fp = os.path.join('input', name, basename)
-            di[fp] = file_contents
 
-        project_dir, output_dir = get_dirs(di)
-        d = Directory(project_dir.input_dir, name)
-        d.ancestor_dir = project_dir.input_dir
-        tmpl = Template(project_dir.template_dir)
-        p = Post(d, output_dir, tmpl, Config(project_dir))
-        return p
+    di = {
+        'bangfile.py': "\n".join([
+            "host = 'example.com'",
+            "name = 'example site'",
+            ""
+        ])
+    }
+
+    # replace any project files if they are present
+    for rp in ["bangfile.py"]:
+        if rp in post_files:
+            di[rp] = post_files.pop(rp)
+
+    for basename, file_contents in post_files.items():
+        fp = os.path.join('input', name, basename)
+        di[fp] = file_contents
+
+    project_dir, output_dir = get_dirs(di)
+    d = Directory(project_dir.input_dir, name)
+    d.ancestor_dir = project_dir.input_dir
+    tmpl = Template(project_dir.template_dir)
+    p = Post(d, output_dir, tmpl, Config(project_dir))
+    return p
 
 
 class PluginTest(TestCase):
@@ -150,6 +158,81 @@ class SiteTest(TestCase):
 
 
 class PostTest(TestCase):
+    def test_no_bangfile_host(self):
+        name = testdata.get_ascii(16)
+        p = get_post({
+            'foo.md': "\n".join([
+                "hi"
+            ]),
+            'bangfile.py': ""
+        }, name=name)
+
+        self.assertEqual("/{}".format(name), p.url)
+
+    def test_description_property(self):
+        p = get_post({
+            'foo.md': "\n".join([
+                'This is the sentence. This is the second one!!!! And the third. And the fourth.',
+                ""
+            ])
+        })
+
+        desc = p.description
+        self.assertEqual("This is the sentence. This is the second one!!!!", desc)
+
+        desc = p.description
+        self.assertEqual("This is the sentence. This is the second one!!!!", desc)
+
+        p = get_post({
+            'foo.md': "\n".join([
+                "This is the sentence.",
+                "",
+                "This is the second one?!?!?!",
+                "And the third. And the fourth.",
+                ""
+            ])
+        })
+
+        desc = p.description
+        self.assertEqual("This is the sentence. This is the second one?!?!?!", desc)
+
+        p = get_post({
+            'foo.md': "\n".join([
+                "This is the first line",
+                "",
+                "There are no sentences",
+                ""
+            ])
+        })
+
+        desc = p.description
+        self.assertEqual("This is the first line There are no sentences", desc)
+
+    def test_image_property(self):
+        p = get_post({
+            'images/che.jpg': "",
+            'foo.md': "\n".join([
+                '![this is the file](images/che.jpg)',
+                ""
+            ])
+        })
+
+        im = p.image
+        self.assertTrue(im.endswith("images/che.jpg"))
+
+        im = p.image
+        self.assertTrue(im.endswith("images/che.jpg"))
+
+    def test_image_full_path(self):
+        p = get_post({
+            'images/che.jpg': "",
+            'foo.md': "\n".join([
+                '![this is the file](images/che.jpg)',
+                ""
+            ])
+        })
+        self.assertRegexpMatches(p.html, '//{}/[^/]+/images/che.jpg'.format(p.config.host))
+
     def test_image(self):
         p = get_post({
             'che.jpg': "",
@@ -221,8 +304,8 @@ class PostTest(TestCase):
 
         html = p.html
         self.assertRegexpMatches(html, '\"http://foo.com\"')
-        self.assertRegexpMatches(html, '\"http://example.com/bar\"')
-        self.assertRegexpMatches(html, '\"http://example.com/[^\/]+/che.txt\"')
+        self.assertRegexpMatches(html, '\"//{}/bar\"'.format(p.config.host))
+        self.assertRegexpMatches(html, '\"//{}/[^\/]+/che.txt\"'.format(p.config.host))
         self.assertRegexpMatches(html, '\"//bar.com\"')
 
     def test_codeblocks(self):

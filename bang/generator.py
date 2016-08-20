@@ -4,6 +4,8 @@ from distutils import dir_util
 import fnmatch
 import datetime
 import imp
+from HTMLParser import HTMLParser
+import re
 
 import markdown
 from jinja2 import Environment, FileSystemLoader
@@ -14,17 +16,52 @@ from .md import HighlightExtension, HrefExtension, ImageExtension, \
 from . import event
 
 
+# http://stackoverflow.com/a/925630/5006
+class HTMLStripper(HTMLParser):
+    """strip html tags"""
+    @classmethod
+    def strip_tags(cls, html):
+        s = cls()
+        s.feed(html)
+        return s.get_data()
+
+    def __init__(self):
+        self.reset()
+        self.fed = []
+
+    def handle_data(self, d):
+        self.fed.append(d)
+
+    def get_data(self):
+        return ''.join(self.fed)
+
+
 class Config(object):
     """small wrapper around the config module that takes care of what happens if
     the config file doesn't actually exist"""
     @property
     def base_url(self):
-        return u'{}://{}'.format(self.method, self.host)
+        """Return the base url with scheme (scheme) and host and everything, if scheme
+        is unknown this will use // (instead of http://) but that might make things
+        like the rss feed and sitemap fail if they are used so it is recommended you
+        set the scheme in your bangfile, there is a similar problem if host is empty, then
+        it will just return empty string"""
+        base_url = ''
+        scheme = self.scheme
+        if scheme:
+            base_url = '{}://{}'.format(scheme, self.host)
+
+        else:
+            host = self.host
+            if host:
+                base_url = '//{}'.format(host)
+
+        return base_url
 
     def __init__(self, project_dir):
         self.module = None
         self.fields = {
-            'method': 'http'
+            #'scheme': 'http'
         }
 
         config_file = os.path.join(str(project_dir), 'bangfile.py')
@@ -73,10 +110,23 @@ class Template(object):
 
 
 class Posts(object):
-    """this is a simple linked list"""
+    """this is a simple linked list of Post instances, the Post instances have next_post
+    and prev_post pointers that this class takes advantage of to build the list"""
     first_post = None
     total = 0
     last_post = None
+
+    template_name = 'posts'
+    """this is the template that will be used to compile the posts into html"""
+
+    output_basename = 'index.html'
+    """this is the name of the file that this post will be outputted to after it
+    is templated"""
+
+    def __init__(self, output_dir, tmpl, config):
+        self.output_dir = output_dir
+        self.tmpl = tmpl
+        self.config = config
 
     def append(self, post):
         if not self.first_post:
@@ -89,7 +139,8 @@ class Posts(object):
         self.last_post = post
         self.total += 1
 
-    def count(self): return self.total
+    def count(self):
+        return self.total
 
     def __iter__(self):
         p = self.first_post
@@ -116,13 +167,62 @@ class Posts(object):
     def __len__(self):
         return self.total
 
+    def output(self, **kwargs):
+        """
+        **kwargs -- dict -- these will be passed to the template
+        """
+        echo.out("output Posts")
+        output_dir = self.output_dir
+        output_dir.create()
+
+        output_file = os.path.join(str(output_dir), self.output_basename)
+
+        # TODO -- generate both prev and next urls if needed
+
+        echo.out(
+            'templating Posts with template "{}" to output file {}',
+            self.template_name,
+            output_file
+        )
+        self.tmpl.output(
+            self.template_name,
+            output_file,
+            posts=self,
+            config=self.config,
+            **kwargs
+        )
+
+        # TODO -- after creating output_dir/index.html, then create output_dir/page/N
+        # files for each page of Posts
+
 
 class Post(object):
-    """this is a node to the Posts linked list"""
+    """this is a node in the Posts linked list, it holds all the information needed
+    to output a Post in the input directory to the output directory"""
     next_post = None
+    """holds a pointer to the next Post"""
+
     prev_post = None
-    template_name = 'index'
+    """holds a pointer to the previous Post"""
+
+    template_name = 'post'
+    """this is the template that will be used to compile the post into html"""
+
     output_basename = 'index.html'
+    """this is the name of the file that this post will be outputted to after it
+    is templated"""
+
+    @property
+    def next_url(self):
+        """returns the url of the next post"""
+        p = self.next_post
+        return p.url if p else ""
+
+    @property
+    def prev_url(self):
+        """returns the url of the previous post"""
+        p = self.prev_post
+        return p.url if p else ""
 
     @property
     def modified(self):
@@ -161,6 +261,35 @@ class Post(object):
         return v
 
     @property
+    def description(self):
+        """Returns a nice description of the post, first 2 sentences"""
+        desc = getattr(self, "_description", None)
+        if desc is None:
+            html = self.html
+            plain = HTMLStripper.strip_tags(html)
+            ms = re.split("(?<=\S[\.\?!])(?:\s|$)", plain, maxsplit=2, flags=re.M)
+            sentences = []
+            for sentence in ms[0:2]:
+                sentences.extend((s.strip() for s in sentence.splitlines() if s))
+            desc = " ".join(sentences)
+            self._description = desc
+
+        return desc
+
+    @property
+    def image(self):
+        """Return the image for the post, yes, this uses regex because I didn't want
+        to rely on third party libraries to do this"""
+        ret = ""
+        html = self.html
+        m = re.search("<img\s+[^>]+>", html, flags=re.M | re.I)
+        if m:
+            m = re.search("src=[\"\']([^\"\']+)", m.group(0), flags=re.I)
+            if m:
+                ret = m.group(1)
+        return ret
+
+    @property
     def html(self):
         """
         return html of the post
@@ -169,14 +298,18 @@ class Post(object):
 
         return -- string -- rendered html
         """
-        d = self.directory
-        ext = os.path.splitext(d.content_file)[1][1:]
-        body = self.body
-        ext_callback = getattr(self, "normalize_{}".format(ext), None)
-        if ext_callback:
-            html = ext_callback(body)
-        else:
-            html = body
+        html = getattr(self, "_html", None)
+        if html is None:
+            d = self.directory
+            ext = os.path.splitext(d.content_file)[1][1:]
+            body = self.body
+            ext_callback = getattr(self, "normalize_{}".format(ext), None)
+            if ext_callback:
+                html = ext_callback(body)
+            else:
+                html = body
+
+            self._html = html
 
         return html
 
@@ -241,6 +374,7 @@ class Post(object):
             self.template_name,
             output_file,
             post=self,
+            config=self.config,
             **kwargs
         )
 
@@ -254,7 +388,7 @@ class Aux(Post):
 
 class Site(object):
     """this is where all the magic happens. Output generates all the posts and compiles
-    files from input to output dirs"""
+    files from input directory to output directory"""
     def __init__(self, project_dir, output_dir):
         self.project_dir = project_dir
         self.output_dir = output_dir
@@ -264,8 +398,10 @@ class Site(object):
         """go through input/ dir and compile the files and move them to output/ dir"""
         self.output_dir.clear()
         tmpl = Template(self.project_dir.template_dir)
-        posts = Posts()
-        auxs = Posts()
+
+        posts = Posts(self.output_dir, tmpl, self.config)
+        auxs = Posts(self.output_dir, tmpl, self.config)
+
         for d in self.project_dir.input_dir:
             output_dir = self.output_dir / d.relative()
             if d.is_aux():
@@ -289,6 +425,8 @@ class Site(object):
 
         for a in auxs:
             a.output(posts=posts, auxs=auxs)
+
+        posts.output()
 
         for f in self.project_dir.input_dir.files():
             self.output_dir.copy_file(f)

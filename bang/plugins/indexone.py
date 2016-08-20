@@ -1,7 +1,9 @@
 """
 takes the last post and makes a root index file with that post's contentb
 
-http://en.wikipedia.org/wiki/Sitemaps
+8-18-2016 - This is DEPRECATED in favor of the built-in posts generator now, but I'm leaving
+it here for a bit as an example of how to use the events system before I get rid of it
+
 """
 from __future__ import absolute_import
 import os

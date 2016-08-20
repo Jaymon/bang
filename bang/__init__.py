@@ -11,7 +11,7 @@ from . import event
 from .skeleton import Skeleton
 
 
-__version__ = "0.2.4"
+__version__ = "0.2.5"
 
 
 def console():
@@ -73,9 +73,12 @@ def console():
         s.output()
 
     elif args.command == 'serve':
-        echo.out("serving directory {} on port {}...", output_dir, args.port)
+        echo.out("serving directory {} on http://localhost:{}...", output_dir, args.port)
         s = Server(str(output_dir), args.port)
-        s.serve_forever()
+        try:
+            s.serve_forever()
+        except KeyboardInterrupt:
+            pass
 
     elif args.command == 'watch':
         echo.out("running watch...")
