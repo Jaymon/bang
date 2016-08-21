@@ -16,7 +16,7 @@ log_handler = logging.StreamHandler(stream=sys.stderr)
 log_handler.setFormatter(log_formatter)
 stderr.addHandler(log_handler)
 
-quiet = True
+quiet = False
 
 def exception(e):
     '''

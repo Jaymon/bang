@@ -11,6 +11,8 @@ master_skeleton = u'''<!DOCTYPE html>
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
 
+    {% block description %}{% endblock %}
+
     <link rel="icon" href="/favicon.ico" type="image/x-icon" sizes="16x16" />
     <link rel="shortcut icon" href="/favicon.ico" type="image/x-icon" />
 
@@ -60,6 +62,15 @@ post_skeleton = u'''
 
 {% block title %}{{ post.title }}{% endblock %}
 
+{% block description %}
+  <meta name="description" content="{{ post.description }}">
+  <meta property="og:url" content="{{ post.url }}" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="{{ post.title }}" />
+  <meta property="og:description" content="{{ post.description }}" />
+  <meta property="og:image" content="{{ post.image }}" />
+{% endblock %}
+
 {% block content %}
   {% include 'single.html' %}
 {% endblock %}
@@ -70,6 +81,10 @@ posts_skeleton = u'''
 {% extends "master.html" %}
 
 {% block title %}{{ config.title }}{% endblock %}
+
+{% block description %}
+<meta name="description" content="{{ config.description }}">
+{% endblock %}
 
 {% block content %}
   {% for post in posts.reverse(10) %}

@@ -11,7 +11,7 @@ from . import event
 from .skeleton import Skeleton
 
 
-__version__ = "0.2.5"
+__version__ = "0.2.6"
 
 
 def console():
@@ -48,11 +48,12 @@ def console():
 #        help='Used with "watch" command, the git repo to monitor'
 #    )
     parser.add_argument("-v", "--version", action='version', version="%(prog)s {}".format(__version__))
-    parser.add_argument("--debug", action='store_true', dest='debug')
+    #parser.add_argument("--debug", action='store_true', dest='debug')
+    parser.add_argument("--quiet", action='store_true', dest='quiet')
     parser.add_argument('command', nargs='?', default="compile", choices=["compile", "serve", "watch", "generate"])
     args = parser.parse_args()
 
-    echo.quiet = not args.debug
+    echo.quiet = args.quiet
 
     project_dir = ProjectDirectory(args.project_dir)
     output_dir = args.output_dir
