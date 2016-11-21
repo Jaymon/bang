@@ -335,7 +335,6 @@ class Post(object):
                 ReferenceExtension(),
                 HighlightExtension(),
                 'tables',
-                #'footnotes(UNIQUE_IDS=True)',
                 FootnoteExtension(UNIQUE_IDS=True),
                 'nl2br',
                 'attr_list',

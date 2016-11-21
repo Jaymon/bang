@@ -247,44 +247,6 @@ class CodeBlockPreprocessor(fenced_code.FencedBlockPreprocessor):
         return text.split("\n")
 
 
-class PlaceholderDict(dict):
-    """Small wrapper around a dict that monitors set/get/contains for a placeholder
-    key and if it sees it then it will change that key to an auto-increment key
-    and return the matching internal key, basically, it allows you to do something
-    like:
-        d = PlaceholderDict("foo")
-        d["foo"] = 1
-        d["foo"] = 2
-
-    and save both 1 and 2 in the dict. It only works for setitem/getitem/contains though, 
-    so you can't do d.get("foo") and have it work
-    """
-    def __init__(self, placeholder, *args, **kwargs):
-        super(PlaceholderDict, self).__init__(*args, **kwargs)
-        self.placeholder = placeholder
-        self.placeholder_set_i = 1
-        self.placeholder_get_i = 1
-
-    def get_key(self, k, placeholder_i):
-        if k == self.placeholder:
-            k = "{}-{}".format(self.placeholder, placeholder_i)
-        return k
-
-    def __setitem__(self, k, v):
-        nk = self.get_key(k, self.placeholder_set_i)
-        self.placeholder_set_i += 1
-        super(PlaceholderDict, self).__setitem__(nk, v)
-
-    def __getitem__(self, k):
-        nk = self.get_key(k, self.placeholder_get_i)
-        self.placeholder_get_i += 1
-        return super(PlaceholderDict, self).__getitem__(nk)
-
-    def __contains__(self, k):
-        nk = self.get_key(k, self.placeholder_get_i)
-        return super(PlaceholderDict, self).__contains__(nk)
-
-
 class FootnoteExtension(BaseFootnoteExtension):
     """
     This extends the included footnote extension and allows an easy footnote where
@@ -312,7 +274,6 @@ class FootnoteExtension(BaseFootnoteExtension):
 
     def reset(self):
         super(FootnoteExtension, self).reset()
-        #self.footnotes = PlaceholderDict(self.getConfig("EASY_PLACEHOLDER"))
         self.found_id = 1
         self.matched_id = 1
 
@@ -320,10 +281,11 @@ class FootnoteExtension(BaseFootnoteExtension):
         """This differs from parent by using our own id if passed in id matches
         our placeholder, otherwise it is transparent"""
         found_id = id
-        place_marker = self.getConfig("EASY_PLACE_MARKER")
-        if id == place_marker:
+        placeholder = self.getConfig("EASY_PLACEHOLDER")
+        if id == placeholder:
             found_id = self.found_id
             self.found_id += 1
+
         return super(FootnoteExtension, self).setFootnote(found_id, text)
 
 
@@ -335,8 +297,8 @@ class FootnotePattern(BaseFootnotePattern):
         id = m.group(2)
         m_id = m
 
-        place_marker = self.footnotes.getConfig("EASY_PLACE_MARKER")
-        if id == place_marker:
+        placeholder = self.footnotes.getConfig("EASY_PLACEHOLDER")
+        if id == placeholder:
             class MatchId(object):
                 def __init__(self, id):
                     self.id = id
@@ -347,6 +309,50 @@ class FootnotePattern(BaseFootnotePattern):
             self.footnotes.matched_id += 1
 
         return super(FootnotePattern, self).handleMatch(m_id)
+
+
+class PlaceholderDict(dict):
+    """Small wrapper around a dict that monitors set/get/contains for a placeholder
+    key and if it sees it then it will change that key to an auto-increment key
+    and return the matching internal key, basically, it allows you to do something
+    like:
+        d = PlaceholderDict("foo")
+        d["foo"] = 1
+        d["foo"] = 2
+
+    and save both 1 and 2 in the dict. It only works for setitem/getitem/contains though, 
+    so you can't do d.get("foo") and have it work
+
+    NOTE -- for when I try to make FootnoteExtension use this again, you would need
+        this to extend orderedDict, and also you would need an placeholder_index_i
+        instance variable, and you would need to handle .keys() and .index() calls
+        successfully, then I think it would work (see the original FootnotePattern
+        for where these are used)
+    """
+    def __init__(self, placeholder, *args, **kwargs):
+        super(PlaceholderDict, self).__init__(*args, **kwargs)
+        self.placeholder = placeholder
+        self.placeholder_set_i = 1
+        self.placeholder_get_i = 1
+
+    def get_key(self, k, placeholder_i):
+        if k == self.placeholder:
+            k = "{}-{}".format(self.placeholder, placeholder_i)
+        return k
+
+    def __setitem__(self, k, v):
+        nk = self.get_key(k, self.placeholder_set_i)
+        self.placeholder_set_i += 1
+        super(PlaceholderDict, self).__setitem__(nk, v)
+
+    def __getitem__(self, k):
+        nk = self.get_key(k, self.placeholder_get_i)
+        self.placeholder_get_i += 1
+        return super(PlaceholderDict, self).__getitem__(nk)
+
+    def __contains__(self, k):
+        nk = self.get_key(k, self.placeholder_get_i)
+        return super(PlaceholderDict, self).__contains__(nk)
 
 
 class ReferenceExtension(Extension):

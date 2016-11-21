@@ -379,6 +379,7 @@ class PostTest(TestCase):
         })
 
         r = p.html
+        pout.v(r)
         for x in ["1", "2", "foo"]:
             self.assertTrue("#fn-2-{}".format(x) in r)
             self.assertTrue("#fnref-2-{}".format(x) in r)
