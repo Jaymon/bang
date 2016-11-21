@@ -353,11 +353,16 @@ class PostTest(TestCase):
                 "",
                 "[second][n]",
                 "[n]: http://second.com",
+                "",
+                "[third][foo]",
+                "[foo]: http://third.com",
             ])
         })
 
         r = p.html
-        pout.v(r)
+        for x in ["first", "second", "third"]:
+            self.assertTrue(x in r)
+            self.assertTrue("{}.com".format(x) in r)
 
     def test_easy_footers(self):
         p = get_post({

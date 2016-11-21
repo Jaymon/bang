@@ -12,7 +12,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from . import echo
 from .md import HighlightExtension, HrefExtension, ImageExtension, \
-    DomEventExtension, DelInsExtension, FootnoteExtension
+    DomEventExtension, DelInsExtension, FootnoteExtension, ReferenceExtension
 from . import event
 
 
@@ -332,6 +332,7 @@ class Post(object):
             #extensions=['fenced_code', 'codehilite(guess_lang=False)', 'tables', 'footnotes', 'nl2br']
             # http://packages.python.org/Markdown/extensions/index.html
             extensions=[
+                ReferenceExtension(),
                 HighlightExtension(),
                 'tables',
                 #'footnotes(UNIQUE_IDS=True)',
