@@ -379,10 +379,48 @@ class PostTest(TestCase):
         })
 
         r = p.html
-        pout.v(r)
         for x in ["1", "2", "foo"]:
             self.assertTrue("#fn-2-{}".format(x) in r)
             self.assertTrue("#fnref-2-{}".format(x) in r)
+
+    def test_easy_images(self):
+        p = get_post({
+            'easy_images_1.md': "\n".join([
+                "![foo title](foo.jpg)"
+            ])
+        })
+        r = p.html
+        self.assertTrue('alt="foo.jpg"' in r)
+        self.assertTrue('title="foo title"' in r)
+
+        p = get_post({
+            'easy_images_1.md': "\n".join([
+                "![fooalt.jpg](foo.jpg \"foo title\")"
+            ])
+        })
+        r = p.html
+        self.assertTrue('alt="fooalt.jpg"' in r)
+        self.assertTrue('title="foo title"' in r)
+
+        p = get_post({
+            'easy_images_1.md': "\n".join([
+                "![foo title][n]",
+                "[n]: foo.jpg",
+            ])
+        })
+        r = p.html
+        self.assertTrue('alt="foo.jpg"' in r)
+        self.assertTrue('title="foo title"' in r)
+
+        p = get_post({
+            'easy_images_1.md': "\n".join([
+                "![fooalt.jpg][n]",
+                "[n]: foo.jpg \"foo title\"",
+            ])
+        })
+        r = p.html
+        self.assertTrue('alt="fooalt.jpg"' in r)
+        self.assertTrue('title="foo title"' in r)
 
 
 class SkeletonTest(TestCase):

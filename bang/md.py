@@ -16,6 +16,9 @@ from markdown.inlinepatterns import SimpleTagPattern
 from markdown.extensions.footnotes import FootnoteExtension as BaseFootnoteExtension, \
     FootnotePattern as BaseFootnotePattern
 
+from markdown.inlinepatterns import ImagePattern as BaseImagePattern, \
+    ImageReferencePattern as BaseImageReferencePattern
+
 from markdown.treeprocessors import Treeprocessor
 from . import event
 
@@ -179,10 +182,44 @@ class ImageTreeprocessor(HrefTreeprocessor):
                     child.set('class', class_attr.strip())
 
 
+class ImagePattern(BaseImagePattern):
+    """over-rides parent to swap alt with title if title is empty and then use
+    the basename of src as the alt"""
+    def handleMatch(self, m):
+        el = super(ImagePattern, self).handleMatch(m)
+        if el is not None:
+            title = el.get("title")
+            if not title:
+                alt = el.get("alt")
+                el.set("title", alt)
+                src = el.get("src")
+                el.set("alt", os.path.basename(src))
+
+        return el
+
+
+class ImageReferencePattern(BaseImageReferencePattern):
+    """over-rides parent to swap alt with title if title is empty and then use
+    the basename of src as the alt"""
+    def makeTag(self, href, title, text):
+        if not title:
+            title = text
+            text = os.path.basename(href)
+        return super(ImageReferencePattern, self).makeTag(href, title, text)
+
+
 class ImageExtension(Extension):
     """
     this looks at img tags and makes sure they are centered if they are solo or floating
-    if they are in paragraph's with content
+    if they are in paragraph's with content, this also loosens markdown parsing so
+    something like:
+
+        ![title text](name.jpg)
+
+    will set "title text" to the title attribute instead of the alt attribute, the
+    alt tag will be set with the basename of the image, this just makes the markdown
+    syntax have a bit less cognitive overhead, if you specify a title it will use
+    that instead, so ![alt](name.jpg "title text") would still work
     """
     def __init__(self, post):
         self.config = {
@@ -196,6 +233,15 @@ class ImageExtension(Extension):
         self.processor.config = self.getConfigs()
         #md.treeprocessors.add('href', self.processor, ">")
         md.treeprocessors['image'] = self.processor
+
+        md.inlinePatterns["image_link"] = ImagePattern(
+            md.inlinePatterns["image_link"].pattern,
+            md
+        )
+        md.inlinePatterns["image_reference"] = ImageReferencePattern(
+            md.inlinePatterns["image_reference"].pattern,
+            md
+        )
 
 
 class HighlightExtension(fenced_code.FencedCodeExtension):
@@ -370,3 +416,21 @@ class ReferenceExtension(Extension):
         # and then let the builtin plugins do all the heavy lifting
         md.references = PlaceholderDict(self.getConfig("EASY_PLACE_MARKER"))
 
+
+
+# from markdown.inlinepatterns import ImagePattern as BaseImagePattern
+# 
+# class ImagePattern(BaseImagePattern):
+#     def handleMatch(self, m):
+#         el = super(ImagePattern, self).handleMatch(m)
+#         if el:
+#             pout.v(el)
+#         return el
+# 
+# 
+# class ImgExtension(Extension):
+#     def extendMarkdown(self, md, md_globals):
+#         # we just replace the standard references dict with our implementation
+#         # and then let the builtin plugins do all the heavy lifting
+#         md.inlinePatterns["image_link"] = ImagePattern(md.inlinePatterns["image_link"].pattern, md)
+# 
