@@ -74,7 +74,15 @@ def console():
         s.output()
 
     elif args.command == 'serve':
-        echo.out("serving directory {} on http://localhost:{}...", output_dir, args.port)
+        echo.out("* " * 40)
+        echo.out("serving directory")
+        echo.out("serving directory")
+        echo.out("")
+        echo.out("    {}", output_dir)
+        echo.out("at url")
+        echo.out("")
+        echo.out("    http://localhost:{}...", args.port)
+        echo.out("* " * 40)
         s = Server(str(output_dir), args.port)
         try:
             s.serve_forever()

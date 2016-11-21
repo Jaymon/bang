@@ -13,6 +13,9 @@ import os
 from markdown.extensions import codehilite, fenced_code, Extension
 from markdown.inlinepatterns import SimpleTagPattern
 
+from markdown.extensions.footnotes import FootnoteExtension as BaseFootnoteExtension, \
+    FootnotePattern as BaseFootnotePattern
+
 from markdown.treeprocessors import Treeprocessor
 from . import event
 
@@ -47,14 +50,21 @@ class DomEventTreeprocessor(Treeprocessor):
 
 class DomEventExtension(Extension):
     """
-    this will modify all a href attributes to be full url paths
+    This will broadcast an event for every dom element found while a post is converted
+    from Markdown to HTML
 
-    if it is an http://... url, nothing happens, if it is a path.ext then it
-    will be converted to a full url (http://domain.com/relative/path.ext), and if
-    it is a /full/path then it will be converted to http://domain.com/full/path
+    to take advantage of this extension you would subscribe to:
 
-    based off of:
-    https://github.com/waylan/Python-Markdown/blob/master/markdown/extensions/headerid.py
+        dom.ELEMENT
+
+    so, if you wanted to manipulate all a tags, you would subscribe to:
+
+        dom.a
+
+    example --
+        @event.bind('dom.a')
+        #def do_something(event_name, parent, elem, config):
+            # do something cool with the "a" elem
     """
     def __init__(self, post):
         self.config = {
@@ -66,7 +76,6 @@ class DomEventExtension(Extension):
         self.processor = DomEventTreeprocessor()
         self.processor.md = md
         self.processor.config = self.getConfigs()
-        #md.treeprocessors.add('href', self.processor, ">")
         md.treeprocessors['domevent'] = self.processor
 
 
@@ -236,4 +245,67 @@ class CodeBlockPreprocessor(fenced_code.FencedBlockPreprocessor):
                 break
 
         return text.split("\n")
+
+
+class FootnoteExtension(BaseFootnoteExtension):
+    """
+    This extends the included footnote extension and allows an easy footnote where
+    you can just use [^n] for each of the footnotes and if you just make sure your
+    definitions are in order then everything will work. While this isn't compatible with
+    other markdown it makes it easier for me to write posts, and I'm all about
+    removing friction in blog posts
+
+    https://github.com/waylan/Python-Markdown/blob/master/markdown/extensions/footnotes.py
+    """
+    def __init__(self, *args, **kwargs):
+        super(FootnoteExtension, self).__init__(*args, **kwargs)
+        self.config.setdefault(
+            "EASY_PLACE_MARKER",
+            ["n", "the text string that marks autoincrement footers"]
+        )
+
+    def extendMarkdown(self, md, md_globals):
+        """ Add pieces to Markdown. """
+        super(FootnoteExtension, self).extendMarkdown(md, md_globals)
+
+        # what we do here is we allow the parent to configure everything and then
+        # we just go in and replace the pattern matcher with our own, silently, like a ninja
+        md.inlinePatterns["footnote"] = FootnotePattern(md.inlinePatterns["footnote"].pattern, self)
+
+    def reset(self):
+        super(FootnoteExtension, self).reset()
+        self.found_id = 1
+        self.matched_id = 1
+
+    def setFootnote(self, id, text):
+        """This differs from parent by using our own id if passed in id matches
+        our placeholder, otherwise it is transparent"""
+        found_id = id
+        place_marker = self.getConfig("EASY_PLACE_MARKER")
+        if id == place_marker:
+            found_id = self.found_id
+            self.found_id += 1
+        return super(FootnoteExtension, self).setFootnote(found_id, text)
+
+
+class FootnotePattern(BaseFootnotePattern):
+    def handleMatch(self, m):
+        """This differs from parent by just incrementing footnotes.match_id if the
+        placeholder was used, otherwise is is transparent
+        """
+        id = m.group(2)
+        m_id = m
+
+        place_marker = self.footnotes.getConfig("EASY_PLACE_MARKER")
+        if id == place_marker:
+            class MatchId(object):
+                def __init__(self, id):
+                    self.id = id
+                def group(self, *args):
+                    return self.id
+
+            m_id = MatchId(self.footnotes.matched_id)
+            self.footnotes.matched_id += 1
+
+        return super(FootnotePattern, self).handleMatch(m_id)
 

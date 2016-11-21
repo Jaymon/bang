@@ -10,6 +10,17 @@ from bang import skeleton
 from bang import echo
 
 
+# configure root logger
+# import logging
+# import sys
+# logger = logging.getLogger()
+# logger.setLevel(logging.DEBUG)
+# log_handler = logging.StreamHandler(stream=sys.stderr)
+# log_formatter = logging.Formatter('[%(levelname)s] %(message)s')
+# log_handler.setFormatter(log_formatter)
+# logger.addHandler(log_handler)
+
+
 # turn on all logging for the tests
 echo.quiet = False
 
@@ -333,6 +344,40 @@ class PostTest(TestCase):
         p = get_post({'this is the post.md': content})
         r = p.html
         self.assertRegexpMatches(r, 'class=\"codeblock python\"')
+
+    def test_easy_links(self):
+        p = get_post({
+            'easy_links_1.md': "\n".join([
+                "[first][n]",
+                "[n]: http://first.com",
+                "",
+                "[second][n]",
+                "[n]: http://second.com",
+            ])
+        })
+
+        r = p.html
+        pout.v(r)
+
+    def test_easy_footers(self):
+        p = get_post({
+            'easy_footnotes_1.md': "\n".join([
+                "first text[^n]",
+                "[^n]: first footnote",
+                "",
+                "second text[^n]",
+                "[^n]: second footnote",
+                "",
+                "third text[^foo]",
+                "[^foo]: third footnote",
+            ])
+        })
+
+        r = p.html
+        for x in ["1", "2", "foo"]:
+            self.assertTrue("#fn-2-{}".format(x) in r)
+            self.assertTrue("#fnref-2-{}".format(x) in r)
+
 
 class SkeletonTest(TestCase):
     def test_generate(self):

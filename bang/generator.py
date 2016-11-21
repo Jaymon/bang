@@ -12,7 +12,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from . import echo
 from .md import HighlightExtension, HrefExtension, ImageExtension, \
-    DomEventExtension, DelInsExtension
+    DomEventExtension, DelInsExtension, FootnoteExtension
 from . import event
 
 
@@ -334,7 +334,8 @@ class Post(object):
             extensions=[
                 HighlightExtension(),
                 'tables',
-                'footnotes(UNIQUE_IDS=True)',
+                #'footnotes(UNIQUE_IDS=True)',
+                FootnoteExtension(UNIQUE_IDS=True),
                 'nl2br',
                 'attr_list',
                 'smart_strong',
