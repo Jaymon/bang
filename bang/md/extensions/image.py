@@ -23,7 +23,7 @@ class ImageTreeprocessor(AbsoluteLinkTreeprocessor):
             for child in self.get_tags(elem, "img"):
                 title = child.get("title")
                 if title:
-                    figcaption = util.etree.SubElement(child, 'figcaption')
+                    figcaption = util.etree.SubElement(elem, 'figcaption')
                     figcaption.text = title
 
 
@@ -56,26 +56,32 @@ class ImageReferencePattern(BaseImageReferencePattern):
 
 class ImageProcessor(BlockProcessor):
     def test(self, parent, block):
-        # TODO -- if this proves brittle then import the inline parser stuff and use those regexes
-        regex = r"^\s*!\[[^\]]*\]" # we need to match ![]
-        regex += r"(?:" # start block
-        regex += r"\([^\)\(]+\)" # look for ()
-        regex += r"|"
-        regex += r"\[[^\]\[]+\]" # otherwise look for []
-        regex += r")" # close block
-        regex += r"\s*$"
-        return re.match(regex, block)
-        #return block.startswith("![") and (block.endswith("]") or block.endswith(")"))
+        if self.parser.markdown.output_format not in ["html5"]:
+            return False
 
-#from markdown.inlinepatterns import LINK_RE, IMAGE_LINK_RE, \
-#    REFERENCE_RE, IMAGE_REFERENCE_RE
+        is_link = False
+        for regex in [LINK_RE, REFERENCE_RE]:
+            regex = r"^\s*{}\s*$".format(regex)
+            if re.match(regex, block):
+                is_link = True
+                break
 
+        is_image = False
+        for regex in [IMAGE_LINK_RE, IMAGE_REFERENCE_RE]:
+            if is_link:
+                if re.search(regex, block):
+                    is_image = True
+                    break
+            else:
+                regex = r"^\s*{}\s*$".format(regex)
+                if re.match(regex, block):
+                    is_image = True
+                    break
 
+        return is_image
 
     def run(self, parent, blocks):
-        #pout.v(blocks)
         block = blocks.pop(0)
-        # TODO -- check markdown for html5 content_type
         figure = util.etree.SubElement(parent, 'figure')
         figure.text = block.strip()
 

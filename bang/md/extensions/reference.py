@@ -128,7 +128,7 @@ class ReferenceExtension(FootnoteExtension):
 
         # we just replace the standard references dict with our implementation
         # and then let the builtin plugins do all the heavy lifting
-        md.references = PlaceholderDict(self.getConfig("EASY_PLACE_MARKER"))
+        md.references = PlaceholderDict(self.getConfig("EASY_PLACEHOLDER"))
 
 
 # from markdown.inlinepatterns import ImagePattern as BaseImagePattern

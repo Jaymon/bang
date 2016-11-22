@@ -1,6 +1,7 @@
 from unittest import TestCase
 import os
 import codecs
+import sys
 
 import testdata
 
@@ -25,12 +26,6 @@ from bang import echo
 echo.quiet = False
 
 
-def setUpModule():
-    for k, v in os.environ.items():
-        if k.startswith('BANG_'):
-            del os.environ[k]
-
-
 def get_body(filepath):
     v = u''
     with codecs.open(filepath, 'r+', 'utf-8') as fp:
@@ -40,7 +35,14 @@ def get_body(filepath):
 def get_dirs(input_files):
 
     d = {
-        'template/index.html': "{{ post.title }}\n{{ post.html }}\n{{ post.modified.strftime('%Y-%m-%d') }}\n"
+        'template/post.html': "{{ post.title }}\n{{ post.html }}\n{{ post.modified.strftime('%Y-%m-%d') }}\n",
+        'template/posts.html': "\n".join([
+            "{% for post in posts.reverse(10) %}",
+            "{% include 'post.html' %}",
+            "<hr>",
+            "{% endfor %}",
+            "",
+        ])
     }
     d.update(input_files)
 
@@ -51,6 +53,13 @@ def get_dirs(input_files):
     return project_dir, output_dir
 
 def get_post(post_files, name=""):
+
+    # clear the environment
+    for k, v in os.environ.items():
+        if k.startswith('BANG_'):
+            del os.environ[k]
+    sys.modules.pop("bangfile_module", None)
+
     if not name:
         name = testdata.get_ascii(16)
 
@@ -63,7 +72,7 @@ def get_post(post_files, name=""):
     }
 
     # replace any project files if they are present
-    for rp in ["bangfile.py"]:
+    for rp in di.keys():
         if rp in post_files:
             di[rp] = post_files.pop(rp)
 
@@ -80,24 +89,6 @@ def get_post(post_files, name=""):
 
 
 class PluginTest(TestCase):
-    def test_indexone(self):
-        from bang.plugins import indexone
-        project_dir, output_dir = get_dirs({
-            'input/1/one.md': u'1. {}'.format(testdata.get_unicode_words()),
-        })
-        s = Site(project_dir, output_dir)
-        s.output()
-        self.assertTrue(s.output_dir.has_file('index.html'))
-
-        # make sure it doesn't generate the file if index already exists
-        project_dir, output_dir = get_dirs({
-            'input/1/one.md': u'1. {}'.format(testdata.get_unicode_words()),
-            'input/index.txt':u'2. {}'.format(testdata.get_unicode_words()),
-        })
-        s = Site(project_dir, output_dir)
-        s.output()
-        self.assertFalse(s.output_dir.has_file('index.html'))
-
     def test_feed(self):
         from bang.plugins import feed
         project_dir, output_dir = get_dirs({
@@ -146,15 +137,9 @@ class PluginTest(TestCase):
 
 class SiteTest(TestCase):
     def test_unicode_output(self):
-        output_dir = Directory(testdata.create_dir())
-        project_dir = ProjectDirectory(testdata.create_dir())
-        testdata.create_files(
-            {
-                'input/aux/index.md': testdata.get_unicode_words(),
-                'template/index.html': "{{ post.title }}\n{{ post.html }}\n{{ post.modified.strftime('%Y-%m-%d') }}\n"
-            },
-            tmpdir=str(project_dir)
-        )
+        project_dir, output_dir = get_dirs({
+            'input/aux/index.md': testdata.get_unicode_words(),
+        })
 
         s = Site(project_dir, output_dir)
         s.output()
@@ -269,8 +254,10 @@ class PostTest(TestCase):
             ])
         })
         r = p.html
-        pout.v(r)
-        return
+        self.assertTrue('<figure><img alt="foo.jpg" src=' in r)
+        self.assertTrue('<p>This text has an image <img alt="bar.jpg" src=' in r)
+        self.assertTrue('<p><img alt="che.jpg" src=' in r)
+        self.assertTrue('<p><img alt="baz.jpg" src=' in r)
 
     def test_image_position(self):
         p = get_post({
@@ -280,9 +267,11 @@ class PostTest(TestCase):
                 ""
             ])
         })
-        pout.v(p.html)
-        self.assertRegexpMatches(p.html, '<p\s+class=\"image-centered\"')
-        return
+        r = p.html
+        self.assertTrue("figure" in r)
+        self.assertTrue("example.com" in r)
+        self.assertTrue("figcaption" in r)
+        self.assertTrue("img" in r)
 
         p = get_post({
             'che.jpg': "",
@@ -291,7 +280,9 @@ class PostTest(TestCase):
                 ""
             ])
         })
-        self.assertRegexpMatches(p.html, 'class=\"image-centered\"')
+        r = p.html
+        self.assertTrue("figure" in r)
+        self.assertTrue("figcaption" in r)
 
         p = get_post({
             'che.jpg': "",
@@ -300,7 +291,11 @@ class PostTest(TestCase):
                 ""
             ])
         })
-        self.assertRegexpMatches(p.html, 'class=\"image-floating\"')
+        r = p.html
+        self.assertFalse("figure" in r)
+        self.assertFalse("figcaption" in r)
+        self.assertTrue("img" in r)
+        self.assertTrue("title=" in r)
 
         p = get_post({
             'che.jpg': "",
@@ -309,7 +304,11 @@ class PostTest(TestCase):
                 ""
             ])
         })
-        self.assertRegexpMatches(p.html, 'class=\"image-floating\"')
+        r = p.html
+        self.assertFalse("figure" in r)
+        self.assertFalse("figcaption" in r)
+        self.assertTrue("img" in r)
+        self.assertTrue("title=" in r)
 
         p = get_post({
             'che.jpg': "",
@@ -318,7 +317,11 @@ class PostTest(TestCase):
                 ""
             ])
         })
-        self.assertRegexpMatches(p.html, 'class=\"image-floating\"')
+        r = p.html
+        self.assertFalse("figure" in r)
+        self.assertFalse("figcaption" in r)
+        self.assertTrue("img" in r)
+        self.assertTrue("title=" in r)
 
     def test_attr(self):
         p = get_post({
