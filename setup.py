@@ -18,9 +18,9 @@ setup(
     author='Jay Marcyes',
     author_email='jay@marcyes.com',
     url='http://github.com/jaymon/{}'.format(name),
-    packages=[name, '{}.plugins'.format(name)],
+    packages=find_packages(),
     license="MIT",
-    install_requires=['Jinja2', 'markdown'],
+    install_requires=['Jinja2', 'Markdown'],
     classifiers=[ # https://pypi.python.org/pypi?:action=list_classifiers
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
@@ -34,6 +34,6 @@ setup(
     ],
     #test_suite = "{}_test".format(name),
     entry_points = {
-        'console_scripts': ['{} = {}:console'.format(name, name)]
+        'console_scripts': ['{} = {}.__main__:console'.format(name, name)]
     }
 )

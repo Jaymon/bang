@@ -11,9 +11,13 @@ import markdown
 from jinja2 import Environment, FileSystemLoader
 
 from . import echo
-from .md import HighlightExtension, HrefExtension, ImageExtension, \
-    DomEventExtension, DelInsExtension, FootnoteExtension, ReferenceExtension
 from . import event
+from .md.extensions.delins import DelInsExtension
+from .md.extensions.domevent import DomEventExtension
+from .md.extensions.absolutelink import AbsoluteLinkExtension
+from .md.extensions.image import ImageExtension
+from .md.extensions.highlight import HighlightExtension
+from .md.extensions.reference import ReferenceExtension
 
 
 # http://stackoverflow.com/a/925630/5006
@@ -70,7 +74,7 @@ class Config(object):
             self.module = imp.load_source('bangfile_module', config_file)
 
         # find all environment vars
-        for k, v in os.environ.iteritems():
+        for k, v in os.environ.items():
             if k.startswith('BANG_'):
                 name = k[5:].lower()
                 self.fields[name] = v
@@ -290,6 +294,15 @@ class Post(object):
         return ret
 
     @property
+    def meta(self):
+        """return any meta-data this post has"""
+
+        # this is kind of a crap way to do it but we need to parse the body to
+        # make sure meta is parsed and available
+        self.html 
+        return getattr(self, "_meta", {})
+
+    @property
     def html(self):
         """
         return html of the post
@@ -327,25 +340,26 @@ class Post(object):
     def normalize_md(self, text):
         """normalize markdown using the markdown module https://github.com/waylan/Python-Markdown"""
         # http://pythonhosted.org/Markdown/reference.html#markdown
-        return markdown.markdown(
-            text, 
-            #extensions=['fenced_code', 'codehilite(guess_lang=False)', 'tables', 'footnotes', 'nl2br']
-            # http://packages.python.org/Markdown/extensions/index.html
+        md = markdown.Markdown(
             extensions=[
-                ReferenceExtension(),
+                ReferenceExtension(UNIQUE_IDS=True),
                 HighlightExtension(),
                 'tables',
-                FootnoteExtension(UNIQUE_IDS=True),
                 'nl2br',
                 'attr_list',
                 'smart_strong',
-                HrefExtension(self),
-                ImageExtension(self),
+                'meta', # http://pythonhosted.org/Markdown/extensions/meta_data.html
+                ImageExtension(),
+                DelInsExtension(),
+                AbsoluteLinkExtension(self),
                 DomEventExtension(self),
-                DelInsExtension()
             ],
             output_format="html5"
         )
+
+        html = md.convert(text)
+        self._meta = md.Meta
+        return html
 
     def __str__(self):
         return self.directory.path

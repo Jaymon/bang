@@ -24,6 +24,13 @@ from bang import echo
 # turn on all logging for the tests
 echo.quiet = False
 
+
+def setUpModule():
+    for k, v in os.environ.items():
+        if k.startswith('BANG_'):
+            del os.environ[k]
+
+
 def get_body(filepath):
     v = u''
     with codecs.open(filepath, 'r+', 'utf-8') as fp:
@@ -244,15 +251,38 @@ class PostTest(TestCase):
         })
         self.assertRegexpMatches(p.html, '//{}/[^/]+/images/che.jpg'.format(p.config.host))
 
-    def test_image(self):
+
+    def test_image_figure(self):
+        p = get_post({
+            'figure.md': "\n".join([
+                "this is some text before the image",
+                "",
+                "![this is the caption](foo.jpg)",
+                "",
+                "this is some text after the image",
+                "",
+                "This text has an image ![](bar.jpg)",
+                "",
+                "![](che.jpg) this text after an image",
+                "",
+                "![](baz.jpg) this text after an image with [link](http://baz.com)",
+            ])
+        })
+        r = p.html
+        pout.v(r)
+        return
+
+    def test_image_position(self):
         p = get_post({
             'che.jpg': "",
             'foo.md': "\n".join([
-                '[![this is the alt](che.jpg this is the title)](http://example.com)',
+                '[![this is the alt](che.jpg "this is the title")](http://example.com)',
                 ""
             ])
         })
+        pout.v(p.html)
         self.assertRegexpMatches(p.html, '<p\s+class=\"image-centered\"')
+        return
 
         p = get_post({
             'che.jpg': "",
@@ -421,6 +451,31 @@ class PostTest(TestCase):
         r = p.html
         self.assertTrue('alt="fooalt.jpg"' in r)
         self.assertTrue('title="foo title"' in r)
+
+        p = get_post({
+            'easy_images_1.md': "\n".join([
+                "![](foo.jpg)",
+            ])
+        })
+        r = p.html
+        self.assertTrue('alt="foo.jpg"' in r)
+        self.assertFalse('title' in r)
+
+
+
+    def test_meta(self):
+        p = get_post({
+            'meta.md': "\n".join([
+                "foo: bar",
+                "tags: one, two, three",
+                "",
+                "This is the first sentence"
+            ])
+        })
+
+        r = p.html
+        self.assertEqual("<p>This is the first sentence</p>", p.html)
+        self.assertTrue("foo" in p.meta)
 
 
 class SkeletonTest(TestCase):

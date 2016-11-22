@@ -32,7 +32,7 @@ Now, open a browser and load `localhost:8000` to see your masterpiece, that's it
 
 ## Setup and Configuration
 
-A bang site can have any folder structure and bang will check each folder for a markdown (extension `.md`) file, if it finds one named `index.md` it will not treat it like a blog post but just compile the folder to an `index.html` file. If it finds a markdown file with any other name, then it is considered a blog post with the file's name being the title. So, it basically uses this structure for its posts, so if you have this file structure:
+A bang site can have any folder structure and bang will check each folder for a markdown (extension `.md`) file, if it finds one named `index.md` it will not treat it like a blog post but just compile the folder to an `index.html` file. If it finds a markdown file with any other name, then it is considered a blog post with the file's name being the title. So, if you have this file structure:
 
     project-dir/
       input/
@@ -46,34 +46,27 @@ It would compile down to a blog post with a title *This is the title of the blog
 
 Any other files (images or whatnot) will just be copied over to their respective locations.
 
-Bang can be configured using environment variables, basically, any `BANG_*` environment variables wil be put into the configuration, here are a couple you might want to set:
 
-**BANG_HOST** -- the host of your website, this is used to generate urls and stuff.
-
-**BANG_METHOD** -- the http method to use (either `http` or `https`).
-
--------------------------------------------------------------------------------
-
-## Project directory
+### Project Directory
 
 Your project directory is where all the magic happens. It has to contain a few folders:
 
-### input (required)
+#### input (required)
 
 This is where everything you want to be in the final output folder should go, this includes your blog posts and any other files/folders you want your *live* static site to contain.
 
-### template (required)
+#### template (required)
 
 This is where all your [Jinja](http://jinja.pocoo.org/) templates go, they are used to compile your blog posts to their final form. Bang looks for a few template files by default for blog posts:
 
 * `post.html` - This contains the html for rendering a post's permalink page.
 * `posts.html` - This contains the html for rendering a list of posts.
 
-### output (optional)
+#### output (optional)
 
 This is the default output directory when the `compile` command is used with no `--output-dir` argument.
 
-### bangfile.py (optional)
+#### bangfile.py (optional)
 
 You can add this file to configure bang when compiling:
 
@@ -84,14 +77,82 @@ description = "your site description"
 host = "example.com"
 ```
 
+
+### Environment configuration
+
+If you don't want to bother with a `bangfile.py` in your project directory, Bang can also be configured using environment variables, basically, any `BANG_*` environment variables wil be put into the configuration, here are a couple you might want to set:
+
+* **BANG_HOST** -- the host of your website, this is used to generate urls and stuff.
+* **BANG_METHOD** -- the http method to use (either `http` or `https`).
+
+You can also combine a bangfile with the environment, this makes it easy to have different environments:
+
+```python
+# /project_dir/bangfile.py
+import os
+
+name = "your site name"
+description = "your site description"
+
+# change the host and scheme based on the environment
+env = os.environ.get("BANG_ENV", "prod")
+if env == "prod":
+    host = "example.com"
+    scheme = "https"
+else:
+    host = "localhost"
+    scheme = "http"
+```
+
+
+-------------------------------------------------------------------------------
+
+## Markdown
+
+For the most part, Bang uses vanilla markdown, but there are some enhancements you can take advantage of if you like:
+
+### Easy Footnotes
+
+Using the `^n` footnote will just assign footnotes in order:
+
+```
+first[^n] second[^n]
+
+[^n]: this will be assigned to the "first" footnote
+[^n]: this will be assigned to the "second" footnote
+```
+
+That way you don't have to worry about uniquely naming footnotes since they are just assigned in order, but if you want to give your footnotes unique names that works also.
+
+### Easy links
+
+Similar to the footnotes, using the `n` reference name:
+
+```
+[first][n]
+[second][n]
+
+[n]: http://first.com
+[n]: http://second.com
+```
+
+### Easy images
+
+If no title is used, then the alt becomes the title:
+
+```
+![this will be the title](path/to/image.jpg)
+```
+
+
 -------------------------------------------------------------------------------
 
 ## Plugins
 
-bang includes a couple built-in plugins that you can include in your config.py file, to activate them per site:
+bang includes a couple built-in plugins that you can include in your `bangfile.py`, to activate them per site:
 
 ```python
-# /project_dir/config.py
+# /project_dir/bangfile.py
 
 from bang.plugins import sitemap # to automatically generate a sitemap.xml file
 
@@ -99,6 +160,7 @@ from bang.plugins import feed # generate an rss feed at host/feed.rss for the la
 ```
 
 That's it, once they are imported they will run when they need to.
+
 
 -------------------------------------------------------------------------------
 
@@ -147,13 +209,14 @@ Events are basically defined like this:
 ```python
 from .. import event, echo
 
+@event.bind("output.finish")
 def callback(event_name, site):
     """print all the post titles and urls to the screen"""
     for p in site.posts:
         echo.out(p.title)
         echo.err(p.url)
 
-event.listen('output.finish', callback)
+# alternative register call: event.listen('output.finish', callback)
 ```
 
 ### output.finish
@@ -167,11 +230,10 @@ This event is fired for every element in a post that matches, so if you wanted t
 ```python
 from .. import event, echo
 
+@event.bind("dom.a")
 def callback(event_name, parent, elem):
     """print all href urls in every a tag"""
     echo.out(elem.href)
-
-event.listen('dom.a', callback)
 ```
 
 -------------------------------------------------------------------------------
@@ -181,24 +243,4 @@ event.listen('dom.a', callback)
 Use pip:
 
     pip install bangtext
-
--------------------------------------------------------------------------------
-
-## License
-
-MIT
-
--------------------------------------------------------------------------------
-
-## TODO
-
-The folders should allow tagging with #hashtags
-
-a project should be able to include a plugins directory (python module) that will allow customization, there should be events added around all the major things during execution (eg, a post_compiled event, a pre_compile event) that the plugins module the user adds can hook into. Not sure this needed anymore though since you can configure the plugins in your `bangfile.py` file
-
-http://pythonhosted.org/Markdown/extensions/api.html
-
-`index.html` should be changed to `post.html` and `aux.html` to be more flexible.
-
-would `generate` command be better as `start` or `skeleton`?
 
