@@ -3,6 +3,7 @@
 import sys
 import argparse
 import subprocess
+import os
 
 from bang import __version__
 from bang.server import Server

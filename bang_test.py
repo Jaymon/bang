@@ -2,6 +2,7 @@ from unittest import TestCase
 import os
 import codecs
 import sys
+import json
 
 import testdata
 
@@ -464,8 +465,6 @@ class PostTest(TestCase):
         self.assertTrue('alt="foo.jpg"' in r)
         self.assertFalse('title' in r)
 
-
-
     def test_meta(self):
         p = get_post({
             'meta.md': "\n".join([
@@ -479,6 +478,79 @@ class PostTest(TestCase):
         r = p.html
         self.assertEqual("<p>This is the first sentence</p>", p.html)
         self.assertTrue("foo" in p.meta)
+
+    def test_embed_link(self):
+        p = get_post({
+            'linkify.md': "\n".join([
+                "This is some [text](http://bar.com) < and then there > is just a url",
+                "",
+                "http://foo.com",
+                "",
+                "another [link **with** tags](http://che.com) text after",
+            ])
+        })
+
+        r = p.html
+        self.assertTrue('<a class="embed" href="http://foo.com">http://foo.com</a>' in r)
+        self.assertEqual(1, r.count("embed"))
+
+    def test_embed_youtube(self):
+        p = get_post({
+            'embed_youtube.md': "\n".join([
+                "before",
+                "",
+                "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                "",
+                "after",
+            ])
+        })
+
+        r = p.html
+        self.assertTrue("<figure>" in r)
+
+    def test_embed_twitter(self):
+        p = get_post({
+            'embed_twitter.md': "\n".join([
+                "before",
+                "",
+                "https://twitter.com/JohnKirk/status/801086441325375491",
+                "",
+                "middle",
+                "",
+                "https://twitter.com/foo/status/100",
+                "",
+                "after",
+            ])
+        })
+
+        p.directory.create_file("twitter.json", json.dumps({
+            "https://twitter.com/foo/status/100": {
+                'html': '<blockquote class="twitter-tweet"><p lang="en" dir="ltr">foo</p>&mdash; foo <a href="https://twitter.com/foo/status/100">month DD, YYYY</a></blockquote>',
+            },
+        }))
+
+        contents = json.loads(p.directory.file_contents("twitter.json"))
+        self.assertEqual(1, len(contents))
+
+        r = p.html
+        self.assertEqual(2, r.count("<figure>"))
+
+        contents = json.loads(p.directory.file_contents("twitter.json"))
+        self.assertEqual(2, len(contents))
+
+    def test_embed_highlight(self):
+        p = get_post({
+            'embed_highlight.md': "\n".join([
+                "```",
+                "",
+                "https://foo.com",
+                "",
+                "```",
+            ])
+        })
+
+        r = p.html
+        self.assertFalse("embed" in r)
 
 
 class SkeletonTest(TestCase):

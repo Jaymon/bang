@@ -18,6 +18,7 @@ from .md.extensions.absolutelink import AbsoluteLinkExtension
 from .md.extensions.image import ImageExtension
 from .md.extensions.highlight import HighlightExtension
 from .md.extensions.reference import ReferenceExtension
+from .md.extensions.embed import EmbedExtension
 
 
 # http://stackoverflow.com/a/925630/5006
@@ -353,6 +354,8 @@ class Post(object):
                 DelInsExtension(),
                 AbsoluteLinkExtension(self),
                 DomEventExtension(self),
+                #"bang.md.extensions.embed(cache_dir={})".format(self.directory),
+                EmbedExtension(cache_dir=self.directory),
             ],
             output_format="html5"
         )

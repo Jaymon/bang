@@ -46,6 +46,19 @@ class Directory(object):
     def exists(self):
         return os.path.isdir(self.path)
 
+    def file_contents(self, basename):
+        """return the contents of the basename file in this directory"""
+        contents = ""
+        output_file = os.path.join(self.path, basename)
+        try:
+            with codecs.open(output_file, encoding='utf-8', mode='r+') as f:
+                contents = f.read()
+        except IOError:
+            # ignore file does not exist errors
+            pass
+
+        return contents
+
     def create_file(self, basename, contents):
         """create the file with basename in this directory with contents"""
         output_file = os.path.join(self.path, basename)
