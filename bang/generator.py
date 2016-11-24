@@ -96,15 +96,21 @@ class Config(object):
 
 
 class Template(object):
+    """Thin wrapper around Jinja functionality that handles templating things
+
+    http://jinja.pocoo.org/docs/dev/
+    """
     def __init__(self, template_dir):
         self.template_dir = template_dir
-        self.env = Environment(loader=FileSystemLoader(str(template_dir)))
+        self.env = Environment(
+            loader=FileSystemLoader(str(template_dir)),
+            #extensions=['jinja2.ext.with_'] # http://jinja.pocoo.org/docs/dev/templates/#with-statement
+        )
 
         self.templates = {}
         for f in fnmatch.filter(os.listdir(str(self.template_dir)), '*.html'):
             filename, fileext = os.path.splitext(f)
             self.templates[filename] = f
-
 
     def has(self, template_name):
         return template_name in self.templates
@@ -388,21 +394,59 @@ class Post(object):
             self.template_name,
             output_file
         )
-        self.tmpl.output(
+
+        self.output_template(
             self.template_name,
             output_file,
-            post=self,
             config=self.config,
+            **kwargs
+        )
+
+#         self.tmpl.output(
+#             self.template_name,
+#             output_file,
+#             post=self,
+#             config=self.config,
+#             **kwargs
+#         )
+
+    def output_template(self, template_name, output_file, **kwargs):
+        kwargs["post"] = self
+        self.tmpl.output(
+            template_name,
+            output_file,
             **kwargs
         )
 
 
 class Aux(Post):
+
+    template_name = 'aux'
+
     @property
     def title(self):
-        basename = os.path.basename(str(self.directory))
-        return basename.capitalize()
+        body = self.html
+        title = ""
 
+        # first try and get the title from a header tag in the body
+        m = re.match("^\s*<h1[^>]*>([^<]*)</h1>", body, flags=re.I)
+        if m:
+            title = m.group(1).strip()
+
+        if not title:
+            # default to just the name of the directory this aux file lives in
+            basename = os.path.basename(str(self.directory))
+            title = basename.capitalize()
+
+        return title
+
+    def output_template(self, template_name, output_file, **kwargs):
+        kwargs["aux"] = self
+        self.tmpl.output(
+            template_name,
+            output_file,
+            **kwargs
+        )
 
 class Site(object):
     """this is where all the magic happens. Output generates all the posts and compiles

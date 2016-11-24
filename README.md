@@ -238,6 +238,21 @@ def callback(event_name, parent, elem):
 
 -------------------------------------------------------------------------------
 
+## Testing
+
+If you cloned this repo, you can test out bang by running (from the repo working directory:
+
+    $ python -m bang generate -d /path/to/testsite/
+    $ python -m bang compile -d /path/to/testsite/
+    $ python -m bang serve -d /path/to/testsite/
+
+You can also run the unit tests:
+
+    $ python -m unittest bang_test
+
+
+-------------------------------------------------------------------------------
+
 ## Install
 
 Use pip:

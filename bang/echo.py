@@ -18,6 +18,7 @@ stderr.addHandler(log_handler)
 
 quiet = False
 
+
 def exception(e):
     '''
     print an exception message to stderr
@@ -27,12 +28,34 @@ def exception(e):
 
     stderr.exception(e)
 
+
+def warn(format_msg, *args, **kwargs): return warning(format_msg, *args, **kwargs)
+def warning(format_msg, *args, **kwargs):
+    '''print format_msg to stderr'''
+    global quiet
+    if quiet: return
+
+    stderr.warning(format_msg.format(*args, **kwargs))
+
+
+def error(format_msg, *args, **kwargs): return err(format_msg, *args, **kwargs)
 def err(format_msg, *args, **kwargs):
     '''print format_msg to stderr'''
     global quiet
     if quiet: return
 
-    stderr.info(format_msg.format(*args, **kwargs))
+    stderr.error(format_msg.format(*args, **kwargs))
+
+
+def debug(format_msg, *args, **kwargs):
+    '''
+    print format_msg to stdout, taking into account verbosity level
+    '''
+    global quiet
+    if quiet: return
+
+    stdout.debug(format_msg.format(*args, **kwargs))
+
 
 def out(format_msg, *args, **kwargs):
     '''

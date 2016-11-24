@@ -8,7 +8,7 @@ import os
 from markdown import util
 from markdown.extensions import Extension
 from markdown.postprocessors import Postprocessor
-from markdown.blockprocessors import BlockProcessor
+from markdown.blockprocessors import BlockProcessor as BaseBlockProcessor
 import requests
 
 from ...path import Directory
@@ -134,6 +134,17 @@ class LinkifyPostprocessor(Postprocessor):
         return text_linked
 
 
+class BlockProcessor(BaseBlockProcessor):
+    def get_figure(self, parent):
+        if self.parser.markdown.output_format in ["html5"]:
+            figure = util.etree.SubElement(parent, 'figure')
+        else:
+            figure = util.etree.SubElement(parent, 'div')
+            figure.set("class", "figure")
+
+        return figure
+
+
 class YoutubeProcessor(BlockProcessor):
     """This will convert a plain youtube link to an embedded youtube video
 
@@ -161,7 +172,7 @@ class YoutubeProcessor(BlockProcessor):
                 'wmode="transparent" {} allowfullscreen="true"></embed></object>'.format(dimension_attr)
             ])
 
-        figure = util.etree.SubElement(parent, 'figure')
+        figure = self.get_figure(parent)
         placeholder = self.parser.markdown.htmlStash.store(embed_html)
         figure.text = placeholder
 
@@ -169,6 +180,7 @@ class YoutubeProcessor(BlockProcessor):
 class TwitterProcessor(BlockProcessor):
     """
     https://dev.twitter.com/rest/reference/get/statuses/oembed
+    https://dev.twitter.com/web/embedded-tweets
     """
     def __init__(self, md, embed):
         self.embed = embed
@@ -185,6 +197,7 @@ class TwitterProcessor(BlockProcessor):
         return cache
 
     def write_cache(self, cache):
+        pout.v(cache)
         d = Directory(self.embed.getConfig("cache_dir"))
         contents = json.dumps(cache)
         d.create_file(self.filename, contents)
@@ -198,7 +211,7 @@ class TwitterProcessor(BlockProcessor):
 
         # first we check cache, if it isn't in cache then we query twitter
         if block not in cache:
-            echo.out("Twitter embed for {} was in cache", block)
+            echo.out("Twitter embed for {} was not in cache", block)
 
             params = {
                 "url": block
@@ -214,7 +227,7 @@ class TwitterProcessor(BlockProcessor):
 
         # if we have the contents then we can load them up
         if block in cache:
-            figure = util.etree.SubElement(parent, 'figure')
+            figure = self.get_figure(parent)
             placeholder = self.parser.markdown.htmlStash.store(cache[block]["html"])
             figure.text = placeholder
 

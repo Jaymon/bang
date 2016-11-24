@@ -1,9 +1,11 @@
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals, division, print_function, absolute_import
 
-post_body = u'''
+post_body = '''
 This is the body text.
 '''
 
-master_skeleton = u'''<!DOCTYPE html>
+master_skeleton = '''<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -28,9 +30,9 @@ master_skeleton = u'''<!DOCTYPE html>
   <body>
     <div id="header"></div>
 
-    <div class="body">
+    <article class="body">
         {% block content %}{% endblock %}
-    </div>
+    </article>
 
     <div id="footer"></div>
 
@@ -41,44 +43,66 @@ master_skeleton = u'''<!DOCTYPE html>
 </html>
 '''
 
-#index_skeleton = u'''{{ post.title }}\n{{ post.html }}\n{{ post.modified.strftime("%Y-%m-%d") }}\n'''
-single_skeleton = u'''
-<!-- Render just the html of the post, both post.html and posts.html use this -->
-{% block content %}
+macros_skeleton = '''
+{% macro article(post) %}
   <h1><a href="{{post.url}}">{{ post.title }}</a></h1>
 
   {{ post.html }}
 
-  <p class="post-meta">
+  <time datetime="{{ post.modified.strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}" class="post-meta">
     {{ post.modified.strftime('%b %d %Y') }}
-  </p>
+  </time>
 
-{% endblock %}
-'''
+{% endmacro %}
 
-post_skeleton = u'''
-<!-- render a post permalink -->
-{% extends "master.html" %}
-
-{% block title %}{{ post.title }}{% endblock %}
-
-{% block description %}
+{% macro opengraph(post) %}
+  {# <!-- http://ogp.me/ --> #}
   <meta name="description" content="{{ post.description }}">
   <meta property="og:url" content="{{ post.url }}" />
   <meta property="og:type" content="article" />
   <meta property="og:title" content="{{ post.title }}" />
   <meta property="og:description" content="{{ post.description }}" />
   <meta property="og:image" content="{{ post.image }}" />
+{% endmacro %}
+'''
+
+aux_skeleton = '''
+{% extends "master.html" %}
+{% from 'macros.html' import opengraph %}
+
+{% block title %}{{ aux.title }}{% endblock %}
+
+{% block description %}
+  {{ opengraph(aux) }}
 {% endblock %}
 
 {% block content %}
-  {% include 'single.html' %}
+
+  {{ aux.html }}
+
 {% endblock %}
 '''
 
-posts_skeleton = u'''
+post_skeleton = '''
+<!-- render a post permalink -->
+{% extends "master.html" %}
+{% from 'macros.html' import opengraph, article %}
+
+{% block title %}{{ post.title }}{% endblock %}
+
+{% block description %}
+  {{ opengraph(post) }}
+{% endblock %}
+
+{% block content %}
+  {{ article(post) }}
+{% endblock %}
+'''
+
+posts_skeleton = '''
 <!-- render a group of posts -->
 {% extends "master.html" %}
+{% from 'macros.html' import article %}
 
 {% block title %}{{ config.title }}{% endblock %}
 
@@ -88,14 +112,14 @@ posts_skeleton = u'''
 
 {% block content %}
   {% for post in posts.reverse(10) %}
-    {% include 'single.html' %}
+    {{ article(post) }}
     <hr>
   {% endfor %}
 {% endblock %}
 
 '''
 
-bangfile_skeleton = u'''import os
+bangfile_skeleton = '''import os
 
 host = os.environ.get("BANG_HOST", "")
 method = os.environ.get("BANG_METHOD", "http")
@@ -124,6 +148,11 @@ file_skeleton = [
     },
     {
         'dir': ("template"),
+        'basename': 'aux.html',
+        'content': post_skeleton
+    },
+    {
+        'dir': ("template"),
         'basename': 'post.html',
         'content': post_skeleton
     },
@@ -134,8 +163,8 @@ file_skeleton = [
     },
     {
         'dir': ("template"),
-        'basename': 'single.html',
-        'content': single_skeleton
+        'basename': 'macros.html',
+        'content': macros_skeleton
     },
     {
         'dir': [],

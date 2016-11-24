@@ -33,9 +33,12 @@ def get_body(filepath):
         v = fp.read()
     return v
 
+
 def get_dirs(input_files):
 
+    # TODO -- switch these to use the skeleton templates
     d = {
+        'template/aux.html': "{{ aux.title }}\n{{ aux.html }}\n",
         'template/post.html': "{{ post.title }}\n{{ post.html }}\n{{ post.modified.strftime('%Y-%m-%d') }}\n",
         'template/posts.html': "\n".join([
             "{% for post in posts.reverse(10) %}",
@@ -52,6 +55,7 @@ def get_dirs(input_files):
 
     testdata.create_files(d, tmpdir=str(project_dir))
     return project_dir, output_dir
+
 
 def get_post(post_files, name=""):
 
@@ -82,11 +86,18 @@ def get_post(post_files, name=""):
         di[fp] = file_contents
 
     project_dir, output_dir = get_dirs(di)
-    d = Directory(project_dir.input_dir, name)
-    d.ancestor_dir = project_dir.input_dir
-    tmpl = Template(project_dir.template_dir)
-    p = Post(d, output_dir, tmpl, Config(project_dir))
-    return p
+
+#     d = Directory(project_dir.input_dir, name)
+#     d.ancestor_dir = project_dir.input_dir
+#     tmpl = Template(project_dir.template_dir)
+#     p = Post(d, output_dir, tmpl, Config(project_dir))
+
+    s = Site(project_dir, output_dir)
+    s.output()
+
+    #pout.v(s, len(s.posts), len(s.auxs))
+
+    return s.posts.first_post if len(s.posts) else s.auxs.first_post
 
 
 class PluginTest(TestCase):
@@ -520,17 +531,18 @@ class PostTest(TestCase):
                 "https://twitter.com/foo/status/100",
                 "",
                 "after",
-            ])
+            ]),
+            "twitter.json": json.dumps({
+                "https://twitter.com/foo/status/100": {
+                    'html': "".join([
+                        '<blockquote class="twitter-tweet">',
+                        '<p lang="en" dir="ltr">foo</p>',
+                        '&mdash; foo <a href="https://twitter.com/foo/status/100">month DD, YYYY</a>',
+                        '</blockquote>',
+                    ]),
+                },
+            }),
         })
-
-        p.directory.create_file("twitter.json", json.dumps({
-            "https://twitter.com/foo/status/100": {
-                'html': '<blockquote class="twitter-tweet"><p lang="en" dir="ltr">foo</p>&mdash; foo <a href="https://twitter.com/foo/status/100">month DD, YYYY</a></blockquote>',
-            },
-        }))
-
-        contents = json.loads(p.directory.file_contents("twitter.json"))
-        self.assertEqual(1, len(contents))
 
         r = p.html
         self.assertEqual(2, r.count("<figure>"))
@@ -551,6 +563,20 @@ class PostTest(TestCase):
 
         r = p.html
         self.assertFalse("embed" in r)
+
+
+class AuxTest(TestCase):
+    def test_aux(self):
+        p = get_post({
+            'index.md': "\n".join([
+                "# title text",
+                "",
+                "body text",
+            ])
+        })
+
+        r = p.html
+        pout.v(r, p)
 
 
 class SkeletonTest(TestCase):
