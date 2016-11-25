@@ -10,7 +10,7 @@ from . import echo
 class Directory(object):
 
     #content_file_regex = ur'\.(md|html|txt|markdown)$'
-    content_file_regex = ur'\.(md|html|markdown)$'
+    content_file_regex = ur'\.(md|markdown)$'
 
     @property
     def basename(self):
@@ -59,15 +59,22 @@ class Directory(object):
 
         return contents
 
-    def create_file(self, basename, contents):
+    def create_file(self, basename, contents, binary=False):
         """create the file with basename in this directory with contents"""
         output_file = os.path.join(self.path, basename)
         echo.out("create file {}", output_file)
 
         oldmask = os.umask(0)
-        f = codecs.open(output_file, encoding='utf-8', mode='w+')
-        f.truncate(0)
-        f.seek(0)
+
+        if binary:
+            # https://docs.python.org/2.7/library/functions.html#open
+            f = open(output_file, mode="w+b")
+
+        else:
+            f = codecs.open(output_file, encoding='utf-8', mode='w+')
+            f.truncate(0)
+            f.seek(0)
+
         f.write(contents)
         f.close()
         oldmask = os.umask(oldmask)

@@ -550,6 +550,44 @@ class PostTest(TestCase):
         contents = json.loads(p.directory.file_contents("twitter.json"))
         self.assertEqual(2, len(contents))
 
+    def test_embed_instagram(self):
+        p = get_post({
+            'embed_instagram.md': "\n".join([
+                "before text",
+                "",
+                "https://www.instagram.com/p/BNEweVYFVxq/",
+                "",
+                "after text",
+            ]),
+        })
+
+        r = p.html
+        self.assertEqual(1, r.count("<figure>"))
+
+        contents = json.loads(p.directory.file_contents("instagram.json"))
+        self.assertEqual(1, len(contents))
+        self.assertTrue(p.directory.has_file("BNEweVYFVxq.jpg"))
+
+    def test_embed_vimeo(self):
+        p = get_post({
+            'embed_vimeo.md': "\n".join([
+                "before text",
+                "",
+                "https://vimeo.com/182739998",
+                "",
+                "after text",
+            ]),
+        })
+
+        r = p.html
+        pout.v(r)
+        return
+        self.assertEqual(1, r.count("<figure>"))
+
+        contents = json.loads(p.directory.file_contents("instagram.json"))
+        self.assertEqual(1, len(contents))
+        self.assertTrue(p.directory.has_file("BNEweVYFVxq.jpg"))
+
     def test_embed_highlight(self):
         p = get_post({
             'embed_highlight.md': "\n".join([
@@ -576,6 +614,42 @@ class PostTest(TestCase):
         r = p.html
         self.assertEqual(2, r.count("&lt;"))
         self.assertEqual(2, r.count("&gt;"))
+
+    def test_admonition(self):
+
+        body = []
+        admonitions = [
+            #"attention",
+            #"caution",
+            #"danger",
+            #"error",
+            #"hint",
+            #"important",
+            #"note",
+            #"tip",
+            #"warning",
+            "error",
+            "notice",
+            "info",
+            "success",
+        ]
+
+        for a in admonitions:
+            body.extend([
+                "!!! {}".format(a),
+                "    this is an {} admonition".format(a)
+            ])
+
+
+        p = get_post({
+            "admonition.md": body
+        })
+
+        r = p.html
+        pout.v(r)
+        self.assertEqual(4, r.count("admonition-title"))
+
+
 
 
 class AuxTest(TestCase):

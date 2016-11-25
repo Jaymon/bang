@@ -182,14 +182,21 @@ class TwitterProcessor(BlockProcessor):
     https://dev.twitter.com/rest/reference/get/statuses/oembed
     https://dev.twitter.com/web/embedded-tweets
     """
+    filename = "twitter.json"
+
+    base_url = "https://publish.twitter.com/oembed"
+
+    regex = re.compile(r"^\S+:\/\/(?:[^\.]+\.)?twitter\.[^\/]+\/.+$")
+
     def __init__(self, md, embed):
         self.embed = embed
-        self.base_url = "https://publish.twitter.com/oembed"
-        self.filename = "twitter.json"
         super(TwitterProcessor, self).__init__(md)
 
+    def get_directory(self):
+        return Directory(self.embed.getConfig("cache_dir"))
+
     def read_cache(self):
-        d = Directory(self.embed.getConfig("cache_dir"))
+        d = self.get_directory()
         contents = d.file_contents(self.filename)
         cache = {}
         if contents:
@@ -197,38 +204,142 @@ class TwitterProcessor(BlockProcessor):
         return cache
 
     def write_cache(self, cache):
-        pout.v(cache)
-        d = Directory(self.embed.getConfig("cache_dir"))
+        d = self.get_directory()
         contents = json.dumps(cache)
         d.create_file(self.filename, contents)
 
+    def get_response(self, url, **params):
+        html = ""
+        body = {}
+
+        params["url"] = url
+        res = requests.get(self.base_url, params=params)
+
+        if res.status_code >= 200 and res.status_code < 400:
+            body = res.json()
+            html = body["html"]
+
+        return html, body
+
     def test(self, parent, block):
-        return re.match("^\S+:\/\/(?:[^\.]\.)?twitter\.[^\/]+\/.+$", block.strip())
+        return self.regex.match(block.strip())
 
     def run(self, parent, blocks):
-        block = blocks.pop(0).strip()
+        url = blocks.pop(0).strip()
         cache = self.read_cache()
 
         # first we check cache, if it isn't in cache then we query twitter
-        if block not in cache:
-            echo.out("Twitter embed for {} was not in cache", block)
+        if url not in cache:
+            echo.out("Embed for {} was not in cache", url)
 
-            params = {
-                "url": block
-            }
-            res = requests.get(self.base_url, params=params)
-
-            if res.status_code >= 200 and res.status_code < 400:
-                cache[block] = res.json()
+            html, body = self.get_response(url)
+            if html:
+                cache[url] = body
                 self.write_cache(cache)
 
             else:
-                echo.err("Twitter embed for {} failed with code {}", block, res.status_code)
+                echo.err("Embed for {} failed with code {}", url, res.status_code)
 
         # if we have the contents then we can load them up
-        if block in cache:
+        if url in cache:
             figure = self.get_figure(parent)
-            placeholder = self.parser.markdown.htmlStash.store(cache[block]["html"])
+            placeholder = self.parser.markdown.htmlStash.store(cache[url]["html"])
+            figure.text = placeholder
+
+
+class InstagramProcessor(TwitterProcessor):
+    """
+    https://www.instagram.com/developer/embedding/
+
+    https://help.instagram.com/513918941996087
+    http://blog.instagram.com/post/55095847329/introducing-instagram-web-embeds
+    """
+
+    filename = "instagram.json"
+
+    base_url = "https://api.instagram.com/oembed"
+
+    regex = re.compile(r"""
+        ^\S+:\/\/
+            (?:
+                (?:[^\.]+\.)?instagram\.[^\/]+
+                |
+                instagr\.am
+            )
+            \/.+
+        $
+        """,
+        re.I | re.X
+    )
+
+    def get_response(self, url, **params):
+        params.setdefault("hidecaption", "true")
+        html, body = super(InstagramProcessor, self).get_response(url, **params)
+
+        if html:
+            # let's grab the raw image and cache that also
+            m = re.search(r"\/p\/([^\/\?]+)", url)
+            if m:
+                igid = m.group(1)
+                d = self.get_directory()
+
+                if d.files(r"^{}".format(igid)):
+                    raw_url = "https://instagram.com/p/{}/media/".format(igid)
+                    res = requests.get(raw_url, params={"size": "l"})
+
+                    if res.status_code >= 200 and res.status_code < 400:
+                        ext = "jpg"
+                        content_type = res.headers.get("content-type", "")
+                        if content_type:
+                            # ugh, mimetypes.guess_extension() returned "jpe", ugh
+                            ext = content_type.split("/")[-1].lower()
+                            if ext == "jpeg":
+                                ext = "jpg"
+
+                        d.create_file("{}.{}".format(igid, ext), res.content, binary=True)
+
+                    else:
+                        echo.err("Raw cache for {} failed with code {}", url, res.status_code)
+
+        return html, body
+
+
+class VimeoProcessor(BlockProcessor):
+    """This will convert a plain vimeo link to an embedded vimeo video
+
+    fun fact, this is based on some super old php code I wrote for noopsi.com 11
+    years ago
+    """
+    def get_vid(self, block):
+        m = re.search(r"\.com/(\d+)/?$", block)
+        return m.group(1) if m else None
+
+    def test(self, parent, block):
+        block = block.strip()
+        return ("vimeo" in block.lower()) and self.get_vid(block)
+
+    def run(self, parent, blocks):
+        block = blocks.pop(0).strip()
+        vid = self.get_vid(block)
+        if vid:
+            attrs = [
+                'class="vimeo-media"',
+                'width="{}"'.format(640),
+                'height="{}"'.format(360),
+                'frameborder="0"',
+                'webkitallowfullscreen',
+                'mozallowfullscreen',
+                'allowfullscreen',
+            ]
+
+
+            embed_html = "\n".join([
+                '<iframe src="https://player.vimeo.com/video/{}" {}>'.format(vid, " ".join(attrs)),
+                '</iframe>'
+            ])
+
+            figure = self.get_figure(parent)
+            placeholder = self.parser.markdown.htmlStash.store(embed_html)
             figure.text = placeholder
 
 
@@ -260,6 +371,8 @@ class EmbedExtension(Extension):
         md.postprocessors.add("embed", LinkifyPostprocessor(md), "_end")
         md.parser.blockprocessors.add("embed_youtube", YoutubeProcessor(md.parser), "<paragraph")
         md.parser.blockprocessors.add("embed_twitter", TwitterProcessor(md.parser, self), "<paragraph")
+        md.parser.blockprocessors.add("embed_instagram", InstagramProcessor(md.parser, self), "<paragraph")
+        md.parser.blockprocessors.add("embed_vimeo", VimeoProcessor(md.parser), "<paragraph")
 
 
 def makeExtension(*args, **kwargs):
