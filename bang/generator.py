@@ -356,6 +356,7 @@ class Post(object):
                 'attr_list',
                 'smart_strong',
                 'meta', # http://pythonhosted.org/Markdown/extensions/meta_data.html
+                'admonition', # https://pythonhosted.org/Markdown/extensions/admonition.html
                 ImageExtension(),
                 DelInsExtension(),
                 AbsoluteLinkExtension(self),

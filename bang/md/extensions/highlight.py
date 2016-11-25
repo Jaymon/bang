@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
 import re
+from xml.sax.saxutils import escape
 
 from markdown.extensions import fenced_code
 
@@ -22,7 +23,9 @@ class CodeBlockPreprocessor(fenced_code.FencedBlockPreprocessor):
                 if m.group('lang'):
                     lang = u' ' + m.group('lang')
 
-                code = u'<pre><code class="codeblock{}">{}</code></pre>'.format(lang, m.group('code').strip())
+                # https://wiki.python.org/moin/EscapingHtml
+                block = escape(m.group('code').strip())
+                code = u'<pre><code class="codeblock{}">{}</code></pre>'.format(lang, block)
                 placeholder = self.markdown.htmlStash.store(code, safe=True)
                 text = u'{}\n{}\n{}'.format(text[:m.start()], placeholder, text[m.end():])
 

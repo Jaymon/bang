@@ -564,6 +564,19 @@ class PostTest(TestCase):
         r = p.html
         self.assertFalse("embed" in r)
 
+    def test_html_entities_codeblock(self):
+        p = get_post({
+            'embed_highlight.md': "\n".join([
+                "```",
+                "<b>This is html in a code block</b>",
+                "```",
+            ])
+        })
+
+        r = p.html
+        self.assertEqual(2, r.count("&lt;"))
+        self.assertEqual(2, r.count("&gt;"))
+
 
 class AuxTest(TestCase):
     def test_aux(self):
