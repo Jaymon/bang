@@ -94,6 +94,7 @@ class FootnoteExtension(BaseFootnoteExtension):
 
         # what we do here is we allow the parent to configure everything and then
         # we just go in and replace the pattern matcher with our own, silently, like a ninja
+        # https://github.com/waylan/Python-Markdown/blob/master/markdown/inlinepatterns.py
         md.inlinePatterns["footnote"] = FootnotePattern(md.inlinePatterns["footnote"].pattern, self)
 
     def reset(self):

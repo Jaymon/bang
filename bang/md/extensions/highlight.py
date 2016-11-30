@@ -7,7 +7,10 @@ from markdown.extensions import fenced_code
 
 
 class CodeBlockPreprocessor(fenced_code.FencedBlockPreprocessor):
-    """Generates compatible code blocks that can be used with default highlight.js"""
+    """Generates compatible code blocks that can be used with default highlight.js
+
+    https://github.com/waylan/Python-Markdown/blob/master/markdown/preprocessors.py
+    """
     FENCED_BLOCK_RE = re.compile(
         ur"^(?P<fence>(?:`{3,}))[ ]*(?P<lang>[a-z0-9_+-]*)[ ]*(?P<code>.*?)(?<=\n)(?P=fence)[ ]*$",
         re.MULTILINE | re.DOTALL | re.VERBOSE

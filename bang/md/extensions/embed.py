@@ -135,6 +135,9 @@ class LinkifyPostprocessor(Postprocessor):
 
 
 class BlockProcessor(BaseBlockProcessor):
+    """
+    https://github.com/waylan/Python-Markdown/blob/master/markdown/blockparser.py
+    """
     def get_figure(self, parent, name):
         if self.parser.markdown.output_format in ["html5"]:
             figure = util.etree.SubElement(parent, 'figure')
@@ -282,7 +285,11 @@ class InstagramProcessor(TwitterProcessor):
                 igid = m.group(1)
                 d = self.get_directory()
 
-                if d.files(r"^{}".format(igid)):
+                cached_image = d.files(r"^{}".format(igid))
+                if cached_image:
+                    echo.info("Image cached at {}", cached_image[0])
+
+                else:
                     raw_url = "https://instagram.com/p/{}/media/".format(igid)
                     res = requests.get(raw_url, params={"size": "l"})
 

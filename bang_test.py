@@ -10,7 +10,6 @@ from bang.generator import Post, Site, Template, Config
 from bang.path import Directory, ProjectDirectory
 from bang import skeleton
 from bang import echo
-from bang.__main__ import parse_extra
 
 
 # configure root logger
@@ -567,7 +566,7 @@ class PostTest(TestCase):
         })
 
         r = p.html
-        self.assertTrue("<figure>" in r)
+        self.assertTrue("<figure" in r)
 
     def test_embed_twitter(self):
         p = get_post({
@@ -595,7 +594,7 @@ class PostTest(TestCase):
         })
 
         r = p.html
-        self.assertEqual(2, r.count("<figure>"))
+        self.assertEqual(2, r.count("<figure"))
 
         contents = json.loads(p.directory.file_contents("twitter.json"))
         self.assertEqual(2, len(contents))
@@ -612,7 +611,7 @@ class PostTest(TestCase):
         })
 
         r = p.html
-        self.assertEqual(1, r.count("<figure>"))
+        self.assertEqual(1, r.count("<figure"))
 
         contents = json.loads(p.directory.file_contents("instagram.json"))
         self.assertEqual(1, len(contents))
@@ -630,7 +629,7 @@ class PostTest(TestCase):
         })
 
         r = p.html
-        self.assertEqual(1, r.count("<figure>"))
+        self.assertEqual(1, r.count("<figure"))
 
     def test_embed_image(self):
         p = get_post({
@@ -733,28 +732,5 @@ class SkeletonTest(TestCase):
             d = project_dir / file_dict['dir']
             self.assertTrue(d.exists())
             self.assertTrue(os.path.isfile(os.path.join(str(d), file_dict['basename'])))
-
-
-class CommandLineTest(TestCase):
-    def test_extra_args(self):
-        extra_args = [
-            "--foo=1",
-            "--che",
-            '--baz="this=that"',
-            "--bar",
-            "2",
-            "--foo=2",
-            "-z",
-            "3",
-            "4"
-        ]
-
-        d = parse_extra(extra_args)
-        self.assertEqual(["1", "2"], d["foo"])
-        self.assertEqual(["4"], d["*"])
-        self.assertEqual(["2"], d["bar"])
-        self.assertEqual(["3"], d["z"])
-        self.assertEqual(["this=that"], d["baz"])
-        self.assertEqual([True], d["che"])
 
 

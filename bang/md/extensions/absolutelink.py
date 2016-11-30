@@ -11,6 +11,7 @@ class AbsoluteLinkTreeprocessor(Treeprocessor):
     support for AbsoluteLinkExtension
 
     http://effbot.org/zone/pythondoc-elementtree-ElementTree.htm
+    https://github.com/waylan/Python-Markdown/blob/master/markdown/treeprocessors.py
     """
     URL_RE = re.compile(r"^(?:https?:\/\/|\/\/)", re.I)
 

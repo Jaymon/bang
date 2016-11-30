@@ -63,13 +63,7 @@ class Config(object):
 
         return base_url
 
-    def __init__(self, project_dir, args=None):
-        """create the config object that is used to compile the site
-
-        project_dir -- string -- the path to the project directory
-        args -- dict -- any supplementary arguments you want this config instance
-            to have, this is used to pass flags passed in for the compile command
-            to allow hooks to take advantage of them
+    def __init__(self, project_dir):
         self.module = None
         self.fields = {
             #'scheme': 'http'
@@ -85,8 +79,6 @@ class Config(object):
             if k.startswith('BANG_'):
                 name = k[5:].lower()
                 self.fields[name] = v
-
-        self.args = args if args else {}
 
     def get(self, k, default_val=None):
         """bangfile takes precedence, then environment variables"""
