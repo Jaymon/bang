@@ -335,6 +335,55 @@ class PostTest(TestCase):
         self.assertTrue("img" in r)
         self.assertTrue("title=" in r)
 
+    def test_image_title_alt(self):
+        # alt = "alternate", title = ""
+        p = get_post({
+            'che.jpg': "",
+            'foo.md': "\n".join([
+                '![alternate](che.jpg "")',
+                ""
+            ])
+        })
+        r = p.html
+        self.assertTrue('title=""' in r)
+        self.assertTrue('alt="alternate"' in r)
+
+        # alt = "alternate", title = "image title"
+        p = get_post({
+            'che.jpg': "",
+            'foo.md': "\n".join([
+                '![alternate](che.jpg "image title")',
+                ""
+            ])
+        })
+        r = p.html
+        self.assertTrue('title="image title"' in r)
+        self.assertTrue('alt="alternate"' in r)
+
+        # alt = "alternate", title = None
+        p = get_post({
+            'che.jpg': "",
+            'foo.md': "\n".join([
+                '![alternate](che.jpg)',
+                ""
+            ])
+        })
+        r = p.html
+        self.assertTrue('title="alternate"' in r)
+        self.assertTrue('alt="che.jpg"' in r)
+
+        # alt = "", title = "image title"
+        p = get_post({
+            'che.jpg': "",
+            'foo.md': "\n".join([
+                '![](che.jpg "image title")',
+                ""
+            ])
+        })
+        r = p.html
+        self.assertTrue('title="image title"' in r)
+        self.assertTrue('alt="che.jpg"' in r)
+
     def test_attr(self):
         p = get_post({
             'che.jpg': "",
@@ -580,13 +629,23 @@ class PostTest(TestCase):
         })
 
         r = p.html
-        pout.v(r)
-        return
         self.assertEqual(1, r.count("<figure>"))
 
-        contents = json.loads(p.directory.file_contents("instagram.json"))
-        self.assertEqual(1, len(contents))
-        self.assertTrue(p.directory.has_file("BNEweVYFVxq.jpg"))
+    def test_embed_image(self):
+        p = get_post({
+            'bogus.jpg': "",
+            'embed_image.md': "\n".join([
+                "before text",
+                "",
+                "bogus.jpg",
+                "",
+                "after text",
+            ]),
+        })
+
+        r = p.html
+        self.assertTrue('alt="bogus.jpg"' in r)
+        self.assertTrue('title=""' in r)
 
     def test_embed_highlight(self):
         p = get_post({

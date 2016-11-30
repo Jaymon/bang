@@ -34,10 +34,14 @@ class ImagePattern(BaseImagePattern):
         el = super(ImagePattern, self).handleMatch(m)
         if el is not None:
             title = el.get("title")
-            if not title:
-                alt = el.get("alt")
+            alt = el.get("alt")
+
+            if title is None:
                 if alt:
                     el.set("title", alt)
+                    alt = ""
+
+            if not alt:
                 src = el.get("src")
                 el.set("alt", os.path.basename(src))
 

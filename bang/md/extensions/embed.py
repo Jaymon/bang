@@ -135,12 +135,14 @@ class LinkifyPostprocessor(Postprocessor):
 
 
 class BlockProcessor(BaseBlockProcessor):
-    def get_figure(self, parent):
+    def get_figure(self, parent, name):
         if self.parser.markdown.output_format in ["html5"]:
             figure = util.etree.SubElement(parent, 'figure')
+            figure.set("class", "embed {}".format(name))
+
         else:
             figure = util.etree.SubElement(parent, 'div')
-            figure.set("class", "figure")
+            figure.set("class", "embed figure {}".format(name))
 
         return figure
 
@@ -162,17 +164,10 @@ class YoutubeProcessor(BlockProcessor):
         block = blocks.pop(0)
         ytid = self.get_ytid(block)
         if ytid:
-            dimension_attr = 'width="{}" height="{}"'.format(425, 344)
+            attrs = 'width="{}" height="{}" frameborder="0" allowfullscreen'.format(560, 315)
+            embed_html = '<iframe {} src="https://www.youtube.com/embed/{}"></iframe>'.format(attrs, ytid)
 
-            embed_html = "\n".join([
-                '<object {}>'.format(dimension_attr),
-                '<param name="movie" value="http://www.youtube.com/v/{}&showsearch=0&fs=1">'.format(ytid),
-                '</param><param name="wmode" value="transparent">',
-                '</param><embed src="http://www.youtube.com/v/{}" type="application/x-shockwave-flash"'.format(ytid),
-                'wmode="transparent" {} allowfullscreen="true"></embed></object>'.format(dimension_attr)
-            ])
-
-        figure = self.get_figure(parent)
+        figure = self.get_figure(parent, "youtube")
         placeholder = self.parser.markdown.htmlStash.store(embed_html)
         figure.text = placeholder
 
@@ -187,6 +182,8 @@ class TwitterProcessor(BlockProcessor):
     base_url = "https://publish.twitter.com/oembed"
 
     regex = re.compile(r"^\S+:\/\/(?:[^\.]+\.)?twitter\.[^\/]+\/.+$")
+
+    name = "twitter"
 
     def __init__(self, md, embed):
         self.embed = embed
@@ -242,7 +239,7 @@ class TwitterProcessor(BlockProcessor):
 
         # if we have the contents then we can load them up
         if url in cache:
-            figure = self.get_figure(parent)
+            figure = self.get_figure(parent, self.name)
             placeholder = self.parser.markdown.htmlStash.store(cache[url]["html"])
             figure.text = placeholder
 
@@ -258,6 +255,8 @@ class InstagramProcessor(TwitterProcessor):
     filename = "instagram.json"
 
     base_url = "https://api.instagram.com/oembed"
+
+    name = "instagram"
 
     regex = re.compile(r"""
         ^\S+:\/\/
@@ -338,9 +337,27 @@ class VimeoProcessor(BlockProcessor):
                 '</iframe>'
             ])
 
-            figure = self.get_figure(parent)
+            figure = self.get_figure(parent, "vimeo")
             placeholder = self.parser.markdown.htmlStash.store(embed_html)
             figure.text = placeholder
+
+
+class ImageProcessor(BlockProcessor):
+    """This will take a plain link to an image and convert it into an <img> tag
+
+    it only works on links that end with an image extension like .jpg
+    """
+    regex = re.compile(r"^[^\s\]\[\:<>]+\.(?:jpe?g|gif|bmp|png|ico|tiff)$", re.I)
+
+    def test(self, parent, block):
+        block = block.strip()
+        return self.regex.match(block)
+
+    def run(self, parent, blocks):
+        block = blocks.pop(0).strip()
+        figure = self.get_figure(parent, "image")
+        figure.text = '![{}]({} "")'.format(os.path.basename(block), block)
+        # $ret_html = '<a href="'.$url.'"><img src="'.$url.'"'.$dimension_attr.' alt="'.$url.'" /></a>';
 
 
 class EmbedExtension(Extension):
@@ -373,6 +390,7 @@ class EmbedExtension(Extension):
         md.parser.blockprocessors.add("embed_twitter", TwitterProcessor(md.parser, self), "<paragraph")
         md.parser.blockprocessors.add("embed_instagram", InstagramProcessor(md.parser, self), "<paragraph")
         md.parser.blockprocessors.add("embed_vimeo", VimeoProcessor(md.parser), "<paragraph")
+        md.parser.blockprocessors.add("embed_image", ImageProcessor(md.parser), "<paragraph")
 
 
 def makeExtension(*args, **kwargs):
