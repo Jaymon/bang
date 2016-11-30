@@ -4,17 +4,56 @@ import sys
 import argparse
 import subprocess
 import os
+from collections import defaultdict
 
 from bang import __version__
 from bang.server import Server
 from bang.path import Directory, ProjectDirectory
-from bang.generator import Site
+from bang.generator import Site, Config
 from bang import echo
 from bang.skeleton import Skeleton
 
 
+def parse_extra(args):
+    """handle parsing any extra args that are passed from ArgParser.parse_known_args
+
+    args -- list -- the list of extra args returned from parse_known_args
+    return -- dict -- key is the arg name (* for non positional args) and value is
+        a list of found arguments (so --foo 1 --foo 2 is supported). The value is
+        always a list
+    """
+    d = defaultdict(list)
+    i = 0
+    length = len(args)
+    while i < length:
+        if args[i].startswith("-"):
+            s = args[i].lstrip("-")
+            bits = s.split("=", 1)
+            if len(bits) > 1:
+                key = bits[0]
+                val = bits[1].strip("\"'")
+                d[key].append(val)
+
+            else:
+                if i + 1 < length:
+                    if args[i + 1].startswith("-"):
+                        d[s].append(True)
+
+                    else:
+                        d[s].append(args[i + 1])
+                        i += 1
+
+        else:
+            d["*"].append(args[i])
+
+        i += 1
+
+    return d
+
+
 def console_compile(args, project_dir, output_dir):
     echo.out("compiling directory {} to {}...", project_dir.input_dir, output_dir)
+    config = Config(project_dir, args.extra)
     s = Site(project_dir, output_dir)
     s.output()
     echo.out("...done")
@@ -116,6 +155,7 @@ def console():
         default=None,
         help='directory, defaults to project-dir/output'
     )
+    parent_parser.set_defaults(extra={})
 
     subparsers = parser.add_subparsers(dest="command", help="a sub command")
 
@@ -165,7 +205,9 @@ def console():
     )
     generate_parser.set_defaults(func=console_generate)
 
-    args = parser.parse_args()
+    args, extra_args = parser.parse_known_args()
+    if extra_args:
+        args.extra = parse_extra(extra_args)
 
     echo.quiet = args.quiet
 

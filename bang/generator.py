@@ -63,7 +63,13 @@ class Config(object):
 
         return base_url
 
-    def __init__(self, project_dir):
+    def __init__(self, project_dir, args=None):
+        """create the config object that is used to compile the site
+
+        project_dir -- string -- the path to the project directory
+        args -- dict -- any supplementary arguments you want this config instance
+            to have, this is used to pass flags passed in for the compile command
+            to allow hooks to take advantage of them
         self.module = None
         self.fields = {
             #'scheme': 'http'
@@ -79,6 +85,8 @@ class Config(object):
             if k.startswith('BANG_'):
                 name = k[5:].lower()
                 self.fields[name] = v
+
+        self.args = args if args else {}
 
     def get(self, k, default_val=None):
         """bangfile takes precedence, then environment variables"""
@@ -452,10 +460,10 @@ class Aux(Post):
 class Site(object):
     """this is where all the magic happens. Output generates all the posts and compiles
     files from input directory to output directory"""
-    def __init__(self, project_dir, output_dir):
+    def __init__(self, project_dir, output_dir, config=None):
         self.project_dir = project_dir
         self.output_dir = output_dir
-        self.config = Config(project_dir)
+        self.config = config if config else Config(project_dir)
 
     def output(self):
         """go through input/ dir and compile the files and move them to output/ dir"""
