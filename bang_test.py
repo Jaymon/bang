@@ -539,6 +539,79 @@ class PostTest(TestCase):
         self.assertEqual("<p>This is the first sentence</p>", p.html)
         self.assertTrue("foo" in p.meta)
 
+    def test_html_entities_codeblock(self):
+        p = get_post({
+            'embed_highlight.md': "\n".join([
+                "```",
+                "<b>This is html in a code block</b>",
+                "```",
+            ])
+        })
+
+        r = p.html
+        self.assertEqual(2, r.count("&lt;"))
+        self.assertEqual(2, r.count("&gt;"))
+
+    def test_admonition(self):
+
+        body = []
+        admonitions = [
+            #"attention",
+            #"caution",
+            #"danger",
+            #"error",
+            #"hint",
+            #"important",
+            #"note",
+            #"tip",
+            #"warning",
+            "error",
+            "notice",
+            "info",
+            "success",
+        ]
+
+        for a in admonitions:
+            body.extend([
+                "!!! {}".format(a),
+                "    this is an {} admonition".format(a)
+            ])
+
+
+        p = get_post({
+            "admonition.md": body
+        })
+
+        r = p.html
+        self.assertEqual(4, r.count("admonition-title"))
+
+
+class AuxTest(TestCase):
+    def test_aux(self):
+        p = get_post({
+            'index.md': "\n".join([
+                "# title text",
+                "",
+                "body text",
+            ])
+        })
+
+        r = p.html
+
+
+class SkeletonTest(TestCase):
+    def test_generate(self):
+        project_dir = ProjectDirectory(testdata.create_dir())
+        s = skeleton.Skeleton(project_dir)
+        s.output()
+
+        for file_dict in skeleton.file_skeleton:
+            d = project_dir / file_dict['dir']
+            self.assertTrue(d.exists())
+            self.assertTrue(os.path.isfile(os.path.join(str(d), file_dict['basename'])))
+
+
+class EmbedPluginTest(TestCase):
     def test_embed_link(self):
         p = get_post({
             'linkify.md': "\n".join([
@@ -567,6 +640,14 @@ class PostTest(TestCase):
 
         r = p.html
         self.assertTrue("<figure" in r)
+
+    def test_embed_youtube_2(self):
+        p = get_post({
+            'embed_yt2.md': """12 notes, that's all you get! These 12 notes give us everything from [Beethoven's 5th symphony](https://www.youtube.com/watch?v=_4IRMYuE1hI) to [Hanson's MMMBop](https://www.youtube.com/watch?v=NHozn0YXAeE), and everything in between. They all use the same set of 12 notes"""
+        })
+
+        r = p.html
+        self.assertFalse("<iframe" in r)
 
     def test_embed_twitter(self):
         p = get_post({
@@ -660,77 +741,4 @@ class PostTest(TestCase):
 
         r = p.html
         self.assertFalse("embed" in r)
-
-    def test_html_entities_codeblock(self):
-        p = get_post({
-            'embed_highlight.md': "\n".join([
-                "```",
-                "<b>This is html in a code block</b>",
-                "```",
-            ])
-        })
-
-        r = p.html
-        self.assertEqual(2, r.count("&lt;"))
-        self.assertEqual(2, r.count("&gt;"))
-
-    def test_admonition(self):
-
-        body = []
-        admonitions = [
-            #"attention",
-            #"caution",
-            #"danger",
-            #"error",
-            #"hint",
-            #"important",
-            #"note",
-            #"tip",
-            #"warning",
-            "error",
-            "notice",
-            "info",
-            "success",
-        ]
-
-        for a in admonitions:
-            body.extend([
-                "!!! {}".format(a),
-                "    this is an {} admonition".format(a)
-            ])
-
-
-        p = get_post({
-            "admonition.md": body
-        })
-
-        r = p.html
-        self.assertEqual(4, r.count("admonition-title"))
-
-
-class AuxTest(TestCase):
-    def test_aux(self):
-        p = get_post({
-            'index.md': "\n".join([
-                "# title text",
-                "",
-                "body text",
-            ])
-        })
-
-        r = p.html
-        pout.v(r, p)
-
-
-class SkeletonTest(TestCase):
-    def test_generate(self):
-        project_dir = ProjectDirectory(testdata.create_dir())
-        s = skeleton.Skeleton(project_dir)
-        s.output()
-
-        for file_dict in skeleton.file_skeleton:
-            d = project_dir / file_dict['dir']
-            self.assertTrue(d.exists())
-            self.assertTrue(os.path.isfile(os.path.join(str(d), file_dict['basename'])))
-
 

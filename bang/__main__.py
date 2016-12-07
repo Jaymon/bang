@@ -16,7 +16,6 @@ from bang.skeleton import Skeleton
 
 def console_compile(args, project_dir, output_dir):
     echo.out("compiling directory {} to {}...", project_dir.input_dir, output_dir)
-    config = Config(project_dir)
     s = Site(project_dir, output_dir)
     s.output()
     echo.out("...done")

@@ -157,11 +157,11 @@ class YoutubeProcessor(BlockProcessor):
     years ago
     """
     def get_ytid(self, block):
-        m = re.search("v=([^&]*)", block)
+        m = re.search(r"v=([^&]*)", block)
         return m.group(1) if m else None
 
     def test(self, parent, block):
-        return ("youtube" in block.lower()) and self.get_ytid(block)
+        return re.match(r"^https?:\/\/(?:www\.)?youtube\.", block, flags=re.I) and self.get_ytid(block)
 
     def run(self, parent, blocks):
         block = blocks.pop(0)
