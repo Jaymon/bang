@@ -5,6 +5,8 @@ import argparse
 import subprocess
 import os
 from collections import defaultdict
+import logging
+import logging.config
 
 from bang import __version__
 from bang.server import Server
@@ -12,6 +14,9 @@ from bang.path import Directory, ProjectDirectory
 from bang.generator import Site
 from bang import echo
 from bang.skeleton import Skeleton
+
+
+logger = logging.getLogger(__name__)
 
 
 def console_compile(args, project_dir, output_dir):
@@ -86,6 +91,80 @@ def console_watch(args, project_dir, output_dir):
     return ret_code
 
 
+def configure_logging(val):
+
+    class LevelFilter(object):
+        def __init__(self, levels):
+            self.levels = levels.upper()
+            #self.__level = level
+            self.__level = logging.DEBUG
+        def filter(self, logRecord):
+            return logRecord.levelname[0].upper() in self.levels
+            #return logRecord.levelno <= self.__level
+
+    try:
+        # https://docs.python.org/2/library/logging.html
+        # https://docs.python.org/2/library/logging.config.html#logging-config-dictschema
+        # https://docs.python.org/2/howto/logging.html
+        # http://stackoverflow.com/questions/8162419/python-logging-specific-level-only
+        d = {
+            'version': 1,
+            'formatters': {
+                'basic': {
+                    #'format': '[%(levelname).1s|%(filename)s:%(lineno)s] %(message)s',
+                    'format': '[%(levelname).1s] %(message)s',
+                },
+            },
+            'handlers': {
+                'stdout': {
+                    'level': 'DEBUG',
+                    'class': 'logging.StreamHandler',
+                    'formatter': 'basic',
+                    'filters': ['stdout'],
+                    'stream': 'ext://sys.stdout'
+                },
+                'stderr': {
+                    'level': 'WARNING',
+                    'class': 'logging.StreamHandler',
+                    'formatter': 'basic',
+                    'filters': ['stderr'],
+                    'stream': 'ext://sys.stderr'
+                },
+            },
+            'filters': {
+                'stdout': {
+                    '()': LevelFilter,
+                    'levels': 'DI',
+                },
+                'stderr': {
+                    '()': LevelFilter,
+                    'levels': 'WEC',
+                },
+            },
+            'root': {
+                'level': 'DEBUG',
+                'filters': [],
+                'handlers': ['stdout', 'stderr'],
+            },
+            'incremental': False,
+            # Don't want to disable existing loggers (like endpoints) that exist
+            # before this config is loaded.
+            'disable_existing_loggers': False,
+        }
+        logging.config.dictConfig(d)
+
+        logger.debug("debug")
+        logger.info("info")
+        logger.warning("warning")
+        logger.error("error")
+        logger.critical("critical")
+
+    except Exception as e:
+        raise
+
+    return val
+
+
 def console():
     '''
     cli hook
@@ -100,7 +179,7 @@ def console():
         action='version',
         version="%(prog)s {}".format(__version__)
     )
-    parser.add_argument("--quiet", action='store_true', dest='quiet')
+    #parser.add_argument("--quiet", action='store_true', dest='quiet')
 
     # this is the common base parser for all the command parsers
     #parent_parser = argparse.ArgumentParser(add_help=False)
@@ -116,6 +195,14 @@ def console():
         dest='output_dir',
         default=None,
         help='directory, defaults to project-dir/output'
+    )
+    parent_parser.add_argument(
+        '--quiet',
+        nargs='?',
+        const='DIWE',
+        default='',
+        type=configure_logging,
+        help='Selectively turn off [D]ebug, [I]nfo, [W]arning, or [E]rror'
     )
 
     subparsers = parser.add_subparsers(dest="command", help="a sub command")
@@ -161,7 +248,7 @@ def console():
 
     args = parser.parse_args()
 
-    echo.quiet = args.quiet
+    #echo.quiet = args.quiet
 
     project_dir = ProjectDirectory(args.project_dir)
     output_dir = args.output_dir
