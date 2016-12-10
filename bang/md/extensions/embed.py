@@ -354,7 +354,7 @@ class ImageProcessor(BlockProcessor):
 
     it only works on links that end with an image extension like .jpg
     """
-    regex = re.compile(r"^[^\s\]\[\:<>]+\.(?:jpe?g|gif|bmp|png|ico|tiff)$", re.I)
+    regex = re.compile(r"^(?:[^\s\]\[\:<>]+|\https?\:\/\/\S+?)\.(?:jpe?g|gif|bmp|png|ico|tiff)$", re.I)
 
     def test(self, parent, block):
         block = block.strip()

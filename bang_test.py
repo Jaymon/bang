@@ -729,6 +729,23 @@ class EmbedPluginTest(TestCase):
         self.assertTrue('alt="bogus.jpg"' in r)
         self.assertTrue('title=""' in r)
 
+    def test_embed_image_url(self):
+        p = get_post({
+            'bogus.jpg': "",
+            'embed_image.md': "\n".join([
+                "before text",
+                "",
+                "http://embedded.com/full/url/bogus.jpg",
+                "",
+                "after text",
+            ]),
+        })
+
+        r = p.html
+        self.assertTrue('alt="bogus.jpg"' in r)
+        self.assertTrue('title=""' in r)
+        self.assertTrue('src="http://embedded.com/full/url/bogus.jpg"' in r)
+
     def test_embed_highlight(self):
         p = get_post({
             'embed_highlight.md': "\n".join([
@@ -742,7 +759,6 @@ class EmbedPluginTest(TestCase):
 
         r = p.html
         self.assertFalse("embed" in r)
-
 
 
 class ConfigTest(TestCase):
