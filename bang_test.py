@@ -6,10 +6,11 @@ import json
 
 import testdata
 
-from bang.generator import Post, Site, Template, Config
+from bang.generator import Post, Site, Template
 from bang.path import Directory, ProjectDirectory
 from bang import skeleton
 from bang import echo
+from bang import config
 
 
 # configure root logger
@@ -741,4 +742,54 @@ class EmbedPluginTest(TestCase):
 
         r = p.html
         self.assertFalse("embed" in r)
+
+
+
+class ConfigTest(TestCase):
+    def test_context(self):
+        with config.context("foo", bar=1) as conf:
+            self.assertEqual(1, conf.bar)
+
+        with config.context("foo2", bar=2) as conf:
+            self.assertEqual(2, conf.bar)
+
+        with config.context("foo") as conf:
+            self.assertEqual(1, conf.bar)
+
+    def test_base_url(self):
+        with config.context("web", scheme="", host="example.com") as conf:
+            self.assertEqual("//example.com", conf.base_url)
+
+        with config.context("feed", scheme="https", host="example.com") as conf:
+            self.assertEqual("https://example.com", conf.base_url)
+
+    def test_context_lifecycle(self):
+        project_dir, output_dir = get_dirs({
+            'input/p1/blog_post.md': [
+                "foo.jpg"
+            ],
+            "input/bogus.jpg": "",
+            'bangfile.py': [
+                "from bang import event",
+                "from bang.plugins import feed",
+                "host = 'example.com'",
+                "name = 'example site'",
+                "",
+                "scheme = 'https'",
+                "@event.bind('context.web')",
+                "def feed_context_handler(event_name, config):",
+                "    config.scheme = ''",
+                "",
+            ]
+        })
+
+        s = Site(project_dir, output_dir)
+        s.output()
+
+        r = output_dir.file_contents("feed.rss")
+        self.assertTrue("<link>https://example.com" in r)
+
+        post_dir = output_dir / "p1"
+        r = post_dir.file_contents("index.html")
+        self.assertTrue('src="//example.com' in r)
 

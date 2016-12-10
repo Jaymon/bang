@@ -12,6 +12,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from . import echo
 from . import event
+from . import config
 from .md.extensions.delins import DelInsExtension
 from .md.extensions.domevent import DomEventExtension
 from .md.extensions.absolutelink import AbsoluteLinkExtension
@@ -19,6 +20,7 @@ from .md.extensions.image import ImageExtension
 from .md.extensions.highlight import HighlightExtension
 from .md.extensions.reference import ReferenceExtension
 from .md.extensions.embed import EmbedExtension
+from .path import Directory
 
 
 # http://stackoverflow.com/a/925630/5006
@@ -39,60 +41,6 @@ class HTMLStripper(HTMLParser):
 
     def get_data(self):
         return ''.join(self.fed)
-
-
-class Config(object):
-    """small wrapper around the config module that takes care of what happens if
-    the config file doesn't actually exist"""
-    @property
-    def base_url(self):
-        """Return the base url with scheme (scheme) and host and everything, if scheme
-        is unknown this will use // (instead of http://) but that might make things
-        like the rss feed and sitemap fail if they are used so it is recommended you
-        set the scheme in your bangfile, there is a similar problem if host is empty, then
-        it will just return empty string"""
-        base_url = ''
-        scheme = self.scheme
-        if scheme:
-            base_url = '{}://{}'.format(scheme, self.host)
-
-        else:
-            host = self.host
-            if host:
-                base_url = '//{}'.format(host)
-
-        return base_url
-
-    def __init__(self, project_dir):
-        self.module = None
-        self.fields = {
-            #'scheme': 'http'
-        }
-
-        config_file = os.path.join(str(project_dir), 'bangfile.py')
-        if os.path.isfile(config_file):
-            # http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
-            self.module = imp.load_source('bangfile_module', config_file)
-
-        # find all environment vars
-        for k, v in os.environ.items():
-            if k.startswith('BANG_'):
-                name = k[5:].lower()
-                self.fields[name] = v
-
-    def get(self, k, default_val=None):
-        """bangfile takes precedence, then environment variables"""
-        ret = default_val
-        if self.module:
-            ret = getattr(self.module, k, self.fields.get(k, default_val))
-
-        else:
-            ret = self.fields.get(k, default_val)
-
-        return ret
-
-    def __getattr__(self, k):
-        return self.get(k)
 
 
 class Template(object):
@@ -120,7 +68,7 @@ class Template(object):
         return tmpl.stream(**kwargs).dump(filepath, encoding='utf-8')
 
 
-class Posts(object):
+class Posts(config.ContextAware):
     """this is a simple linked list of Post instances, the Post instances have next_post
     and prev_post pointers that this class takes advantage of to build the list"""
     first_post = None
@@ -134,10 +82,9 @@ class Posts(object):
     """this is the name of the file that this post will be outputted to after it
     is templated"""
 
-    def __init__(self, output_dir, tmpl, config):
+    def __init__(self, output_dir, tmpl):
         self.output_dir = output_dir
         self.tmpl = tmpl
-        self.config = config
 
     def append(self, post):
         if not self.first_post:
@@ -179,7 +126,8 @@ class Posts(object):
         return self.total
 
     def output(self, **kwargs):
-        """
+        """This will output an index.html file in the root directory
+
         **kwargs -- dict -- these will be passed to the template
         """
         echo.out("output Posts")
@@ -207,7 +155,7 @@ class Posts(object):
         # files for each page of Posts
 
 
-class Post(object):
+class Post(config.ContextAware):
     """this is a node in the Posts linked list, it holds all the information needed
     to output a Post in the input directory to the output directory"""
     next_post = None
@@ -266,15 +214,13 @@ class Post(object):
     @property
     def body(self):
         d = self.directory
-        v = ''
-        with codecs.open(d.content_file, 'r+', 'utf-8') as fp:
-            v = fp.read()
-        return v
+        return d.file_contents(os.path.basename(d.content_file))
 
     @property
     def description(self):
         """Returns a nice description of the post, first 2 sentences"""
-        desc = getattr(self, "_description", None)
+        #desc = getattr(self, "_description", None)
+        desc = None
         if desc is None:
             html = self.html
             plain = HTMLStripper.strip_tags(html)
@@ -318,7 +264,8 @@ class Post(object):
 
         return -- string -- rendered html
         """
-        html = getattr(self, "_html", None)
+        #html = getattr(self, "_html", None)
+        html = None
         if html is None:
             d = self.directory
             ext = os.path.splitext(d.content_file)[1][1:]
@@ -334,11 +281,10 @@ class Post(object):
         return html
 
 
-    def __init__(self, directory, output_dir, tmpl, config):
+    def __init__(self, directory, output_dir, tmpl):
         self.directory = directory
         self.output_dir = output_dir
         self.tmpl = tmpl
-        self.config = config
 
     def normalize_markdown(self, text):
         """alternate file extension .markdown should point to .md"""
@@ -449,53 +395,55 @@ class Aux(Post):
             **kwargs
         )
 
-class Site(object):
+class Site(config.ContextAware):
     """this is where all the magic happens. Output generates all the posts and compiles
     files from input directory to output directory"""
-    def __init__(self, project_dir, output_dir, config=None):
+    def __init__(self, project_dir, output_dir):
         self.project_dir = project_dir
         self.output_dir = output_dir
-        self.config = config if config else Config(project_dir)
 
     def output(self):
         """go through input/ dir and compile the files and move them to output/ dir"""
-        self.output_dir.clear()
-        tmpl = Template(self.project_dir.template_dir)
+        config.initialize(self.project_dir)
 
-        posts = Posts(self.output_dir, tmpl, self.config)
-        auxs = Posts(self.output_dir, tmpl, self.config)
+        with config.context("web"):
+            self.output_dir.clear()
+            tmpl = Template(self.project_dir.template_dir)
 
-        for d in self.project_dir.input_dir:
-            output_dir = self.output_dir / d.relative()
-            if d.is_aux():
-                echo.out("aux dir: {}", d)
-                a = Aux(d, output_dir, tmpl, self.config)
-                auxs.append(a)
+            posts = Posts(self.output_dir, tmpl)
+            auxs = Posts(self.output_dir, tmpl)
 
-            elif d.is_post():
-                echo.out("post dir: {}", d)
-                p = Post(d, output_dir, tmpl, self.config)
-                posts.append(p)
+            for d in self.project_dir.input_dir:
+                output_dir = self.output_dir / d.relative()
+                if d.is_aux():
+                    echo.out("aux dir: {}", d)
+                    a = Aux(d, output_dir, tmpl)
+                    auxs.append(a)
 
-            else:
-                echo.out("uncategorized dir: {}", d)
-                output_dir.create()
-                for f in d.files():
-                    output_dir.copy_file(f)
+                elif d.is_post():
+                    echo.out("post dir: {}", d)
+                    p = Post(d, output_dir, tmpl)
+                    posts.append(p)
 
-        for p in posts:
-            p.output(posts=posts, auxs=auxs)
+                else:
+                    echo.out("uncategorized dir: {}", d)
+                    output_dir.create()
+                    for f in d.files():
+                        output_dir.copy_file(f)
 
-        for a in auxs:
-            a.output(posts=posts, auxs=auxs)
+            for p in posts:
+                p.output(posts=posts, auxs=auxs)
 
-        posts.output()
+            for a in auxs:
+                a.output(posts=posts, auxs=auxs)
 
-        for f in self.project_dir.input_dir.files():
-            self.output_dir.copy_file(f)
+            posts.output()
 
-        self.posts = posts
-        self.auxs = auxs
+            for f in self.project_dir.input_dir.files():
+                self.output_dir.copy_file(f)
+
+            self.posts = posts
+            self.auxs = auxs
 
         event.broadcast('output.finish', self)
 
