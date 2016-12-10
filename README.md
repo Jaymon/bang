@@ -196,6 +196,7 @@ Generate a site skeleton that you can use as a starting point to your own bang s
 
     $ bang generate --project-dir=...
 
+
 -------------------------------------------------------------------------------
 
 ## Events
@@ -219,9 +220,11 @@ def callback(event_name, site):
 # alternative register call: event.listen('output.finish', callback)
 ```
 
+
 ### output.finish
 
 This event is fired after all the posts are compiled, right now it is used to do things like generating RSS feeds and the sitemap.
+
 
 ### dom.[TAGNAME]
 
@@ -235,6 +238,21 @@ def callback(event_name, parent, elem):
     """print all href urls in every a tag"""
     echo.out(elem.href)
 ```
+
+
+### context.[name]
+
+Anytime the configuration context changes, this event is called, when the html pages are generated, `context.web` is the broadcast event, the feed plugin will broacast `context.feed` and the sitemap plugin will broadcast `context.sitemap`.
+
+```python
+from .. import event
+
+@event.bind("context.web")
+def callback(event_name, config):
+    """allows custom configuration for web context"""
+    pass
+```
+
 
 -------------------------------------------------------------------------------
 
