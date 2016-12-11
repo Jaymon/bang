@@ -6,11 +6,11 @@ import datetime
 import imp
 from HTMLParser import HTMLParser
 import re
+import logging
 
 import markdown
 from jinja2 import Environment, FileSystemLoader
 
-from . import echo
 from . import event
 from . import config
 from .md.extensions.delins import DelInsExtension
@@ -21,6 +21,9 @@ from .md.extensions.highlight import HighlightExtension
 from .md.extensions.reference import ReferenceExtension
 from .md.extensions.embed import EmbedExtension
 from .path import Directory
+
+
+logger = logging.getLogger(__name__)
 
 
 # http://stackoverflow.com/a/925630/5006
@@ -130,7 +133,7 @@ class Posts(config.ContextAware):
 
         **kwargs -- dict -- these will be passed to the template
         """
-        echo.out("output Posts")
+        logger.info("output Posts")
         output_dir = self.output_dir
         output_dir.create()
 
@@ -138,11 +141,11 @@ class Posts(config.ContextAware):
 
         # TODO -- generate both prev and next urls if needed
 
-        echo.out(
-            'templating Posts with template "{}" to output file {}',
+        logger.info(
+            'templating Posts with template "{}" to output file {}'.format(
             self.template_name,
             output_file
-        )
+        ))
         self.tmpl.output(
             self.template_name,
             output_file,
@@ -324,7 +327,7 @@ class Post(config.ContextAware):
         """
         **kwargs -- dict -- these will be passed to the template
         """
-        echo.out("output {}", self.title)
+        logger.info("output {}".format(self.title))
         d = self.directory
         output_dir = self.output_dir
         output_dir.create()
@@ -335,12 +338,12 @@ class Post(config.ContextAware):
         output_file = os.path.join(str(output_dir), self.output_basename)
         self.output_file = output_file
 
-        echo.out(
-            'templating {} with template "{}" to output file {}',
+        logger.info(
+            'templating {} with template "{}" to output file {}'.format(
             d.content_file,
             self.template_name,
             output_file
-        )
+        ))
 
         self.output_template(
             self.template_name,
@@ -416,17 +419,17 @@ class Site(config.ContextAware):
             for d in self.project_dir.input_dir:
                 output_dir = self.output_dir / d.relative()
                 if d.is_aux():
-                    echo.out("aux dir: {}", d)
+                    logger.debug("aux dir: {}".format(d))
                     a = Aux(d, output_dir, tmpl)
                     auxs.append(a)
 
                 elif d.is_post():
-                    echo.out("post dir: {}", d)
+                    logger.debug("post dir: {}".format(d))
                     p = Post(d, output_dir, tmpl)
                     posts.append(p)
 
                 else:
-                    echo.out("uncategorized dir: {}", d)
+                    logger.debug("uncategorized dir: {}".format(d))
                     output_dir.create()
                     for f in d.files():
                         output_dir.copy_file(f)

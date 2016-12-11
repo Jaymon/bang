@@ -3,11 +3,17 @@ a plugin to generate a sitemap
 
 http://en.wikipedia.org/wiki/Sitemaps
 """
+# TODO -- convert to py3 ready and get rid of u"" strings
 from __future__ import absolute_import
 import os
 import codecs
+import logging
 
-from .. import event, echo, config as configuration
+from .. import event, config as configuration
+
+
+logger = logging.getLogger(__name__)
+
 
 @event.bind('output.finish')
 def output_sitemap(event_name, site):
@@ -15,7 +21,7 @@ def output_sitemap(event_name, site):
 
     with configuration.context("feed") as config:
         sitemap = os.path.join(str(site.output_dir), 'sitemap.xml')
-        echo.out("writing sitemap to {}", sitemap)
+        logger.info("writing sitemap to {}".format(sitemap))
 
         host = config.host
         max_count = 50000
@@ -41,6 +47,5 @@ def output_sitemap(event_name, site):
                 fp.write(u"</urlset>\n")
 
         else:
-            echo.err("[WARNING] sitemap not generated because no config host set")
-
+            logger.error("Sitemap not generated because no config host set")
 

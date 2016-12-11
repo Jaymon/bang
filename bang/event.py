@@ -1,6 +1,11 @@
-from . import echo
+import logging
+
 
 events = {}
+
+
+logger = logging.getLogger(__name__)
+
 
 def bind(event_name, *event_names):
     """decorator that wraps the listen() method to make it easier to bind functions
@@ -26,9 +31,12 @@ def broadcast(event_name, *args, **kwargs):
     global events
 
     callbacks = events.get(event_name, [])
-    echo.out("broadcast event {} to {} callbacks", event_name, len(callbacks))
+    if len(callbacks) > 0:
+        logger.info("Event {} broadcast to {} callbacks".format(event_name, len(callbacks)))
 
-    for callback in callbacks:
-        callback(event_name, *args, **kwargs)
+        for callback in callbacks:
+            callback(event_name, *args, **kwargs)
 
+    else:
+        logger.debug("Event {} ignored".format(event_name))
 

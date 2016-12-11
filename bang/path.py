@@ -4,8 +4,11 @@ from distutils import dir_util
 import shutil
 import types
 import codecs
+import logging
 
-from . import echo
+
+logger = logging.getLogger(__name__)
+
 
 class Directory(object):
 
@@ -62,7 +65,7 @@ class Directory(object):
     def create_file(self, basename, contents, binary=False):
         """create the file with basename in this directory with contents"""
         output_file = os.path.join(self.path, basename)
-        echo.out("create file {}", output_file)
+        logger.debug("create file {}".format(output_file))
 
         oldmask = os.umask(0)
 
@@ -85,18 +88,18 @@ class Directory(object):
         """copy the input_file to this directory"""
         basename = os.path.basename(input_file)
         output_file = os.path.join(self.path, basename)
-        echo.out("copy file {} to {}", input_file, output_file)
+        logger.debug("copy file {} to {}".format(input_file, output_file))
         return shutil.copy(input_file, output_file)
 
     def create(self):
         """create the directory path"""
-        echo.out("create dir: {}", self.path)
+        logger.debug("create dir: {}".format(self.path))
         return dir_util.mkpath(self.path)
 
     def clear(self):
         """this will clear a directory path of all files and folders"""
         # http://stackoverflow.com/a/1073382/5006
-        echo.out("clearing {}", self.path)
+        logger.debug("clearing {}".format(self.path))
         dir_util.mkpath(self.path)
         for root, dirs, files in os.walk(self.path, topdown=True):
             for td in dirs:

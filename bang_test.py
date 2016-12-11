@@ -9,8 +9,8 @@ import testdata
 from bang.generator import Post, Site, Template
 from bang.path import Directory, ProjectDirectory
 from bang import skeleton
-from bang import echo
 from bang import config
+from bang.__main__ import configure_logging
 
 
 # configure root logger
@@ -25,7 +25,7 @@ from bang import config
 
 
 # turn on all logging for the tests
-echo.quiet = False
+configure_logging("")
 
 
 def get_body(filepath):

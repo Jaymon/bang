@@ -7,12 +7,12 @@ import os
 from collections import defaultdict
 import logging
 import logging.config
+import time
 
 from bang import __version__
 from bang.server import Server
 from bang.path import Directory, ProjectDirectory
 from bang.generator import Site
-from bang import echo
 from bang.skeleton import Skeleton
 
 
@@ -20,47 +20,56 @@ logger = logging.getLogger(__name__)
 
 
 def console_compile(args, project_dir, output_dir):
-    echo.out("compiling directory {} to {}...", project_dir.input_dir, output_dir)
+    start = time.time()
+
+    logger.info("compiling directory {} to {}...".format(project_dir.input_dir, output_dir))
     s = Site(project_dir, output_dir)
     s.output()
-    echo.out("...done")
+
+    stop = time.time()
+    multiplier = 1000.00
+    rnd = 2
+    elapsed = round(abs(stop - start) * float(multiplier), rnd)
+    total = "{:.1f} ms".format(elapsed)
+
+    logger.info("compile done in {}".format(total))
     return 0
 
 
 def console_generate(args, project_dir, output_dir):
-    echo.out("Generating new project in {}...", project_dir)
+    logger.info("Generating new project in {}".format(project_dir))
     s = Skeleton(project_dir)
     s.output()
-    echo.out("...done")
+    logger.info("generate done")
     return 0
 
 
 def console_serve(args, project_dir, output_dir):
     ret_code = 0
-    echo.out("* " * 40)
-    echo.out("serving directory")
-    echo.out("serving directory")
-    echo.out("")
-    echo.out("    {}", output_dir)
-    echo.out("")
-    echo.out("at url")
-    echo.out("")
-    echo.out("    http://localhost:{}", args.port)
-    echo.out("")
-    echo.out("* " * 40)
+    logger.info("* " * 40)
+    logger.info("serving directory")
+    logger.info("serving directory")
+    logger.info("")
+    logger.info("    {}".format(output_dir))
+    logger.info("")
+    logger.info("at url")
+    logger.info("")
+    logger.info("    http://localhost:{}".format(args.port))
+    logger.info("")
+    logger.info("* " * 40)
     s = Server(str(output_dir), args.port)
     try:
         s.serve_forever()
     except KeyboardInterrupt:
         pass
 
-    echo.out("...done")
+    logger.info("serve done")
     return ret_code
 
 
 def console_watch(args, project_dir, output_dir):
     ret_code = 0
-    echo.out("running watch...")
+    logger.info("running watch")
     d = Directory(project_dir, '.git')
     if d.exists():
         try:
@@ -87,18 +96,28 @@ def console_watch(args, project_dir, output_dir):
     else:
         ret_code = 1
 
-    echo.out("...done")
+    logger.info("watch done")
     return ret_code
 
 
 def configure_logging(val):
 
+    if val.startswith("-"):
+        # if we had a subtract, then just remove those from being suppressed
+        # so -E would only show errors
+        levels = val[1:]
+    else:
+        levels = "".join(set("DIWEC") - set(val.upper()))
+
+    #pout.v(levels)
+
     class LevelFilter(object):
         def __init__(self, levels):
             self.levels = levels.upper()
             #self.__level = level
-            self.__level = logging.DEBUG
+            self.__level = logging.NOTSET
         def filter(self, logRecord):
+            #pout.v(self.levels)
             return logRecord.levelname[0].upper() in self.levels
             #return logRecord.levelno <= self.__level
 
@@ -114,20 +133,23 @@ def configure_logging(val):
                     #'format': '[%(levelname).1s|%(filename)s:%(lineno)s] %(message)s',
                     'format': '[%(levelname).1s] %(message)s',
                 },
+                'message': {
+                    'format': '%(message)s'
+                }
             },
             'handlers': {
                 'stdout': {
-                    'level': 'DEBUG',
+                    'level': 'NOTSET',
                     'class': 'logging.StreamHandler',
                     'formatter': 'basic',
-                    'filters': ['stdout'],
+                    'filters': ['stdout', 'user'],
                     'stream': 'ext://sys.stdout'
                 },
                 'stderr': {
                     'level': 'WARNING',
                     'class': 'logging.StreamHandler',
                     'formatter': 'basic',
-                    'filters': ['stderr'],
+                    'filters': ['stderr', 'user'],
                     'stream': 'ext://sys.stderr'
                 },
             },
@@ -140,10 +162,13 @@ def configure_logging(val):
                     '()': LevelFilter,
                     'levels': 'WEC',
                 },
+                'user': {
+                    '()': LevelFilter,
+                    'levels': levels,
+                },
             },
             'root': {
-                'level': 'DEBUG',
-                'filters': [],
+                'level': 'NOTSET',
                 'handlers': ['stdout', 'stderr'],
             },
             'incremental': False,
@@ -153,11 +178,11 @@ def configure_logging(val):
         }
         logging.config.dictConfig(d)
 
-        logger.debug("debug")
-        logger.info("info")
-        logger.warning("warning")
-        logger.error("error")
-        logger.critical("critical")
+#         logger.debug("debug")
+#         logger.info("info")
+#         logger.warning("warning")
+#         logger.error("error")
+#         logger.critical("critical")
 
     except Exception as e:
         raise
@@ -199,10 +224,10 @@ def console():
     parent_parser.add_argument(
         '--quiet',
         nargs='?',
-        const='DIWE',
+        const='DIWEC',
         default='',
         type=configure_logging,
-        help='Selectively turn off [D]ebug, [I]nfo, [W]arning, or [E]rror'
+        help='Selectively turn off [D]ebug, [I]nfo, [W]arning, [E]rror, or [C]ritical, use - to invert'
     )
 
     subparsers = parser.add_subparsers(dest="command", help="a sub command")
@@ -247,8 +272,6 @@ def console():
     generate_parser.set_defaults(func=console_generate)
 
     args = parser.parse_args()
-
-    #echo.quiet = args.quiet
 
     project_dir = ProjectDirectory(args.project_dir)
     output_dir = args.output_dir

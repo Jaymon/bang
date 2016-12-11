@@ -5,9 +5,10 @@ import posixpath
 import urllib
 import SocketServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
+import logging
 
-# first party
-from . import echo
+
+logger = logging.getLogger(__name__)
 
 
 class DirTCPServer(SocketServer.TCPServer, object):
@@ -32,7 +33,7 @@ class Server(DirTCPServer):
             serv_dir=serv_dir
         )
 
-        echo.out("server started on port {} and dir {}", port, serv_dir)
+        logger.debug("server started on port {} and dir {}".format(port, serv_dir))
 
         # Prevent 'cannot bind to address' errors on restart
         # Manually bind, to support allow_reuse_address
@@ -64,6 +65,6 @@ class RequestHandler(SimpleHTTPRequestHandler):
             if word in (os.curdir, os.pardir): continue
             path = os.path.join(path, word)
 
-        echo.out("{} -> {}", url_path, path)
+        logger.debug("{} -> {}".format(url_path, path))
         return path
 

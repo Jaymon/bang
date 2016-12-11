@@ -10,12 +10,17 @@ http://cyber.law.harvard.edu/rss/rss.html
 validator: http://validator.w3.org/feed/
 big list of namespaces: http://validator.w3.org/feed/docs/howto/declare_namespaces.html
 """
+# TODO -- convert to py3 ready and get rid of u"" strings
 import datetime
 import os
 from xml.sax.saxutils import escape
 import codecs
+import logging
 
-from .. import event, echo, config as configuration
+from .. import event, config as configuration
+
+
+logger = logging.getLogger(__name__)
 
 
 def get_safe(text):
@@ -40,11 +45,11 @@ def output_rss(event_name, site):
 
         host = config.host
         if not host:
-            echo.err("[WARNING] rss feed not generated because no config host set")
+            logger.error("RSS feed not generated because no config host set")
             return
 
         feedpath = os.path.join(str(site.output_dir), 'feed.rss')
-        echo.out("writing feed to {}", feedpath)
+        logger.info("writing feed to {}".format(feedpath))
 
         main_url = config.base_url
         feed_url = u'http://{}/feed.rss'.format(host)

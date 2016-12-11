@@ -4,6 +4,7 @@ import re
 import tempfile
 import json
 import os
+import logging
 
 from markdown import util
 from markdown.extensions import Extension
@@ -12,7 +13,9 @@ from markdown.blockprocessors import BlockProcessor as BaseBlockProcessor
 import requests
 
 from ...path import Directory
-from ... import echo
+
+
+logger = logging.getLogger(__name__)
 
 
 class Scanner(object):
@@ -230,7 +233,7 @@ class TwitterProcessor(BlockProcessor):
 
         # first we check cache, if it isn't in cache then we query twitter
         if url not in cache:
-            echo.out("Embed for {} was not in cache", url)
+            logger.warning("Embed for {} was not in cache".format(url))
 
             html, body = self.get_response(url)
             if html:
@@ -238,7 +241,7 @@ class TwitterProcessor(BlockProcessor):
                 self.write_cache(cache)
 
             else:
-                echo.err("Embed for {} failed with code {}", url, res.status_code)
+                logger.error("Embed for {} failed with code {}".format(url, res.status_code))
 
         # if we have the contents then we can load them up
         if url in cache:
@@ -287,7 +290,7 @@ class InstagramProcessor(TwitterProcessor):
 
                 cached_image = d.files(r"^{}".format(igid))
                 if cached_image:
-                    echo.info("Image cached at {}", cached_image[0])
+                    logger.info("Image cached at {}".format(cached_image[0]))
 
                 else:
                     raw_url = "https://instagram.com/p/{}/media/".format(igid)
@@ -305,7 +308,7 @@ class InstagramProcessor(TwitterProcessor):
                         d.create_file("{}.{}".format(igid, ext), res.content, binary=True)
 
                     else:
-                        echo.err("Raw cache for {} failed with code {}", url, res.status_code)
+                        logger.error("Raw cache for {} failed with code {}".format(url, res.status_code))
 
         return html, body
 
