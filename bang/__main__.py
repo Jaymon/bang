@@ -22,9 +22,18 @@ logger = logging.getLogger(__name__)
 def console_compile(args, project_dir, output_dir):
     start = time.time()
 
-    logger.info("compiling directory {} to {}...".format(project_dir.input_dir, output_dir))
+    regex = args.regex
+    if regex:
+        logger.info("Compiling directories matching {} in {} to {}".format(
+            regex,
+            project_dir.input_dir,
+            output_dir
+        ))
+    else:
+        logger.info("Compiling directory {} to {}".format(project_dir.input_dir, output_dir))
+
     s = Site(project_dir, output_dir)
-    s.output()
+    s.output(regex)
 
     stop = time.time()
     multiplier = 1000.00
@@ -32,7 +41,7 @@ def console_compile(args, project_dir, output_dir):
     elapsed = round(abs(stop - start) * float(multiplier), rnd)
     total = "{:.1f} ms".format(elapsed)
 
-    logger.info("compile done in {}".format(total))
+    logger.info("Compile done in {}".format(total))
     return 0
 
 
@@ -227,7 +236,11 @@ def console():
         const='DIWEC',
         default='',
         type=configure_logging,
-        help='Selectively turn off [D]ebug, [I]nfo, [W]arning, [E]rror, or [C]ritical, use - to invert'
+        help=''.join([
+            'Selectively turn off [D]ebug, [I]nfo, [W]arning, [E]rror, or [C]ritical, ',
+            '(--quiet=DI means suppress Debug and Info), ',
+            'use - to invert (--quiet=-E means suppress everything but Error)',
+        ])
     )
 
     subparsers = parser.add_subparsers(dest="command", help="a sub command")
@@ -237,6 +250,12 @@ def console():
         parents=[parent_parser],
         help="compile your site",
         add_help=False
+    )
+    compile_parser.add_argument(
+        '--pattern', '--regex',
+        dest="regex",
+        required=False,
+        help='Only directories matching this pattern will be compiled'
     )
     compile_parser.set_defaults(func=console_compile)
 

@@ -125,6 +125,13 @@ class Posts(config.ContextAware):
             if count and p_count >= count:
                 break
 
+    def matching(self, regex):
+        """Iterate only through posts whose directory matches regex"""
+        for p in self:
+            if regex and not re.search(regex, str(p.directory), re.I):
+                continue
+            yield p
+
     def __len__(self):
         return self.total
 
@@ -141,8 +148,8 @@ class Posts(config.ContextAware):
 
         # TODO -- generate both prev and next urls if needed
 
-        logger.info(
-            'templating Posts with template "{}" to output file {}'.format(
+        logger.debug(
+            'Templating Posts with template "{}" to output file {}'.format(
             self.template_name,
             output_file
         ))
@@ -327,19 +334,27 @@ class Post(config.ContextAware):
         """
         **kwargs -- dict -- these will be passed to the template
         """
-        logger.info("output {}".format(self.title))
         d = self.directory
         output_dir = self.output_dir
-        output_dir.create()
+        output_file = os.path.join(str(output_dir), self.output_basename)
+        logger.info("output {} to {}".format(self.title, output_file))
+
+        r = output_dir.create()
         for input_file in d.other_files:
             output_dir.copy_file(input_file)
 
+        # NOTE -- if there are other directories in the post directory, those are
+        # considered "other directories" and so they will be copied over when the
+        # others list is ran through and copied. This keeps duplicated work but
+        # also isn't incredibly elegant, because if we ever just want to compile
+        # one post, we would need to compile the post and any other directories
+        # would need to be ran through separately
+
         #html = self.html
-        output_file = os.path.join(str(output_dir), self.output_basename)
         self.output_file = output_file
 
-        logger.info(
-            'templating {} with template "{}" to output file {}'.format(
+        logger.debug(
+            'Templating {} with template "{}" to output file {}'.format(
             d.content_file,
             self.template_name,
             output_file
@@ -379,7 +394,7 @@ class Aux(Post):
         title = ""
 
         # first try and get the title from a header tag in the body
-        m = re.match("^\s*<h1[^>]*>([^<]*)</h1>", body, flags=re.I)
+        m = re.match(r"^\s*<h1[^>]*>([^<]*)</h1>", body, flags=re.I)
         if m:
             title = m.group(1).strip()
 
@@ -398,6 +413,30 @@ class Aux(Post):
             **kwargs
         )
 
+
+class Other(object):
+    """Holds folders that are neither Aux or Post folders"""
+    next_post = None
+    """never used, Posts api compatibility only"""
+
+    prev_post = None
+    """never used, Posts api compatibility only"""
+
+    def __init__(self, directory, output_dir):
+        self.directory = directory
+        self.output_dir = output_dir
+
+    def output(self):
+        if self.directory.is_private(): return
+
+        d = self.directory
+        output_dir = self.output_dir
+
+        output_dir.create()
+        for f in d.files():
+            output_dir.copy_file(f)
+
+
 class Site(config.ContextAware):
     """this is where all the magic happens. Output generates all the posts and compiles
     files from input directory to output directory"""
@@ -405,16 +444,20 @@ class Site(config.ContextAware):
         self.project_dir = project_dir
         self.output_dir = output_dir
 
-    def output(self):
+    def output(self, regex=None):
         """go through input/ dir and compile the files and move them to output/ dir"""
         config.initialize(self.project_dir)
 
         with config.context("web"):
-            self.output_dir.clear()
-            tmpl = Template(self.project_dir.template_dir)
+            if regex:
+                logger.warning("output directory {} not cleared because regex present".format(self.output_dir))
+            else:
+                self.output_dir.clear()
 
+            tmpl = Template(self.project_dir.template_dir)
             posts = Posts(self.output_dir, tmpl)
             auxs = Posts(self.output_dir, tmpl)
+            others = Posts(self.output_dir, tmpl)
 
             for d in self.project_dir.input_dir:
                 output_dir = self.output_dir / d.relative()
@@ -429,24 +472,33 @@ class Site(config.ContextAware):
                     posts.append(p)
 
                 else:
-                    logger.debug("uncategorized dir: {}".format(d))
-                    output_dir.create()
-                    for f in d.files():
-                        output_dir.copy_file(f)
+                    logger.debug("other dir: {}".format(d))
+                    o = Other(d, output_dir)
+                    others.append(o)
 
-            for p in posts:
+            for p in posts.matching(regex):
                 p.output(posts=posts, auxs=auxs)
 
-            for a in auxs:
+            for a in auxs.matching(regex):
                 a.output(posts=posts, auxs=auxs)
 
-            posts.output()
-
-            for f in self.project_dir.input_dir.files():
-                self.output_dir.copy_file(f)
+            for o in others.matching(regex):
+                o.output()
 
             self.posts = posts
             self.auxs = auxs
+            self.others = others
 
-        event.broadcast('output.finish', self)
+            if regex:
+                logger.warning("Posts not compiled because regex present")
+            else:
+                posts.output()
+
+                for f in self.project_dir.input_dir.files():
+                    self.output_dir.copy_file(f)
+
+            if regex:
+                logger.warning("output.finish event not broadcast because regex")
+            else:
+                event.broadcast('output.finish', self)
 

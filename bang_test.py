@@ -172,6 +172,50 @@ class SiteTest(TestCase):
         self.assertFalse(os.path.isfile(os.path.join(str(output_dir), 'notdraft', 'index.html')))
         self.assertEqual(0, len(s.posts))
 
+    def test_regex_compile(self):
+        project_dir, output_dir = get_dirs({
+            'input/foo/post1.md': testdata.get_unicode_words(),
+            'input/foo2/post2.md': testdata.get_unicode_words(),
+            'input/bar/post3.md': testdata.get_unicode_words(),
+            'input/bar/fake.jpg': "",
+        })
+
+        s = Site(project_dir, output_dir)
+
+        s.output(r"bar")
+        count = 0
+        for p in s.posts:
+            if p.output_dir.exists():
+                count += 1
+        self.assertEqual(1, count)
+
+        s.output(r"bar")
+        count = 0
+        for p in s.posts:
+            if p.output_dir.exists():
+                count += 1
+        self.assertEqual(1, count)
+
+        s.output()
+        count = 0
+        for p in s.posts:
+            if p.output_dir.exists():
+                count += 1
+        self.assertEqual(3, count)
+
+    def test_private_post(self):
+        project_dir, output_dir = get_dirs({
+            'input/_foo/post1.md': testdata.get_unicode_words(),
+            'input/_foo/fake.jpg': "",
+            'input/_bar/other/something.jpg': "",
+        })
+
+        s = Site(project_dir, output_dir)
+
+        s.output()
+        self.assertIsNone(s.posts.first_post)
+        self.assertIsNone(s.others.first_post)
+
 
 class PostTest(TestCase):
     def test_no_bangfile_host(self):
@@ -808,4 +852,15 @@ class ConfigTest(TestCase):
         post_dir = output_dir / "p1"
         r = post_dir.file_contents("index.html")
         self.assertTrue('src="//example.com' in r)
+
+
+class DirectoryTest(TestCase):
+    def test_in_private(self):
+        d = Directory(testdata.create_dir("/foo/_bar/che"))
+        self.assertTrue(d.in_private())
+        self.assertFalse(d.is_private())
+
+        d = Directory(testdata.create_dir("/foo/_bar"))
+        self.assertTrue(d.in_private())
+        self.assertTrue(d.is_private())
 

@@ -94,6 +94,7 @@ class Directory(object):
     def create(self):
         """create the directory path"""
         logger.debug("create dir: {}".format(self.path))
+        # https://docs.python.org/2.5/dist/module-distutils.dirutil.html
         return dir_util.mkpath(self.path)
 
     def clear(self):
@@ -110,6 +111,11 @@ class Directory(object):
 
             break
 
+        # clear dir_util's internal cache otherwise calling create() again in same run
+        # won't actually create the directory and won't tell you it didn't create it and
+        # there doesn't seem to be an "official" way to clear the cache
+        # https://hg.python.org/cpython/file/2.7/Lib/distutils/dir_util.py#l14
+        dir_util._path_created = {}
         return True
 
     def __div__(self, bits):
@@ -131,12 +137,12 @@ class Directory(object):
 
     def __iter__(self):
         for root_dir, dirs, _ in os.walk(self.path, topdown=True):
+            dirs[:] = [d for d in dirs if not d.startswith("_")]
             dirs.sort()
             for basename in dirs:
                 d = Directory(root_dir, basename)
                 d.ancestor_dir = self
-                if not d.is_private():
-                    yield d
+                yield d
 
     def files(self, regex=None):
         fs = []
@@ -178,6 +184,17 @@ class Directory(object):
     def is_private(self):
         basename = self.basename
         return basename.startswith('_')
+
+    def in_private(self):
+        """make sure this path isn't an any private directory"""
+        ret = False
+        path = self.path
+        while path:
+            path, basename = os.path.split(path)
+            if basename.startswith('_'):
+                ret = True
+                break
+        return ret
 
     def relative(self, ancestor_dir=None):
         """
