@@ -4,17 +4,21 @@
 from setuptools import setup, find_packages
 import re
 import os
+from codecs import open
 
 
 name = "bang"
-with open(os.path.join(name, "__init__.py"), 'rU') as f:
+with open(os.path.join(name, "__init__.py"), encoding='utf-8') as f:
     version = re.search("^__version__\s*=\s*[\'\"]([^\'\"]+)", f.read(), flags=re.I | re.M).group(1)
 
+with open('README.rst', encoding='utf-8') as f:
+    long_description = f.read()
 
 setup(
     name="{}text".format(name),
     version=version,
     description='A static site generator',
+    long_description=long_description,
     author='Jay Marcyes',
     author_email='jay@marcyes.com',
     url='http://github.com/jaymon/{}'.format(name),
