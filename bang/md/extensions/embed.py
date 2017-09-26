@@ -187,7 +187,7 @@ class TwitterProcessor(BlockProcessor):
 
     base_url = "https://publish.twitter.com/oembed"
 
-    regex = re.compile(r"^\S+:\/\/(?:[^\.]+\.)?twitter\.[^\/]+\/.+$")
+    regex = re.compile(r"^https?:\/\/(?:[^\.]+\.)?twitter\.[^\/]+\/.+$", flags=re.I)
 
     name = "twitter"
 
@@ -222,6 +222,9 @@ class TwitterProcessor(BlockProcessor):
             body = res.json()
             html = body["html"]
 
+        else:
+            logger.error("Embed for {} failed with code {}".format(url, res.status_code))
+
         return html, body
 
     def test(self, parent, block):
@@ -234,14 +237,10 @@ class TwitterProcessor(BlockProcessor):
         # first we check cache, if it isn't in cache then we query twitter
         if url not in cache:
             logger.warning("Embed for {} was not in cache".format(url))
-
             html, body = self.get_response(url)
             if html:
                 cache[url] = body
                 self.write_cache(cache)
-
-            else:
-                logger.error("Embed for {} failed with code {}".format(url, res.status_code))
 
         # if we have the contents then we can load them up
         if url in cache:
@@ -265,7 +264,7 @@ class InstagramProcessor(TwitterProcessor):
     name = "instagram"
 
     regex = re.compile(r"""
-        ^\S+:\/\/
+        ^https?:\/\/
             (?:
                 (?:[^\.]+\.)?instagram\.[^\/]+
                 |

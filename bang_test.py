@@ -759,6 +759,16 @@ class EmbedPluginTest(TestCase):
         contents = json.loads(p.directory.file_contents("twitter.json"))
         self.assertEqual(2, len(contents))
 
+    def test_no_embed_twitter_links(self):
+        p = get_post({
+            'no_embed_twitter.md': "\n".join([
+                "[@Jaymon](https://twitter.com/jaymon)",
+            ]),
+        })
+
+        r = p.html
+        self.assertTrue("a href" in r)
+
     def test_embed_instagram(self):
         p = get_post({
             'embed_instagram.md': "\n".join([
