@@ -81,6 +81,10 @@ class FootnoteExtension(BaseFootnoteExtension):
 
     https://github.com/waylan/Python-Markdown/blob/master/markdown/extensions/footnotes.py
     """
+
+    unique_prefix = 0
+    """We need a class property to persist across multiple instantiations"""
+
     def __init__(self, *args, **kwargs):
         super(FootnoteExtension, self).__init__(*args, **kwargs)
         self.config.setdefault(
@@ -101,6 +105,10 @@ class FootnoteExtension(BaseFootnoteExtension):
         super(FootnoteExtension, self).reset()
         self.found_id = 1
         self.matched_id = 1
+
+        # fix UNIQUE_IDS that doesn't work across multiple instanciations
+        type(self).unique_prefix += 1
+        self.unique_prefix = type(self).unique_prefix
 
     def setFootnote(self, id, text):
         """This differs from parent by using our own id if passed in id matches

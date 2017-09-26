@@ -3,6 +3,7 @@ import os
 import codecs
 import sys
 import json
+import re
 
 import testdata
 
@@ -24,8 +25,8 @@ from bang.__main__ import configure_logging
 # logger.addHandler(log_handler)
 
 
-# turn on all logging for the tests
-configure_logging("")
+# "" to turn on all logging for the tests
+configure_logging("DI")
 
 
 def get_body(filepath):
@@ -58,7 +59,7 @@ def get_dirs(input_files):
     return project_dir, output_dir
 
 
-def get_post(post_files, name=""):
+def get_posts(post_files):
 
     # clear the environment
     for k, v in os.environ.items():
@@ -66,15 +67,12 @@ def get_post(post_files, name=""):
             del os.environ[k]
     sys.modules.pop("bangfile_module", None)
 
-    if not name:
-        name = testdata.get_ascii(16)
-
     di = {
-        'bangfile.py': "\n".join([
+        'bangfile.py': [
             "host = 'example.com'",
             "name = 'example site'",
             ""
-        ])
+        ]
     }
 
     # replace any project files if they are present
@@ -83,6 +81,7 @@ def get_post(post_files, name=""):
             di[rp] = post_files.pop(rp)
 
     for basename, file_contents in post_files.items():
+        name = testdata.get_ascii(16)
         fp = os.path.join('input', name, basename)
         di[fp] = file_contents
 
@@ -98,7 +97,12 @@ def get_post(post_files, name=""):
 
     #pout.v(s, len(s.posts), len(s.auxs))
 
-    return s.posts.first_post if len(s.posts) else s.auxs.first_post
+    return s.posts if len(s.posts) else s.auxs
+
+def get_post(*args, **kwargs):
+    posts = get_posts(*args, **kwargs)
+    return posts.first_post
+    #return s.posts.first_post if len(s.posts) else s.auxs.first_post
 
 
 class PluginTest(TestCase):
@@ -221,13 +225,14 @@ class PostTest(TestCase):
     def test_no_bangfile_host(self):
         name = testdata.get_ascii(16)
         p = get_post({
-            'foo.md': "\n".join([
+            '{}/foo.md'.format(name): "\n".join([
                 "hi"
             ]),
             'bangfile.py': ""
-        }, name=name)
+        })
 
-        self.assertEqual("/{}".format(name), p.url)
+        #self.assertEqual("/{}".format(name), p.url)
+        self.assertRegexpMatches(p.url, "^/[^/]+/{}$".format(name))
 
     def test_description_property(self):
         p = get_post({
@@ -503,7 +508,7 @@ class PostTest(TestCase):
             self.assertTrue(x in r)
             self.assertTrue("{}.com".format(x) in r)
 
-    def test_easy_footers(self):
+    def test_easy_footnotes(self):
         p = get_post({
             'easy_footnotes_1.md': "\n".join([
                 "first text[^n]",
@@ -519,8 +524,37 @@ class PostTest(TestCase):
 
         r = p.html
         for x in ["1", "2", "foo"]:
-            self.assertTrue("#fn-2-{}".format(x) in r)
-            self.assertTrue("#fnref-2-{}".format(x) in r)
+            #self.assertTrue("#fn-2-{}".format(x) in r)
+            #self.assertTrue("#fnref-2-{}".format(x) in r)
+            self.assertRegexpMatches(r, "#fn-\d+-{}".format(x))
+            self.assertRegexpMatches(r, "#fnref-\d+-{}".format(x))
+
+    def test_uniq_footnotes(self):
+        ps = get_posts({
+            'uniq_footnotes_1.md': [
+                "first text[^n]",
+                "[^n]: first footnote",
+            ],
+            'uniq_footnotes_2.md': [
+                "second text[^n]",
+                "[^n]: second footnote",
+            ],
+            'uniq_footnotes_3.md': [
+                "third text[^n]",
+                "[^n]: third footnote",
+            ]
+        })
+
+        uniqs = set()
+        for i, p in enumerate(ps):
+            r = p.html
+            m = re.search(r"#fn-(\d+)-\d+", r)
+            uniqs.add(m.group(1))
+
+            m = re.search(r"#fnref-(\d+)-\d+", r)
+            uniqs.add(m.group(1))
+
+        self.assertEqual(3, len(uniqs))
 
     def test_easy_images(self):
         p = get_post({

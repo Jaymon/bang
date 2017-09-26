@@ -46,8 +46,14 @@ class AbsoluteLinkTreeprocessor(Treeprocessor):
 
     def run(self, doc):
         for elem in self.get_tags(doc, "a", "img"):
+            normalize = True
             if elem.tag == 'a':
                 attr_name = "href"
+
+                # filter out footnotes since those aren't really meant to be linked
+                class_name = elem.get("class")
+                if class_name and class_name.lower().startswith("footnote-"):
+                    normalize = False
 
             elif elem.tag == 'img':
                 attr_name = "src"
@@ -55,9 +61,10 @@ class AbsoluteLinkTreeprocessor(Treeprocessor):
             else:
                 raise ValueError("why is absolute link dealing with {} tag?".format(elem.tag))
 
-            attr_val = elem.get(attr_name)
-            url = self.normalize_url(attr_val)
-            elem.set(attr_name, url)
+            if normalize:
+                attr_val = elem.get(attr_name)
+                url = self.normalize_url(attr_val)
+                elem.set(attr_name, url)
 
 
 class AbsoluteLinkExtension(Extension):
