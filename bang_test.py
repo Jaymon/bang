@@ -508,6 +508,52 @@ class PostTest(TestCase):
             self.assertTrue(x in r)
             self.assertTrue("{}.com".format(x) in r)
 
+    def test_link_titles(self):
+        p = get_post({
+            'link_titles_1.md': "\n".join([
+                "[first][n]",
+                "[n]: http://first.com \"this is the title\"",
+            ])
+        })
+
+        r = p.html
+        self.assertTrue("this is the title" in r)
+
+    def test_toc(self):
+        p = get_post({
+            'toc_1.md': [
+                "[TOC]",
+                "# Header 1",
+                "## Header 2",
+                "### Header 3",
+                "#### Header 4",
+                "##### Header 5",
+                "###### Header 6",
+                "# Other Header 1",
+            ]
+        })
+
+        r = p.html
+        self.assertTrue("toc" in r)
+        self.assertTrue("#header-1" in r)
+        self.assertTrue("#header-3" in r)
+        self.assertTrue("#header-6" in r)
+        self.assertTrue("#other-header-1" in r)
+
+        p = get_post({
+            'toc_2.md': [
+                "# Header 1",
+                "## Header 2",
+                "### Header 3",
+                "#### Header 4",
+                "##### Header 5",
+                "###### Header 6",
+                "# Other Header 1",
+            ]
+        })
+        r = p.html
+        self.assertFalse("toc" in r)
+
     def test_easy_footnotes(self):
         p = get_post({
             'easy_footnotes_1.md': "\n".join([
