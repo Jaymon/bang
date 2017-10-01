@@ -539,6 +539,8 @@ class PostTest(TestCase):
         self.assertTrue("#header-3" in r)
         self.assertTrue("#header-6" in r)
         self.assertTrue("#other-header-1" in r)
+        for x in range(1, 7):
+            self.assertTrue("h{}".format(x) in r)
 
         p = get_post({
             'toc_2.md': [
