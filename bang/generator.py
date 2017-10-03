@@ -10,16 +10,19 @@ import logging
 
 import markdown
 from markdown.extensions.toc import TocExtension
+from markdown.extensions.footnotes import FootnoteExtension
 from jinja2 import Environment, FileSystemLoader
 
 from . import event
 from . import config
+from .md import Markdown
 from .md.extensions.delins import DelInsExtension
 from .md.extensions.domevent import DomEventExtension
 from .md.extensions.absolutelink import AbsoluteLinkExtension
 from .md.extensions.image import ImageExtension
 from .md.extensions.highlight import HighlightExtension
 from .md.extensions.reference import ReferenceExtension
+from .md.extensions.magicref import MagicRefExtension
 from .md.extensions.embed import EmbedExtension
 from .path import Directory
 
@@ -304,9 +307,12 @@ class Post(config.ContextAware):
     def normalize_md(self, text):
         """normalize markdown using the markdown module https://github.com/waylan/Python-Markdown"""
         # http://pythonhosted.org/Markdown/reference.html#markdown
-        md = markdown.Markdown(
+        #md = markdown.Markdown(
+        md = Markdown(
             extensions=[
-                ReferenceExtension(UNIQUE_IDS=True),
+                #ReferenceExtension(UNIQUE_IDS=True),
+                FootnoteExtension(UNIQUE_IDS=True),
+                MagicRefExtension(),
                 HighlightExtension(),
                 'tables',
                 'nl2br',
@@ -446,16 +452,11 @@ class Site(config.ContextAware):
         self.project_dir = project_dir
         self.output_dir = output_dir
 
-    def output(self, regex=None):
-        """go through input/ dir and compile the files and move them to output/ dir"""
+    def compile(self):
+        """go through input/ dir and compile the files"""
         config.initialize(self.project_dir)
 
         with config.context("web"):
-            if regex:
-                logger.warning("output directory {} not cleared because regex present".format(self.output_dir))
-            else:
-                self.output_dir.clear()
-
             tmpl = Template(self.project_dir.template_dir)
             posts = Posts(self.output_dir, tmpl)
             auxs = Posts(self.output_dir, tmpl)
@@ -478,23 +479,32 @@ class Site(config.ContextAware):
                     o = Other(d, output_dir)
                     others.append(o)
 
-            for p in posts.matching(regex):
-                p.output(posts=posts, auxs=auxs)
-
-            for a in auxs.matching(regex):
-                a.output(posts=posts, auxs=auxs)
-
-            for o in others.matching(regex):
-                o.output()
-
             self.posts = posts
             self.auxs = auxs
             self.others = others
 
+    def output(self, regex=None):
+        """go through input/ dir and compile the files and move them to output/ dir"""
+        with config.context("web"):
+            self.compile()
+
             if regex:
-                logger.warning("Posts not compiled because regex present")
+                logger.warning("output directory {} not cleared because regex present".format(self.output_dir))
             else:
-                posts.output()
+                self.output_dir.clear()
+
+            if regex:
+                for p in self.posts.matching(regex):
+                    p.output(posts=posts, auxs=auxs)
+
+                for a in self.auxs.matching(regex):
+                    a.output(posts=posts, auxs=auxs)
+
+                for o in self.others.matching(regex):
+                    o.output()
+
+            else:
+                self.posts.output()
 
                 for f in self.project_dir.input_dir.files():
                     self.output_dir.copy_file(f)

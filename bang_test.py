@@ -93,7 +93,7 @@ def get_posts(post_files):
 #     p = Post(d, output_dir, tmpl, Config(project_dir))
 
     s = Site(project_dir, output_dir)
-    s.output()
+    s.compile()
 
     #pout.v(s, len(s.posts), len(s.auxs))
 
@@ -711,6 +711,132 @@ class PostTest(TestCase):
 
         r = p.html
         self.assertEqual(4, r.count("admonition-title"))
+
+    def test_easy_footnotes_blockquote(self):
+        vals = [
+            '-1">1</a>',
+            '-2">2</a>',
+            '-3">3</a>',
+        ]
+
+        p = get_post({
+            'fn_bq_1.md': [
+                "before one[^n]",
+                "",
+                "[^n]: onefn",
+                "",
+                ">blockquote two[^n]",
+                "",
+                "[^n]: twofn",
+                "",
+                "after three[^n]",
+                "",
+                "[^n]: threefn",
+            ]
+        })
+
+        r = p.html
+        for v in vals:
+            self.assertTrue(v in r)
+
+        p = get_post({'fn_bq_2.md': [
+            "before one[^n]",
+            "",
+            "[^n] onefn",
+            "",
+        ]})
+        with self.assertRaises(RuntimeError):
+            r = p.html
+
+    def test_easy_links_blockquote(self):
+        vals = [
+            '<a href="http://one.com">one</a>',
+            '<a href="http://two.com">two</a>',
+            '<a href="http://three.com">three</a>',
+        ]
+
+        p = get_post({
+            'link_bq_1.md': [
+                "before [one][n]",
+                "",
+                "[n]: http://one.com",
+                "",
+                ">blockquote [two][n]",
+                "",
+                "[n]: http://two.com",
+                "",
+                "after [three][n]",
+                "",
+                "[n]: http://three.com",
+            ]
+        })
+
+        r = p.html
+        for v in vals:
+            self.assertTrue(v in r)
+
+        p = get_post({
+            'link_bq_2.md': [
+                "before [one][n]",
+                "",
+                "[n]: http://one.com",
+                "",
+                "* [two][n]",
+                "",
+                "[n]: http://two.com",
+                "",
+                "after [three][n]",
+                "",
+                "[n]: http://three.com",
+            ]
+        })
+
+        r = p.html
+        for v in vals:
+            self.assertTrue(v in r)
+
+        p = get_post({'link_bq_3.md': [
+            "before [one][n]",
+            "",
+            "[n] http://one.com",
+            "",
+        ]})
+        with self.assertRaises(RuntimeError):
+            r = p.html
+
+    def test_mixed_blockquote(self):
+        vals = [
+            '<a href="http://one.com">one</a>',
+            '<a href="http://two.com">two</a>',
+            '<a href="http://three.com">three</a>',
+            '-2">1</a>',
+            '-4">2</a>',
+            '-6">3</a>',
+        ]
+
+        p = get_post({'mixed_bq_1.md': [
+            "before [one][n][^n]",
+            "",
+            "[n]: http://one.com",
+            "",
+            "[^n]: onefn",
+            "",
+            ">blockquote [two][n][^n]",
+            "",
+            "[n]: http://two.com",
+            "",
+            "[^n]: twofn",
+            "",
+            "after [three][n][^n]",
+            "",
+            "[n]: http://three.com",
+            ""
+            "[^n]: threefn",
+        ]})
+
+        r = p.html
+        for v in vals:
+            self.assertTrue(v in r)
 
 
 class AuxTest(TestCase):
