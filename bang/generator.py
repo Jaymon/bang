@@ -9,21 +9,22 @@ import re
 import logging
 
 import markdown
-from markdown.extensions.toc import TocExtension
-from markdown.extensions.footnotes import FootnoteExtension
+#from markdown.extensions.toc import TocExtension
+#from markdown.extensions.footnotes import FootnoteExtension
 from jinja2 import Environment, FileSystemLoader
 
 from . import event
 from . import config
 from .md import Markdown
-from .md.extensions.delins import DelInsExtension
-from .md.extensions.domevent import DomEventExtension
-from .md.extensions.absolutelink import AbsoluteLinkExtension
-from .md.extensions.image import ImageExtension
-from .md.extensions.highlight import HighlightExtension
-from .md.extensions.reference import ReferenceExtension
-from .md.extensions.magicref import MagicRefExtension
-from .md.extensions.embed import EmbedExtension
+# from .md.extensions.delins import DelInsExtension
+# from .md.extensions.domevent import DomEventExtension
+# from .md.extensions.absolutelink import AbsoluteLinkExtension
+# from .md.extensions.image import ImageExtension
+# from .md.extensions.highlight import HighlightExtension
+# #from .md.extensions.reference import ReferenceExtension
+# from .md.extensions.footnote import FootnoteExtension
+# from .md.extensions.magicref import MagicRefExtension
+# from .md.extensions.embed import EmbedExtension
 from .path import Directory
 
 
@@ -307,29 +308,30 @@ class Post(config.ContextAware):
     def normalize_md(self, text):
         """normalize markdown using the markdown module https://github.com/waylan/Python-Markdown"""
         # http://pythonhosted.org/Markdown/reference.html#markdown
+        md = Markdown.get_instance()
         #md = markdown.Markdown(
-        md = Markdown(
-            extensions=[
-                #ReferenceExtension(UNIQUE_IDS=True),
-                FootnoteExtension(UNIQUE_IDS=True),
-                MagicRefExtension(),
-                HighlightExtension(),
-                'tables',
-                'nl2br',
-                'attr_list',
-                'smart_strong',
-                'meta', # http://pythonhosted.org/Markdown/extensions/meta_data.html
-                'admonition', # https://pythonhosted.org/Markdown/extensions/admonition.html
-                TocExtension(baselevel=1), # https://pythonhosted.org/Markdown/extensions/toc.html
-                ImageExtension(),
-                DelInsExtension(),
-                AbsoluteLinkExtension(self),
-                DomEventExtension(self),
-                #"bang.md.extensions.embed(cache_dir={})".format(self.directory),
-                EmbedExtension(cache_dir=self.directory),
-            ],
-            output_format="html5"
-        )
+#         md = Markdown(
+#             extensions=[
+#                 #ReferenceExtension(UNIQUE_IDS=True),
+#                 FootnoteExtension(UNIQUE_IDS=True),
+#                 MagicRefExtension(),
+#                 HighlightExtension(),
+#                 'tables',
+#                 'nl2br',
+#                 'attr_list',
+#                 'smart_strong',
+#                 'meta', # http://pythonhosted.org/Markdown/extensions/meta_data.html
+#                 'admonition', # https://pythonhosted.org/Markdown/extensions/admonition.html
+#                 TocExtension(baselevel=1), # https://pythonhosted.org/Markdown/extensions/toc.html
+#                 ImageExtension(),
+#                 DelInsExtension(),
+#                 AbsoluteLinkExtension(self),
+#                 DomEventExtension(self),
+#                 #"bang.md.extensions.embed(cache_dir={})".format(self.directory),
+#                 EmbedExtension(cache_dir=self.directory),
+#             ],
+#             output_format="html5"
+#         )
 
         html = md.convert(text)
         self._meta = md.Meta

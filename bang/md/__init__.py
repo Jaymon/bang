@@ -2,71 +2,64 @@
 from __future__ import unicode_literals, division, print_function, absolute_import
 
 import markdown
+from markdown.extensions.toc import TocExtension
+
+from .extensions.delins import DelInsExtension
+from .extensions.domevent import DomEventExtension
+from .extensions.absolutelink import AbsoluteLinkExtension
+from .extensions.image import ImageExtension
+from .extensions.highlight import HighlightExtension
+from .extensions.footnote import FootnoteExtension
+from .extensions.magicref import MagicRefExtension
+from .extensions.embed import EmbedExtension
+#from .extensions.reference import ReferenceExtension
 
 
 class Markdown(markdown.Markdown):
+    """
+    https://github.com/Python-Markdown/markdown/blob/master/markdown/__init__.py
+    """
+    instance = None
 
-    def convert(self, source):
+    @classmethod
+    def get_instance(cls):
+        if not cls.instance:
+            cls.instance = cls(
+                extensions=[
+                    #ReferenceExtension(UNIQUE_IDS=True),
+                    #FootnoteExtension(UNIQUE_IDS=True),
+                    MagicRefExtension(),
+                    HighlightExtension(),
+                    'tables',
+                    'nl2br',
+                    'attr_list',
+                    'smart_strong',
+                    'meta', # http://pythonhosted.org/Markdown/extensions/meta_data.html
+                    'admonition', # https://pythonhosted.org/Markdown/extensions/admonition.html
+                    TocExtension(baselevel=1), # https://pythonhosted.org/Markdown/extensions/toc.html
+                    ImageExtension(),
+                    DelInsExtension(),
+                    AbsoluteLinkExtension(self),
+                    DomEventExtension(self),
+                    #"bang.md.extensions.embed(cache_dir={})".format(self.directory),
+                    EmbedExtension(cache_dir=self.directory),
+                ],
+                output_format="html5"
+            )
 
-        from markdown import util
-
-        # Fixup the source text
-        if not source.strip():
-            return ''  # a blank unicode string
-
-        try:
-            source = util.text_type(source)
-        except UnicodeDecodeError as e:
-            # Customise error message while maintaining original trackback
-            e.reason += '. -- Note: Markdown only accepts unicode input!'
-            raise
-
-        # Split into lines and run the line preprocessors.
-        self.lines = source.split("\n")
-        #pout.v(self.lines)
-        for prep in self.preprocessors.values():
-            self.lines = prep.run(self.lines)
-
-        #pout.x()
-        #pout.v(self.references, self.lines)
-
-        # Parse the high-level elements.
-        root = self.parser.parseDocument(self.lines).getroot()
-
-        #pout.v(self.serializer(root), root)
-
-        # Run the tree-processors
-        for treeprocessor in self.treeprocessors.values():
-            #pout.v(treeprocessor.__class__)
-            newRoot = treeprocessor.run(root)
-            if newRoot is not None:
-                root = newRoot
-
-            html = self.serializer(root)
-#             pout.v(html)
-#             if "<a" in html:
-#                 pout.x(0)
+        return cls.instance
 
 
-        # Serialize _properly_.  Strip top-level tags.
-        output = self.serializer(root)
-        if self.stripTopLevelTags:
-            try:
-                start = output.index(
-                    '<%s>' % self.doc_tag) + len(self.doc_tag) + 2
-                end = output.rindex('</%s>' % self.doc_tag)
-                output = output[start:end].strip()
-            except ValueError:  # pragma: no cover
-                if output.strip().endswith('<%s />' % self.doc_tag):
-                    # We have an empty document
-                    output = ''
-                else:
-                    # We have a serious problem
-                    raise ValueError('Markdown failed to strip top-level '
-                                     'tags. Document=%r' % output.strip())
+# !!! - use this method when debugging
+#     def convert(self, source):
+#         """This is the method that all the magic happens, so if you need to start peering
+#         into the internals of markdown parsing the file and doing its thing I would
+#         just copy this whole method from:
+# 
+#         https://github.com/Python-Markdown/markdown/blob/master/markdown/__init__.py#L332
+# 
+#         and then mess with it as you see fit, I'm leaving this method/comment here so
+#         I'll remember for the future
+#         """
+#         pass
 
-        # Run the text post-processors
-        for pp in self.postprocessors.values():
-            output = pp.run(output)
-
-        return output.strip()

@@ -596,10 +596,11 @@ class PostTest(TestCase):
         uniqs = set()
         for i, p in enumerate(ps):
             r = p.html
-            m = re.search(r"#fn-(\d+)-\d+", r)
+            #m = re.search(r"#fn-[^\"]+", r)
+            m = re.search(r"#fn-(\d+)", r)
             uniqs.add(m.group(1))
 
-            m = re.search(r"#fnref-(\d+)-\d+", r)
+            m = re.search(r"#fnref-(\d+)", r)
             uniqs.add(m.group(1))
 
         self.assertEqual(3, len(uniqs))
