@@ -15,10 +15,10 @@ class DomEventTreeprocessor(Treeprocessor):
                 yield parent, child
 
     def run(self, doc):
-        post = self.config['post']
+        post = self.markdown.post
         for parent, elem in self.iterparent(doc):
             elem_event_name = 'dom.{}'.format(elem.tag)
-            event.broadcast(elem_event_name, parent=parent, elem=elem, config=self.config)
+            event.broadcast(elem_event_name, parent=parent, elem=elem, markdown=self.markdown)
 
 
 class DomEventExtension(Extension):
@@ -36,18 +36,12 @@ class DomEventExtension(Extension):
 
     example --
         @event.bind('dom.a')
-        #def do_something(event_name, parent, elem, config):
+        #def do_something(event_name, parent, elem, markdown):
             # do something cool with the "a" elem
     """
-    def __init__(self, post):
-        self.config = {
-            'post' : [post, 'the post instance this extension is working on'],
-        }
-
     def extendMarkdown(self, md, md_globals):
         md.registerExtension(self)
         self.processor = DomEventTreeprocessor(md)
-        self.processor.md = md
-        self.processor.config = self.getConfigs()
+        #self.processor.config = self.getConfigs()
         md.treeprocessors.add('domevent', self.processor, "_end")
 

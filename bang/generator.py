@@ -1,17 +1,14 @@
 import os
 import codecs
 from distutils import dir_util
-import fnmatch
 import datetime
 import imp
-from HTMLParser import HTMLParser
 import re
 import logging
 
 import markdown
 #from markdown.extensions.toc import TocExtension
 #from markdown.extensions.footnotes import FootnoteExtension
-from jinja2 import Environment, FileSystemLoader
 
 from . import event
 from . import config
@@ -26,54 +23,10 @@ from .md import Markdown
 # from .md.extensions.magicref import MagicRefExtension
 # from .md.extensions.embed import EmbedExtension
 from .path import Directory
+from .utils import HTMLStripper, Template
 
 
 logger = logging.getLogger(__name__)
-
-
-# http://stackoverflow.com/a/925630/5006
-class HTMLStripper(HTMLParser):
-    """strip html tags"""
-    @classmethod
-    def strip_tags(cls, html):
-        s = cls()
-        s.feed(html)
-        return s.get_data()
-
-    def __init__(self):
-        self.reset()
-        self.fed = []
-
-    def handle_data(self, d):
-        self.fed.append(d)
-
-    def get_data(self):
-        return ''.join(self.fed)
-
-
-class Template(object):
-    """Thin wrapper around Jinja functionality that handles templating things
-
-    http://jinja.pocoo.org/docs/dev/
-    """
-    def __init__(self, template_dir):
-        self.template_dir = template_dir
-        self.env = Environment(
-            loader=FileSystemLoader(str(template_dir)),
-            #extensions=['jinja2.ext.with_'] # http://jinja.pocoo.org/docs/dev/templates/#with-statement
-        )
-
-        self.templates = {}
-        for f in fnmatch.filter(os.listdir(str(self.template_dir)), '*.html'):
-            filename, fileext = os.path.splitext(f)
-            self.templates[filename] = f
-
-    def has(self, template_name):
-        return template_name in self.templates
-
-    def output(self, template_name, filepath, **kwargs):
-        tmpl = self.env.get_template("{}.html".format(template_name))
-        return tmpl.stream(**kwargs).dump(filepath, encoding='utf-8')
 
 
 class Posts(config.ContextAware):
@@ -308,7 +261,7 @@ class Post(config.ContextAware):
     def normalize_md(self, text):
         """normalize markdown using the markdown module https://github.com/waylan/Python-Markdown"""
         # http://pythonhosted.org/Markdown/reference.html#markdown
-        md = Markdown.get_instance()
+        md = Markdown.get_instance(self)
         #md = markdown.Markdown(
 #         md = Markdown(
 #             extensions=[
@@ -377,14 +330,6 @@ class Post(config.ContextAware):
             **kwargs
         )
 
-#         self.tmpl.output(
-#             self.template_name,
-#             output_file,
-#             post=self,
-#             config=self.config,
-#             **kwargs
-#         )
-
     def output_template(self, template_name, output_file, **kwargs):
         kwargs["post"] = self
         self.tmpl.output(
@@ -436,7 +381,7 @@ class Other(object):
         self.directory = directory
         self.output_dir = output_dir
 
-    def output(self):
+    def output(self, **kwargs):
         if self.directory.is_private(): return
 
         d = self.directory
@@ -487,29 +432,33 @@ class Site(config.ContextAware):
 
     def output(self, regex=None):
         """go through input/ dir and compile the files and move them to output/ dir"""
-        with config.context("web"):
-            self.compile()
+        self.compile()
 
+        with config.context("web"):
             if regex:
                 logger.warning("output directory {} not cleared because regex present".format(self.output_dir))
             else:
                 self.output_dir.clear()
 
+            for p in self.posts.matching(regex):
+                #p.output(posts=self.posts, auxs=self.auxs)
+                p.output(site=self)
+
+            for a in self.auxs.matching(regex):
+                #a.output(posts=self.posts, auxs=self.auxs)
+                a.output(site=self)
+
+            for o in self.others.matching(regex):
+                o.output(site=self)
+
             if regex:
-                for p in self.posts.matching(regex):
-                    p.output(posts=posts, auxs=auxs)
-
-                for a in self.auxs.matching(regex):
-                    a.output(posts=posts, auxs=auxs)
-
-                for o in self.others.matching(regex):
-                    o.output()
-
+                logger.warning("Posts not compiled because regex present")
             else:
-                self.posts.output()
+                # this compiles the root index.html
+                self.posts.output(site=self)
 
-                for f in self.project_dir.input_dir.files():
-                    self.output_dir.copy_file(f)
+#                 for f in self.project_dir.input_dir.files():
+#                     self.output_dir.copy_file(f)
 
             if regex:
                 logger.warning("output.finish event not broadcast because regex")

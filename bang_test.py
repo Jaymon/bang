@@ -574,8 +574,8 @@ class PostTest(TestCase):
         for x in ["1", "2", "foo"]:
             #self.assertTrue("#fn-2-{}".format(x) in r)
             #self.assertTrue("#fnref-2-{}".format(x) in r)
-            self.assertRegexpMatches(r, "#fn-\d+-{}".format(x))
-            self.assertRegexpMatches(r, "#fnref-\d+-{}".format(x))
+            self.assertRegexpMatches(r, "#fn-.+?-{}".format(x))
+            self.assertRegexpMatches(r, "#fnref-.+?-{}".format(x))
 
     def test_uniq_footnotes(self):
         ps = get_posts({
@@ -604,6 +604,45 @@ class PostTest(TestCase):
             uniqs.add(m.group(1))
 
         self.assertEqual(3, len(uniqs))
+
+    def test_ref_pos_fix(self):
+        p = get_post({'ref_pos_fix_1.md': [
+            "[first][n] [text][n][^n] and [again][n]",
+            "",
+            "[n]: http://first.com",
+            "[n]: http://one.com",
+            "[^n]: first footnote",
+            "[n]: http://again.com",
+            "",
+        ]})
+        r = p.html
+        vals = [
+            '<a href="http://first.com">first</a>',
+            '<a href="http://one.com">text</a>',
+            'href="#fn-',
+            'href="#fnref-',
+            'and <a href="http://again.com">again</a>',
+        ]
+        for v in vals:
+            self.assertTrue(v in r, "{} NOT IN {}".format(v, r))
+
+        p = get_post({'ref_pos_fix_2.md': [
+            "first text[^n] and [again][n]",
+            "",
+            "[^n]: first footnote",
+            "second line of footnote",
+            "[n]: http://again.com",
+            "",
+        ]})
+        r = p.html
+        vals = [
+            'href="#fn-',
+            'href="#fnref-',
+            'and <a href="http://again.com">again</a>',
+        ]
+        for v in vals:
+            self.assertTrue(v in r, "{} NOT IN {}".format(v, r))
+
 
     def test_easy_images(self):
         p = get_post({

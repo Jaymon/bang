@@ -3,14 +3,16 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 
 import markdown
 from markdown.extensions.toc import TocExtension
+from markdown.extensions.footnotes import FootnoteExtension
 
 from .extensions.delins import DelInsExtension
 from .extensions.domevent import DomEventExtension
 from .extensions.absolutelink import AbsoluteLinkExtension
 from .extensions.image import ImageExtension
 from .extensions.highlight import HighlightExtension
-from .extensions.footnote import FootnoteExtension
+#from .extensions.footnote import FootnoteExtension
 from .extensions.magicref import MagicRefExtension
+from .extensions.reference import RefPositionFixExtension
 from .extensions.embed import EmbedExtension
 #from .extensions.reference import ReferenceExtension
 
@@ -22,12 +24,13 @@ class Markdown(markdown.Markdown):
     instance = None
 
     @classmethod
-    def get_instance(cls):
+    def get_instance(cls, post):
         if not cls.instance:
             cls.instance = cls(
                 extensions=[
                     #ReferenceExtension(UNIQUE_IDS=True),
-                    #FootnoteExtension(UNIQUE_IDS=True),
+                    RefPositionFixExtension(),
+                    FootnoteExtension(UNIQUE_IDS=True),
                     MagicRefExtension(),
                     HighlightExtension(),
                     'tables',
@@ -39,16 +42,28 @@ class Markdown(markdown.Markdown):
                     TocExtension(baselevel=1), # https://pythonhosted.org/Markdown/extensions/toc.html
                     ImageExtension(),
                     DelInsExtension(),
-                    AbsoluteLinkExtension(self),
-                    DomEventExtension(self),
+                    AbsoluteLinkExtension(),
+                    DomEventExtension(),
                     #"bang.md.extensions.embed(cache_dir={})".format(self.directory),
-                    EmbedExtension(cache_dir=self.directory),
+                    EmbedExtension(),
                 ],
                 output_format="html5"
             )
 
+#         cls.instance.registerExtensions([
+#             AbsoluteLinkExtension(post),
+#             DomEventExtension(post),
+#             #"bang.md.extensions.embed(cache_dir={})".format(self.directory),
+#             EmbedExtension(cache_dir=post.directory),
+#         ], {})
+
+        cls.instance.reset()
+        cls.instance.post = post
         return cls.instance
 
+    def reset(self):
+        super(Markdown, self).reset()
+        self.post = None
 
 # !!! - use this method when debugging
 #     def convert(self, source):

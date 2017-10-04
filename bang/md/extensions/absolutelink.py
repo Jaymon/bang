@@ -26,7 +26,7 @@ class AbsoluteLinkTreeprocessor(Treeprocessor):
         """normalizes the url into a full url"""
         m = self.URL_RE.search(url)
         if not m:
-            post = self.config['post']
+            post = self.markdown.post
             config = post.config
             #uri = post.uri
             base_url = config.base_url
@@ -75,17 +75,9 @@ class AbsoluteLinkExtension(Extension):
     will be converted to a full url (http://domain.com/relative/path.ext), and if
     it is a /full/path then it will be converted to http://domain.com/full/path
     """
-    def __init__(self, post):
-        self.config = {
-            'post' : [post, 'the post instance this extension is working on'],
-        }
-
     def extendMarkdown(self, md, md_globals):
         md.registerExtension(self)
-
         self.processor = AbsoluteLinkTreeprocessor(md)
-        self.processor.config = self.getConfigs()
         md.treeprocessors.add('absolute_link', self.processor, "_end")
-        #md.treeprocessors['ab'] = self.processor
 
 

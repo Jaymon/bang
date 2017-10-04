@@ -191,12 +191,9 @@ class TwitterProcessor(BlockProcessor):
 
     name = "twitter"
 
-    def __init__(self, md, embed):
-        self.embed = embed
-        super(TwitterProcessor, self).__init__(md)
-
     def get_directory(self):
-        return Directory(self.embed.getConfig("cache_dir"))
+        cache_dir = self.parser.markdown.post.directory
+        return Directory(cache_dir)
 
     def read_cache(self):
         d = self.get_directory()
@@ -383,21 +380,11 @@ class EmbedExtension(Extension):
     Any link that isn't already wrapped in an <a> tag will be wrapped in an <a> tag
     automatically
     """
-    def __init__(self, *args, **kwargs):
-
-        self.config = {
-            'cache_dir': [
-                tempfile.gettempdir(),
-                "the directory where embed data can be saved"
-            ],
-        }
-        super(EmbedExtension, self).__init__(*args, **kwargs)
-
     def extendMarkdown(self, md, md_globals):
         md.postprocessors.add("embed", LinkifyPostprocessor(md), "_end")
         md.parser.blockprocessors.add("embed_youtube", YoutubeProcessor(md.parser), "<paragraph")
-        md.parser.blockprocessors.add("embed_twitter", TwitterProcessor(md.parser, self), "<paragraph")
-        md.parser.blockprocessors.add("embed_instagram", InstagramProcessor(md.parser, self), "<paragraph")
+        md.parser.blockprocessors.add("embed_twitter", TwitterProcessor(md.parser), "<paragraph")
+        md.parser.blockprocessors.add("embed_instagram", InstagramProcessor(md.parser), "<paragraph")
         md.parser.blockprocessors.add("embed_vimeo", VimeoProcessor(md.parser), "<paragraph")
         md.parser.blockprocessors.add("embed_image", ImageProcessor(md.parser), "<paragraph")
 
