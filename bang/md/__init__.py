@@ -6,15 +6,13 @@ from markdown.extensions.toc import TocExtension
 from markdown.extensions.footnotes import FootnoteExtension
 
 from .extensions.delins import DelInsExtension
-from .extensions.domevent import DomEventExtension
+#from .extensions.domevent import DomEventExtension
 from .extensions.absolutelink import AbsoluteLinkExtension
 from .extensions.image import ImageExtension
 from .extensions.highlight import HighlightExtension
-#from .extensions.footnote import FootnoteExtension
 from .extensions.magicref import MagicRefExtension
 from .extensions.reference import RefPositionFixExtension
 from .extensions.embed import EmbedExtension
-#from .extensions.reference import ReferenceExtension
 
 
 class Markdown(markdown.Markdown):
@@ -28,7 +26,6 @@ class Markdown(markdown.Markdown):
         if not cls.instance:
             cls.instance = cls(
                 extensions=[
-                    #ReferenceExtension(UNIQUE_IDS=True),
                     RefPositionFixExtension(),
                     FootnoteExtension(UNIQUE_IDS=True),
                     MagicRefExtension(),
@@ -43,29 +40,23 @@ class Markdown(markdown.Markdown):
                     ImageExtension(),
                     DelInsExtension(),
                     AbsoluteLinkExtension(),
-                    DomEventExtension(),
-                    #"bang.md.extensions.embed(cache_dir={})".format(self.directory),
+                    #DomEventExtension(),
                     EmbedExtension(),
                 ],
                 output_format="html5"
             )
 
-#         cls.instance.registerExtensions([
-#             AbsoluteLinkExtension(post),
-#             DomEventExtension(post),
-#             #"bang.md.extensions.embed(cache_dir={})".format(self.directory),
-#             EmbedExtension(cache_dir=post.directory),
-#         ], {})
-
-        cls.instance.reset()
-        cls.instance.post = post
         return cls.instance
 
     def reset(self):
         super(Markdown, self).reset()
         self.post = None
 
-# !!! - use this method when debugging
+    def output(self, document):
+        self.reset()
+        self.post = document
+        return self.convert(document.body)
+
 #     def convert(self, source):
 #         """This is the method that all the magic happens, so if you need to start peering
 #         into the internals of markdown parsing the file and doing its thing I would

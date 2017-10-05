@@ -6,22 +6,9 @@ import imp
 import re
 import logging
 
-import markdown
-#from markdown.extensions.toc import TocExtension
-#from markdown.extensions.footnotes import FootnoteExtension
-
 from . import event
-from . import config
+from .config import ContextAware, Bangfile
 from .md import Markdown
-# from .md.extensions.delins import DelInsExtension
-# from .md.extensions.domevent import DomEventExtension
-# from .md.extensions.absolutelink import AbsoluteLinkExtension
-# from .md.extensions.image import ImageExtension
-# from .md.extensions.highlight import HighlightExtension
-# #from .md.extensions.reference import ReferenceExtension
-# from .md.extensions.footnote import FootnoteExtension
-# from .md.extensions.magicref import MagicRefExtension
-# from .md.extensions.embed import EmbedExtension
 from .path import Directory
 from .utils import HTMLStripper, Template
 
@@ -29,7 +16,7 @@ from .utils import HTMLStripper, Template
 logger = logging.getLogger(__name__)
 
 
-class Posts(config.ContextAware):
+class Posts(ContextAware):
     """this is a simple linked list of Post instances, the Post instances have next_post
     and prev_post pointers that this class takes advantage of to build the list"""
     first_post = None
@@ -123,7 +110,7 @@ class Posts(config.ContextAware):
         # files for each page of Posts
 
 
-class Post(config.ContextAware):
+class Post(ContextAware):
     """this is a node in the Posts linked list, it holds all the information needed
     to output a Post in the input directory to the output directory"""
     next_post = None
@@ -262,31 +249,7 @@ class Post(config.ContextAware):
         """normalize markdown using the markdown module https://github.com/waylan/Python-Markdown"""
         # http://pythonhosted.org/Markdown/reference.html#markdown
         md = Markdown.get_instance(self)
-        #md = markdown.Markdown(
-#         md = Markdown(
-#             extensions=[
-#                 #ReferenceExtension(UNIQUE_IDS=True),
-#                 FootnoteExtension(UNIQUE_IDS=True),
-#                 MagicRefExtension(),
-#                 HighlightExtension(),
-#                 'tables',
-#                 'nl2br',
-#                 'attr_list',
-#                 'smart_strong',
-#                 'meta', # http://pythonhosted.org/Markdown/extensions/meta_data.html
-#                 'admonition', # https://pythonhosted.org/Markdown/extensions/admonition.html
-#                 TocExtension(baselevel=1), # https://pythonhosted.org/Markdown/extensions/toc.html
-#                 ImageExtension(),
-#                 DelInsExtension(),
-#                 AbsoluteLinkExtension(self),
-#                 DomEventExtension(self),
-#                 #"bang.md.extensions.embed(cache_dir={})".format(self.directory),
-#                 EmbedExtension(cache_dir=self.directory),
-#             ],
-#             output_format="html5"
-#         )
-
-        html = md.convert(text)
+        html = md.output(self)
         self._meta = md.Meta
         return html
 
@@ -392,7 +355,7 @@ class Other(object):
             output_dir.copy_file(f)
 
 
-class Site(config.ContextAware):
+class Site(ContextAware):
     """this is where all the magic happens. Output generates all the posts and compiles
     files from input directory to output directory"""
     def __init__(self, project_dir, output_dir):
@@ -401,7 +364,8 @@ class Site(config.ContextAware):
 
     def compile(self):
         """go through input/ dir and compile the files"""
-        config.initialize(self.project_dir)
+        config = self.config
+        self.bangfile = Bangfile(self.project_dir, config)
 
         with config.context("web"):
             tmpl = Template(self.project_dir.template_dir)
@@ -433,6 +397,7 @@ class Site(config.ContextAware):
     def output(self, regex=None):
         """go through input/ dir and compile the files and move them to output/ dir"""
         self.compile()
+        config = self.config
 
         with config.context("web"):
             if regex:

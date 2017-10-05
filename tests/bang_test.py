@@ -1,7 +1,6 @@
-from unittest import TestCase
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals, division, print_function, absolute_import
 import os
-import codecs
-import sys
 import json
 import re
 
@@ -11,98 +10,8 @@ from bang.generator import Post, Site, Template
 from bang.path import Directory, ProjectDirectory
 from bang import skeleton
 from bang import config
-from bang.__main__ import configure_logging
-
-
-# configure root logger
-# import logging
-# import sys
-# logger = logging.getLogger()
-# logger.setLevel(logging.DEBUG)
-# log_handler = logging.StreamHandler(stream=sys.stderr)
-# log_formatter = logging.Formatter('[%(levelname)s] %(message)s')
-# log_handler.setFormatter(log_formatter)
-# logger.addHandler(log_handler)
-
-
-# "" to turn on all logging for the tests
-configure_logging("DI")
-
-
-def get_body(filepath):
-    v = u''
-    with codecs.open(filepath, 'r+', 'utf-8') as fp:
-        v = fp.read()
-    return v
-
-
-def get_dirs(input_files):
-
-    # TODO -- switch these to use the skeleton templates
-    d = {
-        'template/aux.html': "{{ aux.title }}\n{{ aux.html }}\n",
-        'template/post.html': "{{ post.title }}\n{{ post.html }}\n{{ post.modified.strftime('%Y-%m-%d') }}\n",
-        'template/posts.html': "\n".join([
-            "{% for post in posts.reverse(10) %}",
-            "{% include 'post.html' %}",
-            "<hr>",
-            "{% endfor %}",
-            "",
-        ])
-    }
-    d.update(input_files)
-
-    output_dir = Directory(testdata.create_dir())
-    project_dir = ProjectDirectory(testdata.create_dir())
-
-    testdata.create_files(d, tmpdir=str(project_dir))
-    return project_dir, output_dir
-
-
-def get_posts(post_files):
-
-    # clear the environment
-    for k, v in os.environ.items():
-        if k.startswith('BANG_'):
-            del os.environ[k]
-    sys.modules.pop("bangfile_module", None)
-
-    di = {
-        'bangfile.py': [
-            "host = 'example.com'",
-            "name = 'example site'",
-            ""
-        ]
-    }
-
-    # replace any project files if they are present
-    for rp in di.keys():
-        if rp in post_files:
-            di[rp] = post_files.pop(rp)
-
-    for basename, file_contents in post_files.items():
-        name = testdata.get_ascii(16)
-        fp = os.path.join('input', name, basename)
-        di[fp] = file_contents
-
-    project_dir, output_dir = get_dirs(di)
-
-#     d = Directory(project_dir.input_dir, name)
-#     d.ancestor_dir = project_dir.input_dir
-#     tmpl = Template(project_dir.template_dir)
-#     p = Post(d, output_dir, tmpl, Config(project_dir))
-
-    s = Site(project_dir, output_dir)
-    s.compile()
-
-    #pout.v(s, len(s.posts), len(s.auxs))
-
-    return s.posts if len(s.posts) else s.auxs
-
-def get_post(*args, **kwargs):
-    posts = get_posts(*args, **kwargs)
-    return posts.first_post
-    #return s.posts.first_post if len(s.posts) else s.auxs.first_post
+from . import TestCase
+from . import get_body, get_dirs, get_posts, get_post
 
 
 class PluginTest(TestCase):
@@ -1061,55 +970,6 @@ class EmbedPluginTest(TestCase):
 
         r = p.html
         self.assertFalse("embed" in r)
-
-
-class ConfigTest(TestCase):
-    def test_context(self):
-        with config.context("foo", bar=1) as conf:
-            self.assertEqual(1, conf.bar)
-
-        with config.context("foo2", bar=2) as conf:
-            self.assertEqual(2, conf.bar)
-
-        with config.context("foo") as conf:
-            self.assertEqual(1, conf.bar)
-
-    def test_base_url(self):
-        with config.context("web", scheme="", host="example.com") as conf:
-            self.assertEqual("//example.com", conf.base_url)
-
-        with config.context("feed", scheme="https", host="example.com") as conf:
-            self.assertEqual("https://example.com", conf.base_url)
-
-    def test_context_lifecycle(self):
-        project_dir, output_dir = get_dirs({
-            'input/p1/blog_post.md': [
-                "foo.jpg"
-            ],
-            "input/bogus.jpg": "",
-            'bangfile.py': [
-                "from bang import event",
-                "from bang.plugins import feed",
-                "host = 'example.com'",
-                "name = 'example site'",
-                "",
-                "scheme = 'https'",
-                "@event.bind('context.web')",
-                "def feed_context_handler(event_name, config):",
-                "    config.scheme = ''",
-                "",
-            ]
-        })
-
-        s = Site(project_dir, output_dir)
-        s.output()
-
-        r = output_dir.file_contents("feed.rss")
-        self.assertTrue("<link>https://example.com" in r)
-
-        post_dir = output_dir / "p1"
-        r = post_dir.file_contents("index.html")
-        self.assertTrue('src="//example.com' in r)
 
 
 class DirectoryTest(TestCase):

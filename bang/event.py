@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals, division, print_function, absolute_import
 import logging
 
 
@@ -30,13 +32,24 @@ def listen(event_name, callback):
 def broadcast(event_name, *args, **kwargs):
     global events
 
+    ret = None
+
     callbacks = events.get(event_name, [])
     if len(callbacks) > 0:
         logger.info("Event {} broadcast to {} callbacks".format(event_name, len(callbacks)))
 
         for callback in callbacks:
-            callback(event_name, *args, **kwargs)
+            ret = callback(event_name, *args, **kwargs)
+
+            # callback handling works by return value introspection, if your callback
+            # returns True or anything that's not None or False, it will short-circuit
+            # the remaining callbacks to be run and return that value, otherwise it
+            # will continue running callbacks
+            if ret is not False and ret is not None:
+                break
 
     else:
         logger.debug("Event {} ignored".format(event_name))
+
+    return ret
 

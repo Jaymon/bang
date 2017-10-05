@@ -17,7 +17,8 @@ from xml.sax.saxutils import escape
 import codecs
 import logging
 
-from .. import event, config as configuration
+from .. import event
+from ..config import config
 
 
 logger = logging.getLogger(__name__)
@@ -41,9 +42,9 @@ def get_datestr(dt):
 
 @event.bind('output.finish')
 def output_rss(event_name, site):
-    with configuration.context("feed") as config:
+    with config.context("feed") as conf:
 
-        host = config.host
+        host = conf.host
         if not host:
             logger.error("RSS feed not generated because no config host set")
             return
@@ -51,7 +52,7 @@ def output_rss(event_name, site):
         feedpath = os.path.join(str(site.output_dir), 'feed.rss')
         logger.info("writing feed to {}".format(feedpath))
 
-        main_url = config.base_url
+        main_url = conf.base_url
         feed_url = u'http://{}/feed.rss'.format(host)
         max_count = 10
         count = 0
@@ -66,8 +67,8 @@ def output_rss(event_name, site):
             #fp.write(u"  xmlns:georss=\"http://www.georss.org/georss\">\n")
 
             fp.write(u"  <channel>\n")
-            fp.write(u"    <title>{}</title>\n".format(get_safe(config.get('name', host))))
-            fp.write(u"    <description>{}</description>\n".format(get_safe(config.get('description', host))))
+            fp.write(u"    <title>{}</title>\n".format(get_safe(conf.get('name', host))))
+            fp.write(u"    <description>{}</description>\n".format(get_safe(conf.get('description', host))))
 
             fp.write(u"    <link>{}</link>\n".format(get_safe(main_url)))
             fp.write(u"    <atom:link href=\"{}\" rel=\"self\"/>\n".format(get_safe(feed_url)))

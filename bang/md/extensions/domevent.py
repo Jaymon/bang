@@ -15,7 +15,6 @@ class DomEventTreeprocessor(Treeprocessor):
                 yield parent, child
 
     def run(self, doc):
-        post = self.markdown.post
         for parent, elem in self.iterparent(doc):
             elem_event_name = 'dom.{}'.format(elem.tag)
             event.broadcast(elem_event_name, parent=parent, elem=elem, markdown=self.markdown)
