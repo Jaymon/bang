@@ -17,17 +17,18 @@ from . import get_body, get_dirs, get_posts, get_post
 class PluginTest(TestCase):
     def test_feed(self):
         from bang.plugins import feed
-        project_dir, output_dir = get_dirs({
-            'input/1/one.md': u'1. {}'.format(testdata.get_unicode_words()),
-            'input/2/two.md': u'2. {}'.format(testdata.get_unicode_words()),
-            'input/3/three.md': u'3. {}'.format(testdata.get_unicode_words()),
-            'bangfile.py': "\n".join([
-                "host = 'example.com'",
-                "name = 'example site'",
-                ""
-            ])
+        s = self.get_site({
+            '1/one.md': '1. {}'.format(testdata.get_unicode_words()),
+            '2/two.md': '2. {}'.format(testdata.get_unicode_words()),
+            '3/three.md': '3. {}'.format(testdata.get_unicode_words()),
+            'bangfile.py': [
+                "from bang import event",
+                "@event.bind('config')",
+                "def global_config(event_name, config):",
+                "    config.host = 'example.com'",
+                "    config.name = 'example site'",
+            ]
         })
-        s = Site(project_dir, output_dir)
         s.output()
 
         p = os.path.join(str(s.output_dir), 'feed.rss')
@@ -40,17 +41,17 @@ class PluginTest(TestCase):
 
     def test_sitemap(self):
         from bang.plugins import sitemap
-        project_dir, output_dir = get_dirs({
-            'input/1/one.md': u'1. {}'.format(testdata.get_unicode_words()),
-            'input/2/two.md': u'2. {}'.format(testdata.get_unicode_words()),
-            'input/3/three.md': u'3. {}'.format(testdata.get_unicode_words()),
-            'bangfile.py': "\n".join([
-                "host = 'example.com'",
-                ""
-            ])
+        s = self.get_site({
+            '1/one.md': '1. {}'.format(testdata.get_unicode_words()),
+            '2/two.md': '2. {}'.format(testdata.get_unicode_words()),
+            '3/three.md': '3. {}'.format(testdata.get_unicode_words()),
+            'bangfile.py': [
+                "from bang import event",
+                "@event.bind('config')",
+                "def global_config(event_name, config):",
+                "    config.host = 'example.com'",
+            ]
         })
-        s = Site(project_dir, output_dir)
-
         s.output()
         p = os.path.join(str(s.output_dir), 'sitemap.xml')
         self.assertTrue(os.path.isfile(p))
@@ -133,15 +134,14 @@ class SiteTest(TestCase):
 class PostTest(TestCase):
     def test_no_bangfile_host(self):
         name = testdata.get_ascii(16)
-        p = get_post({
+        ps = self.get_posts({
             '{}/foo.md'.format(name): "\n".join([
                 "hi"
             ]),
             'bangfile.py': ""
         })
 
-        #self.assertEqual("/{}".format(name), p.url)
-        self.assertRegexpMatches(p.url, "^/[^/]+/{}$".format(name))
+        self.assertRegexpMatches(ps.first_post.url, "^/{}$".format(name))
 
     def test_description_property(self):
         p = get_post({
@@ -344,13 +344,10 @@ class PostTest(TestCase):
         self.assertTrue('alt="che.jpg"' in r)
 
     def test_attr(self):
-        p = get_post({
-            'che.jpg': "",
-            'foo.md': "\n".join([
-                '![this is the file](che.jpg){: .centered }',
-                ""
-            ])
-        })
+        p = self.get_post(
+            ['![this is the file](che.jpg){: .centered }'],
+            {'che.jpg': ""}
+        )
 
         self.assertRegexpMatches(p.html, 'class=\"centered')
 
@@ -814,6 +811,33 @@ class SkeletonTest(TestCase):
 
 
 class EmbedPluginTest(TestCase):
+
+    def setUp(self):
+        """This makes sure these tests only run when they are run specifically, so
+        these will be skipped when all tests are run, we do this because these tests
+        can ping external networks"""
+        if 'PYT_TEST_CLASS_COUNT' in os.environ:
+            skip = True
+            pyt_cls_count = int(os.environ['PYT_TEST_CLASS_COUNT'])
+            pyt_test_count = int(os.environ['PYT_TEST_COUNT'])
+            pyt_mod_count = int(os.environ['PYT_TEST_MODULE_COUNT'])
+            #pout.v(pyt_cls_count, pyt_test_count, pyt_mod_count)
+
+            if pyt_cls_count == 1:
+                skip = False
+
+            elif pyt_test_count == 1:
+                skip = False
+
+            elif pyt_mod_count == 1:
+                skip = False
+
+            if skip:
+                raise self.skipTest("takes too long")
+
+        super(EmbedPluginTest, self).setUp()
+
+
     def test_embed_link(self):
         p = get_post({
             'linkify.md': "\n".join([

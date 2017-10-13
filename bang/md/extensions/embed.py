@@ -192,7 +192,7 @@ class TwitterProcessor(BlockProcessor):
     name = "twitter"
 
     def get_directory(self):
-        cache_dir = self.parser.markdown.post.directory
+        cache_dir = self.parser.markdown.document.directory
         return Directory(cache_dir)
 
     def read_cache(self):

@@ -9,11 +9,249 @@ import logging
 from . import event
 from .config import ContextAware, Bangfile
 from .md import Markdown
-from .path import Directory
+from .path import Directory, DocumentDirectory
 from .utils import HTMLStripper, Template
 
 
 logger = logging.getLogger(__name__)
+
+
+class Other(DocumentDirectory, ContextAware):
+    """Holds folders that are neither Aux or Post folders"""
+    next_post = None
+    """holds a pointer to the next Post"""
+
+    prev_post = None
+    """holds a pointer to the previous Post"""
+
+
+    def __init__(self, directory, output_dir):
+        self.directory = directory
+        self.output_dir = output_dir
+
+    def output(self, **kwargs):
+        if self.directory.is_private(): return
+
+        d = self.directory
+        output_dir = self.output_dir
+
+        output_dir.create()
+        for f in d.files():
+            output_dir.copy_file(f)
+
+
+class Aux(Other):
+
+    template_name = 'aux'
+    """this is the template that will be used to compile the post into html"""
+
+    output_basename = 'index.html'
+    """this is the name of the file that this post will be outputted to after it
+    is templated"""
+
+    @property
+    def next_url(self):
+        """returns the url of the next post"""
+        p = self.next_post
+        return p.url if p else ""
+
+    @property
+    def prev_url(self):
+        """returns the url of the previous post"""
+        p = self.prev_post
+        return p.url if p else ""
+
+    @property
+    def modified(self):
+        d = self.directory
+        t = os.path.getmtime(d.content_file)
+        modified = datetime.datetime.fromtimestamp(t)
+        return modified
+
+    @property
+    def uri(self):
+        """the path of the post (eg, /foo/bar/post-slug)"""
+        d = self.directory
+        relative = d.relative()
+        relative = relative.replace('\\', '/')
+        v = "/".join(['', relative])
+        return v
+
+    @property
+    def url(self):
+        """the full url of the post with host and everything"""
+        base_url = self.config.base_url
+        return u"{}{}".format(base_url, self.uri)
+
+    @property
+    def title(self):
+        body = self.html
+        title = ""
+
+        # first try and get the title from a header tag in the body
+        m = re.match(r"^\s*<h1[^>]*>([^<]*)</h1>", body, flags=re.I)
+        if m:
+            title = m.group(1).strip()
+
+        if not title:
+            # default to just the name of the directory this aux file lives in
+            basename = os.path.basename(str(self.directory))
+            title = basename.capitalize()
+
+        return title
+
+    @property
+    def body(self):
+        d = self.directory
+        return d.file_contents(os.path.basename(d.content_file))
+
+    @property
+    def description(self):
+        """Returns a nice description of the post, first 2 sentences"""
+        #desc = getattr(self, "_description", None)
+        desc = None
+        if desc is None:
+            html = self.html
+            plain = HTMLStripper.strip_tags(html)
+            ms = re.split("(?<=\S[\.\?!])(?:\s|$)", plain, maxsplit=2, flags=re.M)
+            sentences = []
+            for sentence in ms[0:2]:
+                sentences.extend((s.strip() for s in sentence.splitlines() if s))
+            desc = " ".join(sentences)
+            self._description = desc
+
+        return desc
+
+    @property
+    def image(self):
+        """Return the image for the post, yes, this uses regex because I didn't want
+        to rely on third party libraries to do this"""
+        ret = ""
+        html = self.html
+        m = re.search("<img\s+[^>]+>", html, flags=re.M | re.I)
+        if m:
+            m = re.search("src=[\"\']([^\"\']+)", m.group(0), flags=re.I)
+            if m:
+                ret = m.group(1)
+        return ret
+
+    @property
+    def meta(self):
+        """return any meta-data this post has"""
+
+        # this is kind of a crap way to do it but we need to parse the body to
+        # make sure meta is parsed and available
+        self.html 
+        return getattr(self, "_meta", {})
+
+    @property
+    def html(self):
+        """
+        return html of the post
+
+        base_url -- string -- if passed in, file links will be changed to base_url + post_url + filename
+
+        return -- string -- rendered html
+        """
+        #html = getattr(self, "_html", None)
+        html = None
+        if html is None:
+            d = self.directory
+            ext = os.path.splitext(d.content_file)[1][1:]
+            ext_callback = getattr(self, "normalize_{}".format(ext), None)
+            if ext_callback:
+                html = ext_callback()
+            else:
+                html = self.body
+
+            self._html = html
+
+        return html
+
+    def __init__(self, directory, output_dir, tmpl):
+        super(Aux, self).__init__(directory, output_dir)
+        self.tmpl = tmpl
+
+    def normalize_markdown(self):
+        """alternate file extension .markdown should point to .md"""
+        return self.normalize_md()
+
+    def normalize_md(self):
+        """normalize markdown using the markdown module https://github.com/waylan/Python-Markdown"""
+        # http://pythonhosted.org/Markdown/reference.html#markdown
+        md = Markdown.get_instance()
+        html = md.output(self)
+        self._meta = md.Meta
+        return html
+
+    def __str__(self):
+        return self.directory.path
+
+    def output(self, **kwargs):
+        """
+        **kwargs -- dict -- these will be passed to the template
+        """
+        d = self.directory
+        output_dir = self.output_dir
+        output_file = os.path.join(str(output_dir), self.output_basename)
+        logger.info("output {} to {}".format(self.title, output_file))
+
+        r = output_dir.create()
+        for input_file in d.other_files:
+            output_dir.copy_file(input_file)
+
+        # NOTE -- if there are other directories in the post directory, those are
+        # considered "other directories" and so they will be copied over when the
+        # others list is ran through and copied. This keeps duplicated work but
+        # also isn't incredibly elegant, because if we ever just want to compile
+        # one post, we would need to compile the post and any other directories
+        # would need to be ran through separately
+
+        #html = self.html
+        self.output_file = output_file
+
+        logger.debug(
+            'Templating {} with template "{}" to output file {}'.format(
+            d.content_file,
+            self.template_name,
+            output_file
+        ))
+
+        self.output_template(
+            self.template_name,
+            output_file,
+            config=self.config,
+            **kwargs
+        )
+
+
+    def output_template(self, template_name, output_file, **kwargs):
+        kwargs["aux"] = self
+        self.tmpl.output(
+            template_name,
+            output_file,
+            **kwargs
+        )
+
+
+class Post(Aux):
+    """this is a node in the Posts linked list, it holds all the information needed
+    to output a Post in the input directory to the output directory"""
+    template_name = 'post'
+
+    @property
+    def title(self):
+        d = self.directory
+        title = os.path.splitext(os.path.basename(d.content_file))[0]
+        return title
+
+    def output_template(self, template_name, output_file, **kwargs):
+        kwargs["post"] = self
+        self.tmpl.output(
+            template_name,
+            output_file,
+            **kwargs
+        )
 
 
 class Posts(ContextAware):
@@ -108,251 +346,6 @@ class Posts(ContextAware):
 
         # TODO -- after creating output_dir/index.html, then create output_dir/page/N
         # files for each page of Posts
-
-
-class Post(ContextAware):
-    """this is a node in the Posts linked list, it holds all the information needed
-    to output a Post in the input directory to the output directory"""
-    next_post = None
-    """holds a pointer to the next Post"""
-
-    prev_post = None
-    """holds a pointer to the previous Post"""
-
-    template_name = 'post'
-    """this is the template that will be used to compile the post into html"""
-
-    output_basename = 'index.html'
-    """this is the name of the file that this post will be outputted to after it
-    is templated"""
-
-    @property
-    def next_url(self):
-        """returns the url of the next post"""
-        p = self.next_post
-        return p.url if p else ""
-
-    @property
-    def prev_url(self):
-        """returns the url of the previous post"""
-        p = self.prev_post
-        return p.url if p else ""
-
-    @property
-    def modified(self):
-        d = self.directory
-        t = os.path.getmtime(d.content_file)
-        modified = datetime.datetime.fromtimestamp(t)
-        return modified
-
-    @property
-    def uri(self):
-        """the path of the post (eg, /foo/bar/post-slug)"""
-        d = self.directory
-        relative = d.relative()
-        relative = relative.replace('\\', '/')
-        v = "/".join(['', relative])
-        return v
-
-    @property
-    def url(self):
-        """the full url of the post with host and everything"""
-        base_url = self.config.base_url
-        return u"{}{}".format(base_url, self.uri)
-
-    @property
-    def title(self):
-        d = self.directory
-        title = os.path.splitext(os.path.basename(d.content_file))[0]
-        return title
-
-    @property
-    def body(self):
-        d = self.directory
-        return d.file_contents(os.path.basename(d.content_file))
-
-    @property
-    def description(self):
-        """Returns a nice description of the post, first 2 sentences"""
-        #desc = getattr(self, "_description", None)
-        desc = None
-        if desc is None:
-            html = self.html
-            plain = HTMLStripper.strip_tags(html)
-            ms = re.split("(?<=\S[\.\?!])(?:\s|$)", plain, maxsplit=2, flags=re.M)
-            sentences = []
-            for sentence in ms[0:2]:
-                sentences.extend((s.strip() for s in sentence.splitlines() if s))
-            desc = " ".join(sentences)
-            self._description = desc
-
-        return desc
-
-    @property
-    def image(self):
-        """Return the image for the post, yes, this uses regex because I didn't want
-        to rely on third party libraries to do this"""
-        ret = ""
-        html = self.html
-        m = re.search("<img\s+[^>]+>", html, flags=re.M | re.I)
-        if m:
-            m = re.search("src=[\"\']([^\"\']+)", m.group(0), flags=re.I)
-            if m:
-                ret = m.group(1)
-        return ret
-
-    @property
-    def meta(self):
-        """return any meta-data this post has"""
-
-        # this is kind of a crap way to do it but we need to parse the body to
-        # make sure meta is parsed and available
-        self.html 
-        return getattr(self, "_meta", {})
-
-    @property
-    def html(self):
-        """
-        return html of the post
-
-        base_url -- string -- if passed in, file links will be changed to base_url + post_url + filename
-
-        return -- string -- rendered html
-        """
-        #html = getattr(self, "_html", None)
-        html = None
-        if html is None:
-            d = self.directory
-            ext = os.path.splitext(d.content_file)[1][1:]
-            body = self.body
-            ext_callback = getattr(self, "normalize_{}".format(ext), None)
-            if ext_callback:
-                html = ext_callback(body)
-            else:
-                html = body
-
-            self._html = html
-
-        return html
-
-
-    def __init__(self, directory, output_dir, tmpl):
-        self.directory = directory
-        self.output_dir = output_dir
-        self.tmpl = tmpl
-
-    def normalize_markdown(self, text):
-        """alternate file extension .markdown should point to .md"""
-        return self.normalize_md(text)
-
-    def normalize_md(self, text):
-        """normalize markdown using the markdown module https://github.com/waylan/Python-Markdown"""
-        # http://pythonhosted.org/Markdown/reference.html#markdown
-        md = Markdown.get_instance(self)
-        html = md.output(self)
-        self._meta = md.Meta
-        return html
-
-    def __str__(self):
-        return self.directory.path
-
-    def output(self, **kwargs):
-        """
-        **kwargs -- dict -- these will be passed to the template
-        """
-        d = self.directory
-        output_dir = self.output_dir
-        output_file = os.path.join(str(output_dir), self.output_basename)
-        logger.info("output {} to {}".format(self.title, output_file))
-
-        r = output_dir.create()
-        for input_file in d.other_files:
-            output_dir.copy_file(input_file)
-
-        # NOTE -- if there are other directories in the post directory, those are
-        # considered "other directories" and so they will be copied over when the
-        # others list is ran through and copied. This keeps duplicated work but
-        # also isn't incredibly elegant, because if we ever just want to compile
-        # one post, we would need to compile the post and any other directories
-        # would need to be ran through separately
-
-        #html = self.html
-        self.output_file = output_file
-
-        logger.debug(
-            'Templating {} with template "{}" to output file {}'.format(
-            d.content_file,
-            self.template_name,
-            output_file
-        ))
-
-        self.output_template(
-            self.template_name,
-            output_file,
-            config=self.config,
-            **kwargs
-        )
-
-    def output_template(self, template_name, output_file, **kwargs):
-        kwargs["post"] = self
-        self.tmpl.output(
-            template_name,
-            output_file,
-            **kwargs
-        )
-
-
-class Aux(Post):
-
-    template_name = 'aux'
-
-    @property
-    def title(self):
-        body = self.html
-        title = ""
-
-        # first try and get the title from a header tag in the body
-        m = re.match(r"^\s*<h1[^>]*>([^<]*)</h1>", body, flags=re.I)
-        if m:
-            title = m.group(1).strip()
-
-        if not title:
-            # default to just the name of the directory this aux file lives in
-            basename = os.path.basename(str(self.directory))
-            title = basename.capitalize()
-
-        return title
-
-    def output_template(self, template_name, output_file, **kwargs):
-        kwargs["aux"] = self
-        self.tmpl.output(
-            template_name,
-            output_file,
-            **kwargs
-        )
-
-
-class Other(object):
-    """Holds folders that are neither Aux or Post folders"""
-    next_post = None
-    """never used, Posts api compatibility only"""
-
-    prev_post = None
-    """never used, Posts api compatibility only"""
-
-    def __init__(self, directory, output_dir):
-        self.directory = directory
-        self.output_dir = output_dir
-
-    def output(self, **kwargs):
-        if self.directory.is_private(): return
-
-        d = self.directory
-        output_dir = self.output_dir
-
-        output_dir.create()
-        for f in d.files():
-            output_dir.copy_file(f)
 
 
 class Site(ContextAware):

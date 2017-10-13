@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Why do I render the feed myself? Because every library I found needed too many other
 dependencies and some were a real pain to install (you need lxml? Seriously?). So
@@ -10,7 +11,7 @@ http://cyber.law.harvard.edu/rss/rss.html
 validator: http://validator.w3.org/feed/
 big list of namespaces: http://validator.w3.org/feed/docs/howto/declare_namespaces.html
 """
-# TODO -- convert to py3 ready and get rid of u"" strings
+from __future__ import unicode_literals, division, print_function, absolute_import
 import datetime
 import os
 from xml.sax.saxutils import escape
@@ -32,7 +33,7 @@ def get_safe(text):
 
 def get_cdata(text):
     """wrap the text in cdata escaping"""
-    return u'<![CDATA[{}]]>'.format(text)
+    return '<![CDATA[{}]]>'.format(text)
 
 
 def get_datestr(dt):
@@ -53,45 +54,45 @@ def output_rss(event_name, site):
         logger.info("writing feed to {}".format(feedpath))
 
         main_url = conf.base_url
-        feed_url = u'http://{}/feed.rss'.format(host)
+        feed_url = 'http://{}/feed.rss'.format(host)
         max_count = 10
         count = 0
 
         with codecs.open(feedpath, 'w+', 'utf-8') as fp:
 
-            fp.write(u"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-            fp.write(u"<rss version=\"2.0\"\n")
-            fp.write(u"  xmlns:atom=\"http://www.w3.org/2005/Atom\">\n")
-            #fp.write(u"  xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n") # http://en.wikipedia.org/wiki/Dublin_Core
-            #fp.write(u"  xmlns:dcterms=\"http://purl.org/dc/terms/\"\n")
-            #fp.write(u"  xmlns:georss=\"http://www.georss.org/georss\">\n")
+            fp.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+            fp.write("<rss version=\"2.0\"\n")
+            fp.write("  xmlns:atom=\"http://www.w3.org/2005/Atom\">\n")
+            #fp.write("  xmlns:dc=\"http://purl.org/dc/elements/1.1/\"\n") # http://en.wikipedia.org/wiki/Dublin_Core
+            #fp.write("  xmlns:dcterms=\"http://purl.org/dc/terms/\"\n")
+            #fp.write("  xmlns:georss=\"http://www.georss.org/georss\">\n")
 
-            fp.write(u"  <channel>\n")
-            fp.write(u"    <title>{}</title>\n".format(get_safe(conf.get('name', host))))
-            fp.write(u"    <description>{}</description>\n".format(get_safe(conf.get('description', host))))
+            fp.write("  <channel>\n")
+            fp.write("    <title>{}</title>\n".format(get_safe(conf.get('name', host))))
+            fp.write("    <description>{}</description>\n".format(get_safe(conf.get('description', host))))
 
-            fp.write(u"    <link>{}</link>\n".format(get_safe(main_url)))
-            fp.write(u"    <atom:link href=\"{}\" rel=\"self\"/>\n".format(get_safe(feed_url)))
+            fp.write("    <link>{}</link>\n".format(get_safe(main_url)))
+            fp.write("    <atom:link href=\"{}\" rel=\"self\"/>\n".format(get_safe(feed_url)))
             #fp.write(u"    <atom:link href=\"{}\" rel=\"alternate\"/>\n".format(main_url))
 
             dt = datetime.datetime.utcnow()
-            fp.write(u"    <pubDate>{}</pubDate>\n".format(get_datestr(dt)))
-            fp.write(u"    <lastBuildDate>{}</lastBuildDate>\n".format(get_datestr(dt)))
-            fp.write(u"    <generator>github.com/Jaymon/bang</generator>\n")
+            fp.write("    <pubDate>{}</pubDate>\n".format(get_datestr(dt)))
+            fp.write("    <lastBuildDate>{}</lastBuildDate>\n".format(get_datestr(dt)))
+            fp.write("    <generator>github.com/Jaymon/bang</generator>\n")
 
             for p in reversed(site.posts):
-                fp.write(u"    <item>\n")
-                fp.write(u"      <title>{}</title>\n".format(get_cdata(p.title)))
-                fp.write(u"      <description>{}</description>\n".format(get_cdata(p.html)))
-                fp.write(u"      <link>{}</link>\n".format(get_safe(p.url)))
-                fp.write(u"      <guid isPermaLink=\"false\">{}</guid>\n".format(get_safe(p.uri)))
-                fp.write(u"      <pubDate>{}</pubDate>\n".format(get_datestr(p.modified)))
-                fp.write(u"    </item>\n")
+                fp.write("    <item>\n")
+                fp.write("      <title>{}</title>\n".format(get_cdata(p.title)))
+                fp.write("      <description>{}</description>\n".format(get_cdata(p.html)))
+                fp.write("      <link>{}</link>\n".format(get_safe(p.url)))
+                fp.write("      <guid isPermaLink=\"false\">{}</guid>\n".format(get_safe(p.uri)))
+                fp.write("      <pubDate>{}</pubDate>\n".format(get_datestr(p.modified)))
+                fp.write("    </item>\n")
 
                 count += 1
                 if count >= max_count:
                     break
 
-            fp.write(u"  </channel>\n")
-            fp.write(u"</rss>\n")
+            fp.write("  </channel>\n")
+            fp.write("</rss>\n")
 

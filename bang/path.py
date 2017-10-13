@@ -6,6 +6,8 @@ import types
 import codecs
 import logging
 
+from .config import config, DirectoryConfig
+
 
 logger = logging.getLogger(__name__)
 
@@ -163,7 +165,7 @@ class Directory(object):
     def has_index(self):
         """returns True if this directory has an index.* file already"""
         r = False
-        for f in self.files(ur'^index.'):
+        for f in self.files(r'^index\.'):
             r = True
             break
 
@@ -176,7 +178,7 @@ class Directory(object):
     def is_aux(self):
         """return True if this is a directory with an index.* file in it"""
         ret_bool = False
-        if self.files(ur'^index{}'.format(self.content_file_regex)):
+        if self.files(r'^index{}'.format(self.content_file_regex)):
             ret_bool = True
 
         return ret_bool
@@ -223,4 +225,17 @@ class ProjectDirectory(Directory):
 
         self.template_dir = Directory(self.path, 'template')
         self.input_dir = Directory(self.path, 'input')
+
+
+class AuxDirectory(DirectoryConfig):
+    def match(self, directory):
+        ret_bool = False
+        if directory.files(r'^index\.(md|markdown)$'):
+            ret_bool = True
+        return ret_bool
+
+
+
+class DocumentDirectory(object):
+    pass
 

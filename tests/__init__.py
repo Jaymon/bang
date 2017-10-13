@@ -15,6 +15,7 @@ from bang.path import Directory, ProjectDirectory
 from bang import skeleton
 from bang import config
 from bang.__main__ import configure_logging
+from bang import event
 
 
 # "" to turn on all logging for the tests
@@ -53,69 +54,13 @@ def get_posts(post_files):
 
 @deprecated
 def get_post(post_files, **kwargs):
-    name, post_file = post_files.popitem()
+    for k in post_files:
+        if k.endswith(".md"): break
+    post_file = post_files.pop(k)
     return TestCase.get_post(post_file, post_files, **kwargs)
 
 
 class TestCase(unittest.TestCase):
-
-    @classmethod
-    def get_site(cls, input_files):
-        # clear the environment
-        for k, v in os.environ.items():
-            if k.startswith('BANG_'):
-                del os.environ[k]
-        sys.modules.pop("bangfile_module", None)
-
-        di = {
-            'bangfile.py': [
-                "host = 'example.com'",
-                "name = 'example site'",
-                ""
-            ]
-        }
-
-        # replace any project files if they are present
-        for rp in di.keys():
-            if rp in input_files:
-                di[rp] = input_files.pop(rp)
-
-        for basename, file_contents in input_files.items():
-            if "/" in basename:
-                fp = os.path.join('input', basename)
-            else:
-                name = testdata.get_ascii(16)
-                fp = os.path.join('input', name, basename)
-            di[fp] = file_contents
-
-        project_dir, output_dir = get_dirs(di)
-
-        s = Site(project_dir, output_dir)
-        return s
-
-    @classmethod
-    def get_post(cls, post_file, post_files=None):
-        if not post_files:
-            post_files = {}
-
-        name = "{}.py".format(testdata.get_ascii(8))
-        post_files[name] = post_file
-
-        posts = cls.get_posts(*args, **kwargs)
-        return posts.first_post
-
-    @classmethod
-    def get_posts(cls, post_files):
-        s = cls.get_site(post_files)
-        s.compile()
-        return s.posts if len(s.posts) else s.auxs
-
-    @classmethod
-    def get_body(cls, filepath):
-        v = u''
-        with codecs.open(filepath, 'r+', 'utf-8') as fp:
-            v = fp.read()
-        return v
 
     @classmethod
     def get_dirs(cls, input_files):
@@ -138,4 +83,80 @@ class TestCase(unittest.TestCase):
 
         testdata.create_files(d, tmpdir=str(project_dir))
         return project_dir, output_dir
+
+    @classmethod
+    def get_site(cls, input_files):
+        di = {
+            'bangfile.py': [
+                "from bang import event",
+                "@event.bind('config')",
+                "def global_config(event_name, config):",
+                "    config.host = 'example.com'",
+                "    config.name = 'example site'",
+                ""
+            ]
+        }
+
+        # replace any project files if they are present
+        for rp in di.keys():
+            if rp in input_files:
+                di[rp] = input_files.pop(rp)
+
+        for basename, file_contents in input_files.items():
+            if "/" in basename:
+                fp = os.path.join('input', basename)
+            else:
+                name = testdata.get_ascii(16)
+                fp = os.path.join('input', name, basename)
+            di[fp] = file_contents
+
+        project_dir, output_dir = cls.get_dirs(di)
+
+        s = Site(project_dir, output_dir)
+        return s
+
+    @classmethod
+    def get_posts(cls, post_files):
+        s = cls.get_site(post_files)
+        s.compile()
+        return s.posts if len(s.posts) else s.auxs
+
+    @classmethod
+    def get_post(cls, post_file, post_files=None):
+        if not post_files:
+            post_files = {}
+
+        name = "{}.md".format(testdata.get_ascii(8))
+        post_files[name] = post_file
+
+        posts = cls.get_posts(post_files)
+        return posts.first_post
+
+    @classmethod
+    def get_body(cls, filepath):
+        v = u''
+        with codecs.open(filepath, 'r+', 'utf-8') as fp:
+            v = fp.read()
+        return v
+
+    def setUp(self):
+        # clear the environment
+        for k, v in os.environ.items():
+            if k.startswith('BANG_'):
+                del os.environ[k]
+
+        # clear any loaded bangfiles
+        for k in sys.modules.keys():
+            if k.startswith("bangfile_"):
+                # we don't want any rogue bangfiles hanging around in memory, just in case
+                sys.modules.pop(k, None)
+
+            elif k.startswith("bang.plugins"):
+                # plugins usually bind to events, so we clear those so they can
+                # be rebound
+                sys.modules.pop(k, None)
+
+        # clear singletons
+        config.config.reset()
+        event.events = {}
 

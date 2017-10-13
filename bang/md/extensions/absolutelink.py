@@ -26,21 +26,15 @@ class AbsoluteLinkTreeprocessor(Treeprocessor):
         """normalizes the url into a full url"""
         m = self.URL_RE.search(url)
         if not m:
-            post = self.markdown.post
-            config = post.config
-            #uri = post.uri
+            document = self.markdown.document
+            config = document.config
             base_url = config.base_url
 
             if url.startswith('/'):
                 url = "{}{}".format(base_url, url)
 
             else:
-                url = "{}/{}".format(post.url, url)
-#                 for f in post.directory.other_files:
-#                     basename = os.path.basename(f)
-#                     pout.v(basename, url)
-#                     if url == basename:
-#                         url = "{}/{}".format(post.url, basename)
+                url = "{}/{}".format(document.url, url)
 
         return url
 

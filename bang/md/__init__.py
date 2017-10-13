@@ -22,7 +22,7 @@ class Markdown(markdown.Markdown):
     instance = None
 
     @classmethod
-    def get_instance(cls, post):
+    def get_instance(cls):
         if not cls.instance:
             cls.instance = cls(
                 extensions=[
@@ -50,11 +50,11 @@ class Markdown(markdown.Markdown):
 
     def reset(self):
         super(Markdown, self).reset()
-        self.post = None
+        self.document = None
 
     def output(self, document):
         self.reset()
-        self.post = document
+        self.document = document
         return self.convert(document.body)
 
 #     def convert(self, source):

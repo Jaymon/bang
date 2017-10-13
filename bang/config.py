@@ -20,9 +20,7 @@ class ContextAware(object):
 
 
 class Bangfile(object):
-    """The purpose of this class is to call Bangfile.load(project_dir) once and 
-    forever have access to the loaded bangfile
-    """
+    """The purpose of this class is to load a Bangfile found in the directory"""
     @classmethod
     def get(cls, directory, basename="bangfile.py"):
         """get the bangfile in the given directory with the given basename
@@ -35,7 +33,7 @@ class Bangfile(object):
         config_file = os.path.join(str(directory), basename)
         if os.path.isfile(config_file):
             # http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
-            h = hashlib.md5(config_file).hexdigest()
+            h = "bangfile_{}".format(hashlib.md5(config_file).hexdigest())
             module = imp.load_source(h, config_file)
 
         return module
@@ -44,18 +42,13 @@ class Bangfile(object):
         self.module = self.get(directory, *args, **kwargs)
         event.broadcast("config", config)
 
-#     @classmethod
-#     def load(cls, *args, **kwargs):
-#         """same as get but this will actually set the module into the module class
-#         variable, this way it becomes a singleton
-#         """
-#         cls.module = cls.get(*args, **kwargs)
-
 
 class Config(object):
-    """small wrapper around the config module that takes care of what happens if
-    the config file doesn't actually exist"""
-#     instance = None
+    """A context aware configuration class, really this is a glorified getter/setter
+    but you can change the context by setting .context_name which means you can
+    change values and then when you switch contexts the values will reset to what
+    they were, this is handy for having a little different configuration in your
+    feed as opposed to your web"""
 
     _context_name = ""
 
@@ -88,6 +81,7 @@ class Config(object):
 
     @property
     def fields(self):
+        """return a dict of all active values in the config at the moment"""
         fields = dict(self.global_fields)
         fields.update(self.context_fields)
         return fields
@@ -111,13 +105,8 @@ class Config(object):
 
         return base_url
 
-#     @classmethod
-#     def create_instance(cls):
-#         cls.instance = cls()
-#         return cls.instance
-
     def __init__(self):
-        self.__dict__["_fields"] = defaultdict(dict)
+        self.reset()
 
     @contextmanager
     def context(self, name, **kwargs):
@@ -125,7 +114,7 @@ class Config(object):
         make it easier to change the context and restore it back to the previous context
         when it is done
 
-        example --
+        :Example:
             with config.context("foo"):
                 # anything in this block will use the foo configuration
                 pass
@@ -158,9 +147,7 @@ class Config(object):
         return ret
 
     def __getattr__(self, k):
-        #return super(Config, self).__getattr__(k)
         return self.get(k)
-        #return self.fields[self.context_name][k]
 
     def __setattr__(self, k, v):
         if k in self.__dict__ or k in self.__class__.__dict__:
@@ -168,29 +155,26 @@ class Config(object):
         else:
             self.set(k, v)
 
-
-def initialize(project_dir):
-    """init the configuration, really only needs to be called once per run"""
-
-    #self.environ = {}
-
-    # find all environment vars
-#     for k, v in os.environ.items():
-#         if k.startswith('BANG_'):
-#             name = k[5:].lower()
-#             self.environ[name] = v
-
-#     @event.bind("normalize.md", "normalize.markdown")
-#     def markdown_to_html(self, document):
+    def reset(self):
+        self.__dict__["_fields"] = defaultdict(dict)
+        self._context_name = type(self)._context_name
+        self._previous_context_name = type(self)._previous_context_name
 
 
-#     Bangfile.load(project_dir)
+class DirectoryConfig(object):
+    def match(self, directory):
+        raise NotImplementedError()
 
 
-# the global configuration handler
+
+
+
+
+
+# the global configuration singleton
 config = Config()
 
-# find all environment vars
+# find all environment vars and add them to singleton
 for k, v in os.environ.items():
     if k.startswith('BANG_'):
         config.set(k[5:].lower(), v)
