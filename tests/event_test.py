@@ -21,14 +21,6 @@ class ReceiptTest(TestCase):
         r.add(cb2)
         self.assertEqual(2, len(r))
 
-    def test_uniqueness(self):
-        args = (1, )
-        kwargs = {"key": "val"}
-
-        r1 = Receipt("foo", args, kwargs)
-        r2 = Receipt("foo", args, kwargs)
-        self.assertEqual(r1.key, r2.key)
-
     def test_run(self):
         count = {"": 0}
         def cb1(*args, **kwargs): count[""] += 1
@@ -44,6 +36,18 @@ class ReceiptTest(TestCase):
         r.run(cb2)
         self.assertEqual(2, count[""])
 
+    def test_event(self):
+        def cb1(*args, **kwargs): return 1
+        def cb2(event_name):
+            for ret in event_name.receipt.rets:
+                if ret == 1:
+                    return ret
+            return 2
+
+        r = Receipt("foo")
+        r.run(cb1)
+        ret = r.run(cb2)
+        self.assertEqual(1, ret)
 
 
 class EventsTest(TestCase):
@@ -74,6 +78,6 @@ class EventsTest(TestCase):
         self.assertEqual(1, count[""])
 
         ev.push("foo", count)
-        self.assertEqual(1, count[""])
+        self.assertEqual(2, count[""])
 
 

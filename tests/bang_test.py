@@ -23,7 +23,7 @@ class PluginTest(TestCase):
             '3/three.md': '3. {}'.format(testdata.get_unicode_words()),
             'bangfile.py': [
                 "from bang import event",
-                "@event.bind('config')",
+                "@event('config')",
                 "def global_config(event_name, config):",
                 "    config.host = 'example.com'",
                 "    config.name = 'example site'",
@@ -47,7 +47,7 @@ class PluginTest(TestCase):
             '3/three.md': '3. {}'.format(testdata.get_unicode_words()),
             'bangfile.py': [
                 "from bang import event",
-                "@event.bind('config')",
+                "@event('config')",
                 "def global_config(event_name, config):",
                 "    config.host = 'example.com'",
             ]

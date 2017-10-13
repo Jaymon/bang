@@ -9,14 +9,14 @@ import os
 import codecs
 import logging
 
-from .. import event
+from ..event import event
 from ..config import config
 
 
 logger = logging.getLogger(__name__)
 
 
-@event.bind('output.finish')
+@event('output.finish')
 def output_sitemap(event_name, site):
     if not len(site.posts): return
 

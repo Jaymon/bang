@@ -14,31 +14,16 @@ logger = logging.getLogger(__name__)
 
 
 class Receipt(object):
-    @classmethod
-    def get_key(cls, event_name, callback_args, callback_kwargs):
+    @property
+    def rets(self):
+        """Return all the return values collected in this receipt"""
+        return self.callbacks.values()
 
-        vargs = []
-        for a in callback_args:
-            if isinstance(a, dict):
-                vargs.append(a.keys())
-
-            elif isinstance(a, object):
-                vargs.append(id(a))
-
-            else:
-
-        val = {
-            "event_name": event_name,
-            "args": list(callback_args),
-            "kwargs": callback_kwargs.keys()
-        }
-        return hashlib.md5(pickle.dumps(val, pickle.HIGHEST_PROTOCOL)).hexdigest()
-
-    def __init__(self, event_name, callback_args=None, callback_kwargs=None, key=""):
+    def __init__(self, event_name, callback_args=None, callback_kwargs=None):
         self.event_name = event_name
+        self.event = Event(event_name, self)
         self.args = callback_args if callback_args else ()
         self.kwargs = callback_kwargs if callback_kwargs else {}
-        self.key = key if key else self.get_key(self.event_name, self.args, self.kwargs)
         self.callbacks = {}
 
     def add(self, callback, ret=None):
@@ -54,9 +39,16 @@ class Receipt(object):
         if callback in self:
             ret = self.callbacks[callback]
         else:
-            ret = callback(self.event_name, *self.args, **self.kwargs)
+            ret = callback(self.event, *self.args, **self.kwargs)
             self.add(callback, ret)
         return ret
+
+
+class Event(str):
+    def __new__(cls, event_name, receipt):
+        instance = super(Event, cls).__new__(cls, event_name)
+        instance.receipt = receipt
+        return instance
 
 
 class Events(object):
@@ -65,22 +57,13 @@ class Events(object):
 
     def reset(self):
         self.bound = defaultdict(list)
-        self.receipts = defaultdict(dict)
+        self.receipts = defaultdict(list)
 
     def push(self, event_name, *args, **kwargs):
         """Similar to broadcast but if any new callbacks are bound to the event_name
         those will be run on the binding"""
-        #receipt = super(Events, self).broadcast(event_name, *args, **kwargs)
-        key = Receipt.get_key(event_name, args, kwargs)
-        pout.v(key)
-        if event_name in self.receipts and key in self.receipts[event_name]:
-            receipt = self.receipts[event_name][key]
-        else:
-            receipt = Receipt(event_name, args, kwargs, key=key)
-
-        receipt = self.run(receipt)
-        self.receipts[event_name][key] = receipt
-        #pout.v(self.receipts)
+        receipt = self.broadcast(event_name, *args, **kwargs)
+        self.receipts[event_name].append(receipt)
         return receipt
 
     def broadcast(self, event_name, *args, **kwargs):
@@ -112,13 +95,13 @@ class Events(object):
         # broadcast, so any events that use the push method will be run when new
         # callbacks are added
         if event_name in self.receipts:
-            for receipt in self.receipts[event_name].values():
+            for receipt in self.receipts[event_name]:
                 receipt.run(callback)
 
     def __contains__(self, event_name):
         return event_name in self.bound
 
-    def __call__(event_name, *event_names):
+    def __call__(self, event_name, *event_names):
         """decorator that wraps the bind() method to make it easier to bind functions
         to an event"""
         def wrap(callback):

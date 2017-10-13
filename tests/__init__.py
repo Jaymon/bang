@@ -13,9 +13,9 @@ import testdata
 from bang.generator import Post, Site, Template
 from bang.path import Directory, ProjectDirectory
 from bang import skeleton
-from bang import config
+from bang.config import config
 from bang.__main__ import configure_logging
-from bang import event
+from bang.event import event
 
 
 # "" to turn on all logging for the tests
@@ -89,7 +89,7 @@ class TestCase(unittest.TestCase):
         di = {
             'bangfile.py': [
                 "from bang import event",
-                "@event.bind('config')",
+                "@event('config')",
                 "def global_config(event_name, config):",
                 "    config.host = 'example.com'",
                 "    config.name = 'example site'",
@@ -157,6 +157,6 @@ class TestCase(unittest.TestCase):
                 sys.modules.pop(k, None)
 
         # clear singletons
-        config.config.reset()
-        event.events = {}
+        config.reset()
+        event.bound.clear()
 

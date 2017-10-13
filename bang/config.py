@@ -6,7 +6,7 @@ import hashlib
 from contextlib import contextmanager
 from collections import defaultdict
 
-from . import event
+from .event import event
 
 
 class ContextAware(object):
@@ -17,6 +17,11 @@ class ContextAware(object):
         """Returns the configuration of the current Context instance"""
         global config
         return config
+
+    @contextmanager
+    def context(self, name, **kwargs):
+        with self.config.context(name, **kwargs) as c:
+            yield c
 
 
 class Bangfile(object):
@@ -38,9 +43,8 @@ class Bangfile(object):
 
         return module
 
-    def __init__(self, directory, config, *args, **kwargs):
+    def __init__(self, directory, *args, **kwargs):
         self.module = self.get(directory, *args, **kwargs)
-        event.broadcast("config", config)
 
 
 class Config(object):
@@ -107,6 +111,7 @@ class Config(object):
 
     def __init__(self):
         self.reset()
+        event.push("config", self)
 
     @contextmanager
     def context(self, name, **kwargs):

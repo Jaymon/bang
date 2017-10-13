@@ -6,7 +6,7 @@ import imp
 import re
 import logging
 
-from . import event
+from .event import event
 from .config import ContextAware, Bangfile
 from .md import Markdown
 from .path import Directory, DocumentDirectory
@@ -351,16 +351,25 @@ class Posts(ContextAware):
 class Site(ContextAware):
     """this is where all the magic happens. Output generates all the posts and compiles
     files from input directory to output directory"""
+    @property
+    def project_dir(self):
+        return self.config.project_dir
+
+    @property
+    def output_dir(self):
+        return self.config.output_dir
+
     def __init__(self, project_dir, output_dir):
-        self.project_dir = project_dir
-        self.output_dir = output_dir
+        config = self.config
+        config.project_dir = project_dir
+        config.output_dir = output_dir
 
     def compile(self):
         """go through input/ dir and compile the files"""
         config = self.config
-        self.bangfile = Bangfile(self.project_dir, config)
+        config.bangfile = Bangfile(self.project_dir)
 
-        with config.context("web"):
+        with self.context("web") as config:
             tmpl = Template(self.project_dir.template_dir)
             posts = Posts(self.output_dir, tmpl)
             auxs = Posts(self.output_dir, tmpl)
@@ -390,9 +399,8 @@ class Site(ContextAware):
     def output(self, regex=None):
         """go through input/ dir and compile the files and move them to output/ dir"""
         self.compile()
-        config = self.config
 
-        with config.context("web"):
+        with self.context("web") as config:
             if regex:
                 logger.warning("output directory {} not cleared because regex present".format(self.output_dir))
             else:

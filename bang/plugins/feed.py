@@ -18,7 +18,7 @@ from xml.sax.saxutils import escape
 import codecs
 import logging
 
-from .. import event
+from ..event import event
 from ..config import config
 
 
@@ -41,7 +41,7 @@ def get_datestr(dt):
     return dt.strftime("%a, %d %b %Y %H:%M:%S +0000")
 
 
-@event.bind('output.finish')
+@event('output.finish')
 def output_rss(event_name, site):
     with config.context("feed") as conf:
 

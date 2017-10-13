@@ -6,7 +6,7 @@ import subprocess
 from .server import Server
 from .path import Directory, ProjectDirectory
 from .generator import Site
-from . import event
+from .event import event
 from .skeleton import Skeleton
 
 
