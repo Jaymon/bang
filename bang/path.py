@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals, division, print_function, absolute_import
 import os
 import re
 from distutils import dir_util
@@ -6,7 +8,7 @@ import types
 import codecs
 import logging
 
-from .config import config, DirectoryConfig
+from .config import config
 
 
 logger = logging.getLogger(__name__)
@@ -15,7 +17,7 @@ logger = logging.getLogger(__name__)
 class Directory(object):
 
     #content_file_regex = ur'\.(md|html|txt|markdown)$'
-    content_file_regex = ur'\.(md|markdown)$'
+    content_file_regex = r'\.(md|markdown)$'
 
     @property
     def basename(self):
@@ -227,7 +229,28 @@ class ProjectDirectory(Directory):
         self.input_dir = Directory(self.path, 'input')
 
 
-class AuxDirectory(DirectoryConfig):
+class Project(object):
+    def __init__(self, project_dir, output_dir):
+        self.project_dir = ProjectDirectory(str(project_dir))
+        self.output_dir = Directory(str(output_dir))
+
+    def __iter__(self):
+        for d in self.project_dir.input_dir:
+            output_dir = self.output_dir / d.relative()
+            yield d, output_dir
+
+
+class DirectoryType(Directory):
+    def match(self, directory):
+        raise NotImplementedError()
+
+    # TODO -- should this keep the list of instances that are found?
+    # should match be a classmethod that is called before an instance is created?
+    # should there be an add method? So if match succeeds it then calls add?
+
+
+
+class AuxDirectory(DirectoryType):
     def match(self, directory):
         ret_bool = False
         if directory.files(r'^index\.(md|markdown)$'):

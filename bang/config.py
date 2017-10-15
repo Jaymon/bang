@@ -113,6 +113,12 @@ class Config(object):
         self.reset()
         event.push("config", self)
 
+    def reset(self):
+        self.__dict__["_fields"] = defaultdict(dict)
+        self._context_name = type(self)._context_name
+        self._previous_context_name = type(self)._previous_context_name
+        self.dirtypes = []
+
     @contextmanager
     def context(self, name, **kwargs):
         """This is meant to be used with the "with ..." command, its purpose is to
@@ -160,16 +166,8 @@ class Config(object):
         else:
             self.set(k, v)
 
-    def reset(self):
-        self.__dict__["_fields"] = defaultdict(dict)
-        self._context_name = type(self)._context_name
-        self._previous_context_name = type(self)._previous_context_name
-
-
-class DirectoryConfig(object):
-    def match(self, directory):
-        raise NotImplementedError()
-
+    def register_dirtype(self, cls):
+        self.dirtypes.append(cls)
 
 
 

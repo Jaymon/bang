@@ -9,7 +9,7 @@ import logging
 from .event import event
 from .config import ContextAware, Bangfile
 from .md import Markdown
-from .path import Directory, DocumentDirectory
+from .path import Directory, DocumentDirectory, Project
 from .utils import HTMLStripper, Template
 
 
@@ -233,6 +233,12 @@ class Aux(Other):
             **kwargs
         )
 
+    def match(self, directory):
+        ret_bool = False
+        if directory.files(r'^index\.(md|markdown)$'):
+            ret_bool = True
+        return ret_bool
+
 
 class Post(Aux):
     """this is a node in the Posts linked list, it holds all the information needed
@@ -360,23 +366,25 @@ class Site(ContextAware):
         return self.config.output_dir
 
     def __init__(self, project_dir, output_dir):
-        config = self.config
-        config.project_dir = project_dir
-        config.output_dir = output_dir
+        conf = self.config
+        conf.project_dir = project_dir
+        conf.output_dir = output_dir
+        conf.project = Project(project_dir, output_dir)
 
     def compile(self):
         """go through input/ dir and compile the files"""
-        config = self.config
-        config.bangfile = Bangfile(self.project_dir)
+        conf = self.config
+        conf.bangfile = Bangfile(self.project_dir)
 
-        with self.context("web") as config:
+        with self.context("web") as conf:
             tmpl = Template(self.project_dir.template_dir)
             posts = Posts(self.output_dir, tmpl)
             auxs = Posts(self.output_dir, tmpl)
             others = Posts(self.output_dir, tmpl)
 
-            for d in self.project_dir.input_dir:
-                output_dir = self.output_dir / d.relative()
+            for d, output_dir in conf.project:
+#             for d in self.project_dir.input_dir:
+#                 output_dir = self.output_dir / d.relative()
                 if d.is_aux():
                     logger.debug("aux dir: {}".format(d))
                     a = Aux(d, output_dir, tmpl)
@@ -400,11 +408,11 @@ class Site(ContextAware):
         """go through input/ dir and compile the files and move them to output/ dir"""
         self.compile()
 
-        with self.context("web") as config:
+        with self.context("web") as conf:
             if regex:
-                logger.warning("output directory {} not cleared because regex present".format(self.output_dir))
+                logger.warning("output directory {} not cleared because regex present".format(conf.output_dir))
             else:
-                self.output_dir.clear()
+                conf.output_dir.clear()
 
             for p in self.posts.matching(regex):
                 #p.output(posts=self.posts, auxs=self.auxs)
@@ -427,7 +435,7 @@ class Site(ContextAware):
 #                     self.output_dir.copy_file(f)
 
             if regex:
-                logger.warning("output.finish event not broadcast because regex")
+                logger.warning("output.finish event not broadcast because regex present")
             else:
                 event.broadcast('output.finish', self)
 
