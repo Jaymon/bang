@@ -166,8 +166,8 @@ class Config(object):
         else:
             self.set(k, v)
 
-    def register_dirtype(self, cls):
-        self.dirtypes.append(cls)
+    def register_dirtype(self, name, cls):
+        self.dirtypes.append((name, cls))
 
 
 
