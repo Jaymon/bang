@@ -10,7 +10,6 @@ import codecs
 import logging
 
 from ..event import event
-from ..config import config
 
 
 logger = logging.getLogger(__name__)
@@ -20,7 +19,7 @@ logger = logging.getLogger(__name__)
 def output_sitemap(event_name, site):
     if not len(site.posts): return
 
-    with config.context("feed") as conf:
+    with site.config.context("feed") as conf:
         sitemap = os.path.join(str(site.output_dir), 'sitemap.xml')
         logger.info("writing sitemap to {}".format(sitemap))
 

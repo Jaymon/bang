@@ -10,15 +10,15 @@ import warnings
 
 import testdata
 
-from bang.generator import Post, Site, Template
+from bang.generator import Post, Site
 from bang.path import Directory, ProjectDirectory
 from bang import skeleton
-from bang.config import config
 from bang.__main__ import configure_logging
 from bang.event import event
 
 
 # "" to turn on all logging for the tests
+#configure_logging("")
 configure_logging("DI")
 
 
@@ -157,6 +157,5 @@ class TestCase(unittest.TestCase):
                 sys.modules.pop(k, None)
 
         # clear singletons
-        config.reset()
         event.bound.clear()
 

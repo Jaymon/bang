@@ -6,7 +6,7 @@ import re
 
 import testdata
 
-from bang.generator import Post, Site, Template
+from bang.generator import Post, Site
 from bang.path import Directory, ProjectDirectory
 from bang import skeleton
 from bang import config
@@ -903,7 +903,7 @@ class EmbedPluginTest(TestCase):
         r = p.html
         self.assertEqual(2, r.count("<figure"))
 
-        contents = json.loads(p.directory.file_contents("twitter.json"))
+        contents = json.loads(p.input_dir.file_contents("twitter.json"))
         self.assertEqual(2, len(contents))
 
     def test_no_embed_twitter_links(self):
@@ -930,9 +930,9 @@ class EmbedPluginTest(TestCase):
         r = p.html
         self.assertEqual(1, r.count("<figure"))
 
-        contents = json.loads(p.directory.file_contents("instagram.json"))
+        contents = json.loads(p.input_dir.file_contents("instagram.json"))
         self.assertEqual(1, len(contents))
-        self.assertTrue(p.directory.has_file("BNEweVYFVxq.jpg"))
+        self.assertTrue(p.input_dir.has_file("BNEweVYFVxq.jpg"))
 
     def test_embed_vimeo(self):
         p = get_post({

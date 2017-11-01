@@ -32,17 +32,20 @@ class Template(object):
 
     http://jinja.pocoo.org/docs/dev/
     """
+    @property
+    def templates(self):
+        templates = {}
+        for f in fnmatch.filter(os.listdir(str(self.template_dir)), '*.html'):
+            filename, fileext = os.path.splitext(f)
+            templates[filename] = f
+        return templates
+
     def __init__(self, template_dir):
         self.template_dir = template_dir
         self.env = Environment(
             loader=FileSystemLoader(str(template_dir)),
             #extensions=['jinja2.ext.with_'] # http://jinja.pocoo.org/docs/dev/templates/#with-statement
         )
-
-        self.templates = {}
-        for f in fnmatch.filter(os.listdir(str(self.template_dir)), '*.html'):
-            filename, fileext = os.path.splitext(f)
-            self.templates[filename] = f
 
     def has(self, template_name):
         return template_name in self.templates

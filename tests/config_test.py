@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
 
-from bang.config import config, Config
+from bang.config import Config
 from . import TestCase
 
 
@@ -41,6 +41,7 @@ class ConfigTest(TestCase):
             self.assertEqual(1, conf.bar)
 
     def test_base_url(self):
+        config = Config()
         with config.context("web", scheme="", host="example.com") as conf:
             self.assertEqual("//example.com", conf.base_url)
 

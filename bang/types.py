@@ -10,9 +10,9 @@ import datetime
 import re
 import logging
 
-from .config import ContextAware, config
+from .config import Config
 from .path import Directory
-from .utils import HTMLStripper
+from .utils import HTMLStripper, Template
 from .md import Markdown
 
 
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 
-class Directories(ContextAware):
+class Directories(object):
     """this is a simple linked list of DirectoryType instances, the Post instances have next_post
     and prev_post pointers that this class takes advantage of to build the list"""
     first_post = None
@@ -77,7 +77,7 @@ class Directories(ContextAware):
     def matching(self, regex):
         """Iterate only through posts whose directory matches regex"""
         for p in self:
-            if regex and not re.search(regex, str(p.directory), re.I):
+            if regex and not re.search(regex, str(p.input_dir), re.I):
                 continue
             yield p
 
@@ -102,11 +102,13 @@ class Directories(ContextAware):
             self.template_name,
             output_file
         ))
-        self.site.tmpl.output(
+        tmpl = Template(self.site.template_dir)
+        tmpl.output(
             self.template_name,
             output_file,
             posts=self,
-            config=self.config,
+            config=self.site.config,
+            site=self.site,
             **kwargs
         )
 
@@ -114,9 +116,13 @@ class Directories(ContextAware):
         # files for each page of Posts
 
 
-class DirectoryType(Directory, ContextAware):
+class DirectoryType(Directory):
 
     list_class = Directories
+
+    @property
+    def config(self):
+        return self.site.config
 
 #     @classmethod
 #     def plural_name(cls):
@@ -137,6 +143,11 @@ class DirectoryType(Directory, ContextAware):
 #         instance = cls(directory, site)
 #         instances.append(instance)
 
+    def __init__(self, input_dir, output_dir, site):
+        self.input_dir = input_dir
+        self.output_dir = output_dir
+        self.site = site
+
 
 class Other(DirectoryType):
     """Holds folders that are neither Aux or Post folders"""
@@ -146,15 +157,12 @@ class Other(DirectoryType):
     prev_post = None
     """holds a pointer to the previous Post"""
 
-    def __init__(self, directory, site):
-        self.directory = directory
-        self.output_dir = site.output_dir
-        self.site = site
+    list_name = "others"
 
     def output(self, **kwargs):
-        if self.directory.is_private(): return
+        if self.input_dir.is_private(): return
 
-        d = self.directory
+        d = self.input_dir
         output_dir = self.output_dir
 
         output_dir.create()
@@ -175,6 +183,8 @@ class Aux(Other):
     """this is the name of the file that this post will be outputted to after it
     is templated"""
 
+    list_name = "auxs"
+
     @property
     def next_url(self):
         """returns the url of the next post"""
@@ -189,7 +199,7 @@ class Aux(Other):
 
     @property
     def modified(self):
-        d = self.directory
+        d = self.input_dir
         t = os.path.getmtime(d.content_file)
         modified = datetime.datetime.fromtimestamp(t)
         return modified
@@ -197,7 +207,7 @@ class Aux(Other):
     @property
     def uri(self):
         """the path of the post (eg, /foo/bar/post-slug)"""
-        d = self.directory
+        d = self.input_dir
         relative = d.relative()
         relative = relative.replace('\\', '/')
         v = "/".join(['', relative])
@@ -206,7 +216,7 @@ class Aux(Other):
     @property
     def url(self):
         """the full url of the post with host and everything"""
-        base_url = self.config.base_url
+        base_url = self.site.config.base_url
         return u"{}{}".format(base_url, self.uri)
 
     @property
@@ -221,14 +231,14 @@ class Aux(Other):
 
         if not title:
             # default to just the name of the directory this aux file lives in
-            basename = os.path.basename(str(self.directory))
+            basename = os.path.basename(str(self.input_dir))
             title = basename.capitalize()
 
         return title
 
     @property
     def body(self):
-        d = self.directory
+        d = self.input_dir
         return d.file_contents(os.path.basename(d.content_file))
 
     @property
@@ -279,18 +289,15 @@ class Aux(Other):
 
         return -- string -- rendered html
         """
-        #html = getattr(self, "_html", None)
-        html = None
-        if html is None:
-            d = self.directory
-            ext = os.path.splitext(d.content_file)[1][1:]
-            ext_callback = getattr(self, "normalize_{}".format(ext), None)
-            if ext_callback:
-                html = ext_callback()
-            else:
-                html = self.body
+        try:
+            md = Markdown.get_instance()
+            html = md.output(self)
+            self._meta = md.Meta
 
-            self._html = html
+        except AttributeError as e:
+            # there might be attribute errors deep into Markdown that would
+            # be suppressed if they bubbled up from here
+            raise ValueError(e)
 
         return html
 
@@ -301,26 +308,14 @@ class Aux(Other):
             ret_bool = True
         return ret_bool
 
-    def normalize_markdown(self):
-        """alternate file extension .markdown should point to .md"""
-        return self.normalize_md()
-
-    def normalize_md(self):
-        """normalize markdown using the markdown module https://github.com/waylan/Python-Markdown"""
-        # http://pythonhosted.org/Markdown/reference.html#markdown
-        md = Markdown.get_instance()
-        html = md.output(self)
-        self._meta = md.Meta
-        return html
-
     def __str__(self):
-        return self.directory.path
+        return self.input_dir.path
 
     def output(self, **kwargs):
         """
         **kwargs -- dict -- these will be passed to the template
         """
-        d = self.directory
+        d = self.input_dir
         output_dir = self.output_dir
         output_file = os.path.join(str(output_dir), self.output_basename)
         logger.info("output {} to {}".format(self.title, output_file))
@@ -349,14 +344,16 @@ class Aux(Other):
         self.output_template(
             self.template_name,
             output_file,
-            config=self.config,
+            config=self.site.config,
+            site=self.site,
             **kwargs
         )
 
 
     def output_template(self, template_name, output_file, **kwargs):
-        kwargs["aux"] = self
-        self.site.tmpl.output(
+        kwargs[self.template_name] = self
+        tmpl = Template(self.site.template_dir)
+        tmpl.output(
             template_name,
             output_file,
             **kwargs
@@ -372,43 +369,15 @@ class Post(Aux):
     to output a Post in the input directory to the output directory"""
     template_name = 'post'
 
+    list_name = "posts"
+
     @property
     def title(self):
-        d = self.directory
+        d = self.input_dir
         title = os.path.splitext(os.path.basename(d.content_file))[0]
         return title
-
-    def output_template(self, template_name, output_file, **kwargs):
-        kwargs["post"] = self
-        self.site.tmpl.output(
-            template_name,
-            output_file,
-            **kwargs
-        )
 
     @classmethod
     def match(cls, directory):
         return True if directory.files(r'\.(md|markdown)$') else False
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# class AuxDirectory(DirectoryType):
-# 
-# 
-# class DocumentDirectory(object):
-#     pass
 

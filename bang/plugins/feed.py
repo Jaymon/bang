@@ -19,7 +19,6 @@ import codecs
 import logging
 
 from ..event import event
-from ..config import config
 
 
 logger = logging.getLogger(__name__)
@@ -43,7 +42,7 @@ def get_datestr(dt):
 
 @event('output.finish')
 def output_rss(event_name, site):
-    with config.context("feed") as conf:
+    with site.config.context("feed") as conf:
 
         host = conf.host
         if not host:

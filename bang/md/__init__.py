@@ -50,12 +50,12 @@ class Markdown(markdown.Markdown):
 
     def reset(self):
         super(Markdown, self).reset()
-        self.document = None
+        self.dirtype = None
 
-    def output(self, document):
+    def output(self, dirtype):
         self.reset()
-        self.document = document
-        return self.convert(document.body)
+        self.dirtype = dirtype
+        return self.convert(dirtype.body)
 
 #     def convert(self, source):
 #         """This is the method that all the magic happens, so if you need to start peering

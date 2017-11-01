@@ -12,16 +12,17 @@ from .event import event
 class ContextAware(object):
     """parent class for any object that wants to be able to pull context aware
     configuration instances easily and automatically"""
-    @property
-    def config(self):
-        """Returns the configuration of the current Context instance"""
-        global config
-        return config
-
-    @contextmanager
-    def context(self, name, **kwargs):
-        with self.config.context(name, **kwargs) as c:
-            yield c
+    pass
+#     @property
+#     def config(self):
+#         """Returns the configuration of the current Context instance"""
+#         global config
+#         return config
+# 
+#     @contextmanager
+#     def context(self, name, **kwargs):
+#         with self.config.context(name, **kwargs) as c:
+#             yield c
 
 
 class Bangfile(object):
@@ -111,7 +112,6 @@ class Config(object):
 
     def __init__(self):
         self.reset()
-        event.push("config", self)
 
     def reset(self):
         self.__dict__["_fields"] = defaultdict(dict)
@@ -166,19 +166,9 @@ class Config(object):
         else:
             self.set(k, v)
 
-    def register_dirtype(self, name, cls):
-        self.dirtypes.append((name, cls))
-
-
-
-
-
-
-# the global configuration singleton
-config = Config()
-
-# find all environment vars and add them to singleton
-for k, v in os.environ.items():
-    if k.startswith('BANG_'):
-        config.set(k[5:].lower(), v)
+    def load_environ(self, prefix="BANG_"):
+        """find all environment vars and add them into this instance"""
+        for k, v in os.environ.items():
+            if k.startswith(prefix):
+                self.set(k[5:].lower(), v)
 

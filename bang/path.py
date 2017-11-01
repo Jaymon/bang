@@ -8,8 +8,6 @@ import types
 import codecs
 import logging
 
-from .config import config
-
 
 logger = logging.getLogger(__name__)
 
@@ -215,12 +213,14 @@ class Directory(object):
         """
         if not ancestor_dir:
             ancestor_dir = self.ancestor_dir
-        assert ancestor_dir, "no ancestor_dir found"
+        if not ancestor_dir:
+            raise ValueError("no ancestor_dir found")
 
         relative = self.path.replace(str(ancestor_dir), '').strip(os.sep)
         return relative
 
 
+# DEPRECATED
 class ProjectDirectory(Directory):
     def __init__(self, *bits):
         super(ProjectDirectory, self).__init__(*bits)
@@ -231,34 +231,14 @@ class ProjectDirectory(Directory):
 
 class Project(object):
     def __init__(self, project_dir, output_dir):
-        self.project_dir = ProjectDirectory(str(project_dir))
+        self.project_dir = Directory(str(project_dir))
         self.output_dir = Directory(str(output_dir))
 
+        self.template_dir = Directory(self.project_dir, 'template')
+        self.input_dir = Directory(self.project_dir, 'input')
+
     def __iter__(self):
-        for d in self.project_dir.input_dir:
-            output_dir = self.output_dir / d.relative()
-            yield d, output_dir
-
-
-class DirectoryType(Directory):
-    def match(self, directory):
-        raise NotImplementedError()
-
-    # TODO -- should this keep the list of instances that are found?
-    # should match be a classmethod that is called before an instance is created?
-    # should there be an add method? So if match succeeds it then calls add?
-
-
-
-class AuxDirectory(DirectoryType):
-    def match(self, directory):
-        ret_bool = False
-        if directory.files(r'^index\.(md|markdown)$'):
-            ret_bool = True
-        return ret_bool
-
-
-
-class DocumentDirectory(object):
-    pass
+        for input_dir in self.input_dir:
+            output_dir = self.output_dir / input_dir.relative()
+            yield input_dir, output_dir
 
