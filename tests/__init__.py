@@ -11,7 +11,7 @@ import warnings
 import testdata
 
 from bang.generator import Post, Site
-from bang.path import Directory, ProjectDirectory
+from bang.path import Directory
 from bang import skeleton
 from bang.__main__ import configure_logging
 from bang.event import event
@@ -79,7 +79,7 @@ class TestCase(unittest.TestCase):
         d.update(input_files)
 
         output_dir = Directory(testdata.create_dir())
-        project_dir = ProjectDirectory(testdata.create_dir())
+        project_dir = Directory(testdata.create_dir())
 
         testdata.create_files(d, tmpdir=str(project_dir))
         return project_dir, output_dir

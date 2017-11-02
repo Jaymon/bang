@@ -120,13 +120,20 @@ class Directory(object):
         dir_util._path_created = {}
         return True
 
+    def clone(self):
+        """return a new instance with the same path"""
+        return type(self)(self.path)
+
+    def child(self, *bits):
+        """Return a new instance with bits added onto self's path"""
+        return type(self)(self.path, *bits)
+
     def __div__(self, bits):
         if isinstance(bits, types.StringTypes):
             bits = [bits]
         else:
             bits = list(bits)
-
-        return Directory(self.path, *bits)
+        return self.child(*bits)
 
     def __truediv__(self, bits):
         return self.__div__(bits)
@@ -220,15 +227,6 @@ class Directory(object):
         return relative
 
 
-# DEPRECATED
-class ProjectDirectory(Directory):
-    def __init__(self, *bits):
-        super(ProjectDirectory, self).__init__(*bits)
-
-        self.template_dir = Directory(self.path, 'template')
-        self.input_dir = Directory(self.path, 'input')
-
-
 class Project(object):
     def __init__(self, project_dir, output_dir):
         self.project_dir = Directory(str(project_dir))
@@ -238,6 +236,11 @@ class Project(object):
         self.input_dir = Directory(self.project_dir, 'input')
 
     def __iter__(self):
+        input_dir = self.input_dir.clone()
+        input_dir.ancestor_dir = self.input_dir
+        output_dir = self.output_dir.clone()
+        yield input_dir, output_dir
+
         for input_dir in self.input_dir:
             output_dir = self.output_dir / input_dir.relative()
             yield input_dir, output_dir

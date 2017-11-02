@@ -7,7 +7,7 @@ import re
 import testdata
 
 from bang.generator import Post, Site
-from bang.path import Directory, ProjectDirectory
+from bang.path import Directory
 from bang import skeleton
 from bang import config
 from . import TestCase
@@ -63,6 +63,22 @@ class PluginTest(TestCase):
 
 
 class SiteTest(TestCase):
+    def test_file_structure(self):
+        s = self.get_site({
+            './one.jpg': '',
+            './two.txt': 'some text',
+            'other/three.txt': 'third text',
+            'post/foo.md': 'post text',
+            'aux/index.md': 'aux text',
+        })
+        s.output()
+
+        self.assertTrue(s.output_dir.has_file("one.jpg"))
+        self.assertTrue(s.output_dir.has_file("two.txt"))
+        self.assertTrue(s.output_dir.child("other").has_file("three.txt"))
+        self.assertTrue(s.output_dir.child("post").has_file("index.html"))
+        self.assertTrue(s.output_dir.child("aux").has_file("index.html"))
+
     def test_unicode_output(self):
         project_dir, output_dir = get_dirs({
             'input/aux/index.md': testdata.get_unicode_words(),
@@ -128,7 +144,7 @@ class SiteTest(TestCase):
 
         s.output()
         self.assertIsNone(s.posts.first_post)
-        self.assertIsNone(s.others.first_post)
+        self.assertEqual(1, len(s.others))
 
 
 class PostTest(TestCase):
@@ -800,7 +816,7 @@ class AuxTest(TestCase):
 
 class SkeletonTest(TestCase):
     def test_generate(self):
-        project_dir = ProjectDirectory(testdata.create_dir())
+        project_dir = Directory(testdata.create_dir())
         s = skeleton.Skeleton(project_dir)
         s.output()
 

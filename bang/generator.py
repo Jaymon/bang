@@ -84,9 +84,6 @@ class Site(ContextAware):
                             if output_cb:
                                 output_cb()
 
-#                 for f in self.project_dir.input_dir.files():
-#                     self.output_dir.copy_file(f)
-
             if regex:
                 logger.warning("output.finish event not broadcast because regex present")
             else:

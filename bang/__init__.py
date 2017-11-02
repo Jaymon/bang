@@ -4,7 +4,7 @@ import subprocess
 
 
 from .server import Server
-from .path import Directory, ProjectDirectory
+from .path import Directory
 from .generator import Site
 from .event import event
 from .skeleton import Skeleton

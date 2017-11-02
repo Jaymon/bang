@@ -12,7 +12,7 @@ import time
 
 from bang import __version__
 from bang.server import Server
-from bang.path import Directory, ProjectDirectory
+from bang.path import Directory
 from bang.generator import Site
 from bang.skeleton import Skeleton
 
@@ -293,7 +293,7 @@ def console():
 
     args = parser.parse_args()
 
-    project_dir = ProjectDirectory(args.project_dir)
+    project_dir = Directory(args.project_dir)
     output_dir = args.output_dir
     if output_dir:
         output_dir = Directory(output_dir)
