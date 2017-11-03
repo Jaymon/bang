@@ -7,6 +7,20 @@ import fnmatch
 from jinja2 import Environment, FileSystemLoader
 
 
+class classproperty(property):
+    """creat a class property
+
+    :Example:
+        class Foo(object):
+            @classproperty
+            def bar(cls):
+                return 42
+        Foo.bar # 42
+    """
+    def __get__(self, instance, cls):
+        return self.fget(cls)
+
+
 # http://stackoverflow.com/a/925630/5006
 class HTMLStripper(HTMLParser):
     """strip html tags"""
@@ -27,7 +41,7 @@ class HTMLStripper(HTMLParser):
         return ''.join(self.fed)
 
 
-class Template(object):
+class TemplateDir(object):
     """Thin wrapper around Jinja functionality that handles templating things
 
     http://jinja.pocoo.org/docs/dev/
@@ -54,4 +68,12 @@ class Template(object):
         tmpl = self.env.get_template("{}.html".format(template_name))
         return tmpl.stream(**kwargs).dump(filepath, encoding='utf-8')
 
+
+class Template(object):
+    def __init__(self, template_name, template_dir):
+        self.template_name = template_name
+        self.tmpl = TemplateDir(template_dir)
+
+    def output(self, filepath, **kwargs):
+        return self.tmpl.output(self.template_name, filepath, **kwargs)
 

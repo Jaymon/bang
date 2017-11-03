@@ -5,30 +5,15 @@ import imp
 import hashlib
 from contextlib import contextmanager
 from collections import defaultdict
+import importlib
 
 from .event import event
-
-
-class ContextAware(object):
-    """parent class for any object that wants to be able to pull context aware
-    configuration instances easily and automatically"""
-    pass
-#     @property
-#     def config(self):
-#         """Returns the configuration of the current Context instance"""
-#         global config
-#         return config
-# 
-#     @contextmanager
-#     def context(self, name, **kwargs):
-#         with self.config.context(name, **kwargs) as c:
-#             yield c
 
 
 class Bangfile(object):
     """The purpose of this class is to load a Bangfile found in the directory"""
     @classmethod
-    def get(cls, directory, basename="bangfile.py"):
+    def get_file(cls, directory, basename="bangfile.py"):
         """get the bangfile in the given directory with the given basename
 
         directory -- Directory|string -- usually the project_dir, the directory that
@@ -44,8 +29,15 @@ class Bangfile(object):
 
         return module
 
-    def __init__(self, directory, *args, **kwargs):
-        self.module = self.get(directory, *args, **kwargs)
+    def get_module(cls, modpath):
+        module = importlib.import_module(modpath)
+        return module
+
+    def __init__(self, dir_or_modpath, *args, **kwargs):
+        if os.path.isdir(str(dir_or_modpath)):
+            self.module = self.get_file(dir_or_modpath, *args, **kwargs)
+        else:
+            self.module = self.get_module(dir_or_modpath)
 
 
 class Config(object):

@@ -18,8 +18,8 @@ from bang.event import event
 
 
 # "" to turn on all logging for the tests
-#configure_logging("")
-configure_logging("DI")
+configure_logging("")
+#configure_logging("DI")
 
 
 def deprecated(func):
@@ -69,7 +69,7 @@ class TestCase(unittest.TestCase):
             'template/aux.html': "{{ aux.title }}\n{{ aux.html }}\n",
             'template/post.html': "{{ post.title }}\n{{ post.html }}\n{{ post.modified.strftime('%Y-%m-%d') }}\n",
             'template/posts.html': "\n".join([
-                "{% for post in posts.reverse(10) %}",
+                "{% for post in posts %}",
                 "{% include 'post.html' %}",
                 "<hr>",
                 "{% endfor %}",
@@ -122,6 +122,17 @@ class TestCase(unittest.TestCase):
         return s.posts if len(s.posts) else s.auxs
 
     @classmethod
+    def get_count_posts(cls, count):
+        post_files = {}
+        for x in range(count):
+            name = testdata.get_ascii(8)
+            post_files["{}.md".format(name)] = testdata.get_words()
+
+        s = cls.get_site(post_files)
+        s.compile()
+        return s.posts if len(s.posts) else s.auxs
+
+    @classmethod
     def get_post(cls, post_file, post_files=None):
         if not post_files:
             post_files = {}
@@ -154,6 +165,10 @@ class TestCase(unittest.TestCase):
             elif k.startswith("bang.plugins"):
                 # plugins usually bind to events, so we clear those so they can
                 # be rebound
+                sys.modules.pop(k, None)
+
+            elif k.startswith("bang.bangfile"):
+                # global bangfile 
                 sys.modules.pop(k, None)
 
         # clear singletons

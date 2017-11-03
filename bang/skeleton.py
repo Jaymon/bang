@@ -29,11 +29,7 @@ master_skeleton = '''<!DOCTYPE html>
 
   <body>
     <div id="header"></div>
-
-    <article class="body">
-        {% block content %}{% endblock %}
-    </article>
-
+    {% block content %}{% endblock %}
     <div id="footer"></div>
 
     <script>
@@ -45,13 +41,15 @@ master_skeleton = '''<!DOCTYPE html>
 
 macros_skeleton = '''
 {% macro article(post) %}
-  <h1><a href="{{post.url}}">{{ post.title }}</a></h1>
+  <article class="body">
+    <h1><a href="{{post.url}}">{{ post.title }}</a></h1>
 
-  {{ post.html }}
+    {{ post.html }}
 
-  <time datetime="{{ post.modified.strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}" class="post-meta">
-    {{ post.modified.strftime('%b %d %Y') }}
-  </time>
+    <time datetime="{{ post.modified.strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}" class="post-meta">
+        {{ post.modified.strftime('%b %d %Y') }}
+    </time>
+  </article>
 
 {% endmacro %}
 
@@ -111,7 +109,7 @@ posts_skeleton = '''
 {% endblock %}
 
 {% block content %}
-  {% for post in posts.reverse(10) %}
+  {% for post in posts %}
     {{ article(post) }}
     <hr>
   {% endfor %}

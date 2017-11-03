@@ -16,10 +16,10 @@ class Sub(object):
         self.link_placeholders = []
         self.footnote_placeholders = []
 
-        self.link_regex = re.compile(r"(?<=\])\[{}\](?!:)".format(placeholder))
+        self.link_regex = re.compile(r"(?<=\])\[{}\]".format(placeholder))
         self.def_link_regex = re.compile(r"^\[{}]:".format(placeholder))
 
-        self.footnote_regex = re.compile(r"\[\^{}\](?!:)".format(placeholder))
+        self.footnote_regex = re.compile(r"(?<!^)\[\^{}\]".format(placeholder))
         self.def_footnote_regex = re.compile(r"^\[\^{}\]:".format(placeholder))
 
     def callback(self, m):
@@ -42,12 +42,42 @@ class Sub(object):
         return ret + ":"
 
     def sub(self, line):
-        ret = self.link_regex.sub(self.callback, line)
-        ret = self.def_link_regex.sub(self.def_callback, ret)
 
-        ret = self.footnote_regex.sub(self.callback, ret)
-        ret = self.def_footnote_regex.sub(self.def_callback, ret)
-        return ret
+        # this ignores inline codeblocks from being evaluated
+        def bits(line):
+            chars = []
+            ignore = False
+            for c in line:
+                if c == '`':
+                    if ignore:
+                        chars.append(c)
+                        yield "".join(chars), ignore
+                        chars = []
+                        ignore = False
+                    else:
+                        yield "".join(chars), ignore
+                        chars = [c]
+                        ignore = True
+                else:
+                    chars.append(c)
+
+            yield "".join(chars), ignore
+
+
+        ret = []
+        for bit, ignore in bits(line):
+            if ignore:
+                ret.append(bit)
+            else:
+                bit = self.link_regex.sub(self.callback, bit)
+                bit = self.def_link_regex.sub(self.def_callback, bit)
+
+                bit = self.footnote_regex.sub(self.callback, bit)
+                bit = self.def_footnote_regex.sub(self.def_callback, bit)
+
+                ret.append(bit)
+
+        return "".join(ret)
 
 
 class MagicRefPreprocessor(Preprocessor):
@@ -63,6 +93,7 @@ class MagicRefPreprocessor(Preprocessor):
         placeholder = self.config["EASY_PLACEHOLDER"]
         s = Sub(self.config["EASY_PLACEHOLDER"])
         for line in lines:
+            # TODO -- this should skip ``` codeblocks
             ret.append(s.sub(line))
 
         if len(s.footnote_placeholders) > 0:

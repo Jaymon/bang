@@ -10,6 +10,6 @@ from .event import event
 from .skeleton import Skeleton
 
 
-__version__ = "0.2.10"
+__version__ = "0.2.11"
 
 

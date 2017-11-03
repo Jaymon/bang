@@ -14,24 +14,9 @@ logger = logging.getLogger(__name__)
 
 class Directory(object):
 
-    #content_file_regex = ur'\.(md|html|txt|markdown)$'
-    content_file_regex = r'\.(md|markdown)$'
-
     @property
     def basename(self):
         return os.path.basename(self.path)
-
-    @property
-    def content_file(self):
-        for f in self.files(self.content_file_regex):
-            break
-        return f
-
-    @property
-    def other_files(self):
-        for f in self.files():
-            if not re.search(self.content_file_regex, f, re.I):
-                yield f
 
     def __init__(self, *bits):
         self.path = ''
@@ -177,18 +162,6 @@ class Directory(object):
             break
 
         return r
-
-    def is_post(self):
-        """return true if this directory has a blog post in it"""
-        return not self.is_aux() and self.files(self.content_file_regex)
-
-    def is_aux(self):
-        """return True if this is a directory with an index.* file in it"""
-        ret_bool = False
-        if self.files(r'^index{}'.format(self.content_file_regex)):
-            ret_bool = True
-
-        return ret_bool
 
     def is_private(self):
         basename = self.basename

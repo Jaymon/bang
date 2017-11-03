@@ -24,29 +24,32 @@ class Markdown(markdown.Markdown):
     @classmethod
     def get_instance(cls):
         if not cls.instance:
-            cls.instance = cls(
-                extensions=[
-                    RefPositionFixExtension(),
-                    FootnoteExtension(UNIQUE_IDS=True),
-                    MagicRefExtension(),
-                    HighlightExtension(),
-                    'tables',
-                    'nl2br',
-                    'attr_list',
-                    'smart_strong',
-                    'meta', # http://pythonhosted.org/Markdown/extensions/meta_data.html
-                    'admonition', # https://pythonhosted.org/Markdown/extensions/admonition.html
-                    TocExtension(baselevel=1), # https://pythonhosted.org/Markdown/extensions/toc.html
-                    ImageExtension(),
-                    DelInsExtension(),
-                    AbsoluteLinkExtension(),
-                    #DomEventExtension(),
-                    EmbedExtension(),
-                ],
-                output_format="html5"
-            )
-
+            cls.instance = cls.create_instance()
         return cls.instance
+
+    @classmethod
+    def create_instance(cls):
+        return cls(
+            extensions=[
+                RefPositionFixExtension(),
+                FootnoteExtension(UNIQUE_IDS=True),
+                MagicRefExtension(),
+                HighlightExtension(),
+                'tables',
+                'nl2br',
+                'attr_list',
+                'smart_strong',
+                'meta', # http://pythonhosted.org/Markdown/extensions/meta_data.html
+                'admonition', # https://pythonhosted.org/Markdown/extensions/admonition.html
+                TocExtension(baselevel=1), # https://pythonhosted.org/Markdown/extensions/toc.html
+                ImageExtension(),
+                DelInsExtension(),
+                AbsoluteLinkExtension(),
+                #DomEventExtension(),
+                EmbedExtension(),
+            ],
+            output_format="html5"
+        )
 
     def reset(self):
         super(Markdown, self).reset()

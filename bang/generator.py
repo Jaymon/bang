@@ -7,7 +7,7 @@ import re
 import logging
 
 from .event import event
-from .config import ContextAware, Bangfile, Config
+from .config import Bangfile, Config
 from .path import Directory, Project
 from .types import Other, Aux, Post, Directories
 
@@ -15,12 +15,16 @@ from .types import Other, Aux, Post, Directories
 logger = logging.getLogger(__name__)
 
 
-class Site(ContextAware):
+class Site(object):
     """this is where all the magic happens. Output generates all the posts and compiles
     files from input directory to output directory"""
     @property
     def project_dir(self):
         return self.config.project.project_dir
+
+    @property
+    def input_dir(self):
+        return self.config.project.input_dir
 
     @property
     def output_dir(self):
@@ -39,8 +43,12 @@ class Site(ContextAware):
     def compile(self):
         """go through input/ dir and compile the files"""
         self.config.dirtypes = [Aux, Post, Other]
-        self.config.bangfile = Bangfile(self.project_dir)
+        self.config.bangfiles = [
+            Bangfile(self.project_dir),
+            Bangfile("bang.bangfile")
+        ]
         event.push("config", self.config)
+        event.push("configure", self.config)
 
         # this isn't efficient but we go in and create placeholders for all the dirtypes
         for dt_class in self.config.dirtypes:
@@ -74,15 +82,31 @@ class Site(ContextAware):
                     for instance in instances.matching(regex):
                         instance.output()
 
-                if regex:
-                    logger.warning("Posts not compiled because regex present")
-                else:
-                    if dt_class is Post:
-                        # this compiles the root index.html
-                        if instances:
-                            output_cb = getattr(instances, "output")
-                            if output_cb:
-                                output_cb()
+
+            # this was NOT faster than syncronous, I could try green threads
+#             import threading
+#             from Queue import Queue
+#             import multiprocessing
+# 
+#             q = Queue()
+#             thread_count = multiprocessing.cpu_count()
+# 
+#             def target():
+#                 while True:
+#                     instance = q.get()
+#                     instance.output()
+#                     q.task_done()
+# 
+#             for i in range(thread_count):
+#                 t = threading.Thread(target=target)
+#                 t.daemon = True
+#                 t.start()
+# 
+#             for dt_class in conf.dirtypes:
+#                 instances = getattr(self, dt_class.list_name, None)
+#                 if instances:
+#                     for instance in instances.matching(regex):
+#                         q.put(instance)
 
             if regex:
                 logger.warning("output.finish event not broadcast because regex present")

@@ -43,6 +43,8 @@ def get_datestr(dt):
 @event('output.finish')
 def output_rss(event_name, site):
     with site.config.context("feed") as conf:
+        feed_enabled = conf.get("feed_enabled", True)
+        if not feed_enabled: return
 
         host = conf.host
         if not host:
@@ -54,7 +56,7 @@ def output_rss(event_name, site):
 
         main_url = conf.base_url
         feed_url = 'http://{}/feed.rss'.format(host)
-        max_count = 10
+        max_count = conf.get("feed_max_count", 10)
         count = 0
 
         with codecs.open(feedpath, 'w+', 'utf-8') as fp:
@@ -79,7 +81,7 @@ def output_rss(event_name, site):
             fp.write("    <lastBuildDate>{}</lastBuildDate>\n".format(get_datestr(dt)))
             fp.write("    <generator>github.com/Jaymon/bang</generator>\n")
 
-            for p in reversed(site.posts):
+            for p in conf.feed_iter(site):
                 fp.write("    <item>\n")
                 fp.write("      <title>{}</title>\n".format(get_cdata(p.title)))
                 fp.write("      <description>{}</description>\n".format(get_cdata(p.html)))

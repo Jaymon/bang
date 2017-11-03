@@ -51,9 +51,11 @@ Any other files (images or whatnot) will just be copied over to their respective
 
 Your project directory is where all the magic happens. It has to contain a few folders:
 
+
 #### input (required)
 
 This is where everything you want to be in the final output folder should go, this includes your blog posts and any other files/folders you want your *live* static site to contain.
+
 
 #### template (required)
 
@@ -61,10 +63,13 @@ This is where all your [Jinja](http://jinja.pocoo.org/) templates go, they are u
 
 * `post.html` - This contains the html for rendering a post's permalink page.
 * `posts.html` - This contains the html for rendering a list of posts.
+* `aux.html` - The template for rendering any non-post markdown files (index.md files)
+
 
 #### output (optional)
 
 This is the default output directory when the `compile` command is used with no `--output-dir` argument.
+
 
 #### bangfile.py (optional)
 
@@ -72,9 +77,13 @@ You can add this file to configure bang when compiling:
 
 ```python
 # /project_dir/bangfile.py
-name = "your site name"
-description = "your site description"
-host = "example.com"
+from bang import event
+
+@event("config")
+def configure(event_name, conf):
+    conf.name = "your site name"
+    conf.description = "your site description"
+    conf.host = "example.com"
 ```
 
 
@@ -83,7 +92,7 @@ host = "example.com"
 If you don't want to bother with a `bangfile.py` in your project directory, Bang can also be configured using environment variables, basically, any `BANG_*` environment variables wil be put into the configuration, here are a couple you might want to set:
 
 * **BANG_HOST** -- the host of your website, this is used to generate urls and stuff.
-* **BANG_METHOD** -- the http method to use (either `http` or `https`).
+* **BANG_SCHEME** -- the http method to use (either `http` or `https`).
 
 You can also combine a bangfile with the environment, this makes it easy to have different environments:
 
@@ -91,17 +100,22 @@ You can also combine a bangfile with the environment, this makes it easy to have
 # /project_dir/bangfile.py
 import os
 
-name = "your site name"
-description = "your site description"
+from bang import event
 
-# change the host and scheme based on the environment
-env = os.environ.get("BANG_ENV", "prod")
-if env == "prod":
-    host = "example.com"
-    scheme = "https"
-else:
-    host = "localhost"
-    scheme = "http"
+@event("config")
+def configure(event_name, conf):
+
+    conf.name = "your site name"
+    conf.description = "your site description"
+
+    # change the host and scheme based on the environment
+    env = os.environ.get("BANG_ENV", "prod")
+    if env == "prod":
+        conf.host = "example.com"
+        conf.scheme = "https"
+    else:
+        conf.host = "localhost"
+        conf.scheme = "http"
 ```
 
 
@@ -124,6 +138,7 @@ first[^n] second[^n]
 
 That way you don't have to worry about uniquely naming footnotes since they are just assigned in order, but if you want to give your footnotes unique names that works also.
 
+
 ### Easy links
 
 Similar to the footnotes, using the `n` reference name:
@@ -136,6 +151,7 @@ Similar to the footnotes, using the `n` reference name:
 [n]: http://second.com
 ```
 
+
 ### Easy images
 
 If no title is used, then the alt becomes the title:
@@ -143,23 +159,6 @@ If no title is used, then the alt becomes the title:
 ```
 ![this will be the title](path/to/image.jpg)
 ```
-
-
--------------------------------------------------------------------------------
-
-## Plugins
-
-bang includes a couple built-in plugins that you can include in your `bangfile.py`, to activate them per site:
-
-```python
-# /project_dir/bangfile.py
-
-from bang.plugins import sitemap # to automatically generate a sitemap.xml file
-
-from bang.plugins import feed # generate an rss feed at host/feed.rss for the last 10 posts
-```
-
-That's it, once they are imported they will run when they need to.
 
 
 -------------------------------------------------------------------------------
@@ -178,17 +177,20 @@ That will place the compiled output to `project-dir/output`, you can also move t
 
     $ bang compile --project-dir=... --output-dir=...
 
+
 ### serve
 
 Use this to fire up a local server so you can see your compiled site. You can set the port with the `--port` flag.
 
     $ bang server --project-dir=... --port=8000
 
+
 ### watch
 
 This is designed to be used on the remote server that will host your site in a cron job, it will try and pull down the code using a git repo, if there are changes, then it will compile the new changes, since it is run in cron, you should include the full path:
 
     $ /usr/local/bin/bang watch --project-dir=...
+
 
 ### generate
 
@@ -208,46 +210,37 @@ The easiest way to hook these in to your site compiling is to define or import t
 Events are basically defined like this:
 
 ```python
-from .. import event, echo
+from bang import event, echo
 
-@event.bind("output.finish")
+@event("output.finish")
 def callback(event_name, site):
     """print all the post titles and urls to the screen"""
     for p in site.posts:
         echo.out(p.title)
         echo.err(p.url)
-
-# alternative register call: event.listen('output.finish', callback)
 ```
 
 
-### output.finish
+### Some Common Events
+
+#### config
+
+This is called right after the bangfile is loaded in order to set initial global configuration.
+
+
+#### output.finish
 
 This event is fired after all the posts are compiled, right now it is used to do things like generating RSS feeds and the sitemap.
 
 
-### dom.[TAGNAME]
-
-This event is fired for every element in a post that matches, so if you wanted to do something with `a` tags, you could hook up a callback to listen on `dom.a`.
-
-```python
-from .. import event, echo
-
-@event.bind("dom.a")
-def callback(event_name, parent, elem):
-    """print all href urls in every a tag"""
-    echo.out(elem.href)
-```
-
-
-### context.[name]
+#### context.NAME
 
 Anytime the configuration context changes, this event is called, when the html pages are generated, `context.web` is the broadcast event, the feed plugin will broacast `context.feed` and the sitemap plugin will broadcast `context.sitemap`.
 
 ```python
-from .. import event
+from bang import event
 
-@event.bind("context.web")
+@event("context.web")
 def callback(event_name, config):
     """allows custom configuration for web context"""
     pass

@@ -24,16 +24,17 @@ def console_compile(args, project_dir, output_dir):
     start = time.time()
 
     regex = args.regex
+    s = Site(project_dir, output_dir)
+
     if regex:
         logger.info("Compiling directories matching {} in {} to {}".format(
             regex,
-            project_dir.input_dir,
-            output_dir
+            s.input_dir,
+            s.output_dir
         ))
     else:
-        logger.info("Compiling directory {} to {}".format(project_dir.input_dir, output_dir))
+        logger.info("Compiling directory {} to {}".format(s.input_dir, s.output_dir))
 
-    s = Site(project_dir, output_dir)
     s.output(regex)
 
     stop = time.time()
