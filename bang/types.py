@@ -126,8 +126,13 @@ class Directories(object):
             kwargs["next_title"] = ""
             if page - 1:
                 # we need a previous url
-                kwargs["prev_url"] = "{}/page/{}".format(base_url, page - 1)
-                kwargs["prev_title"] = "Page {}".format(page - 1)
+                if page - 1 == 1:
+                    kwargs["prev_url"] = base_url
+                    kwargs["prev_title"] = "Go Home".format(page - 1)
+
+                else:
+                    kwargs["prev_url"] = "{}/page/{}".format(base_url, page - 1)
+                    kwargs["prev_title"] = "Page {}".format(page - 1)
 
             if len(posts_pages) > page:
                 # we need a next url
