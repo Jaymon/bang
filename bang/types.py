@@ -124,20 +124,27 @@ class Directories(object):
             kwargs["prev_title"] = ""
             kwargs["next_url"] = ""
             kwargs["next_title"] = ""
+
+            # ok, this is kind of confusing, but the linked list that holds
+            # all the POSTS goes from left to right (0, 1, ..., N), so the
+            # latest post would be all the way to the right. But the posts
+            # pagination goes from right to left (N, N-1, ..., 0) so we need
+            # to reverse the prev and next urls so they match the post
+            # linked list and stay consistent on the site, so if you are on
+            # page 2 then page 1 would be the next url and page 3 would be
+            # the previous url
             if page - 1:
-                # we need a previous url
                 if page - 1 == 1:
-                    kwargs["prev_url"] = base_url
-                    kwargs["prev_title"] = "Go Home".format(page - 1)
+                    kwargs["next_url"] = base_url
+                    kwargs["next_title"] = "Go Home"
 
                 else:
-                    kwargs["prev_url"] = "{}/page/{}".format(base_url, page - 1)
-                    kwargs["prev_title"] = "Page {}".format(page - 1)
+                    kwargs["next_url"] = "{}/page/{}".format(base_url, page - 1)
+                    kwargs["next_title"] = "Page {}".format(page - 1)
 
             if len(posts_pages) > page:
-                # we need a next url
-                kwargs["next_url"] = "{}/page/{}".format(base_url, page + 1)
-                kwargs["next_title"] = "Page {}".format(page + 1)
+                kwargs["prev_url"] = "{}/page/{}".format(base_url, page + 1)
+                kwargs["prev_title"] = "Page {}".format(page + 1)
 
             logger.debug(
                 'Templating Posts[{}] with template "{}" to output file {}'.format(
