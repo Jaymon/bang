@@ -23,29 +23,6 @@ configure_logging("")
 #configure_logging("DI")
 
 
-@deprecated
-def get_body(filepath):
-    return TestCase.get_body(filepath)
-
-
-@deprecated
-def get_dirs(input_files):
-    return TestCase.get_dirs(input_files)
-
-
-@deprecated
-def get_posts(post_files):
-    return TestCase.get_posts(post_files)
-
-
-@deprecated
-def get_post(post_files, **kwargs):
-    for k in post_files:
-        if k.endswith(".md"): break
-    post_file = post_files.pop(k)
-    return TestCase.get_post(post_file, post_files, **kwargs)
-
-
 class TestCase(testdata.TestCase):
 
     @classmethod
@@ -131,8 +108,16 @@ class TestCase(testdata.TestCase):
         if not post_files:
             post_files = {}
 
-        name = "{}.md".format(testdata.get_ascii(8))
-        post_files[name] = post_file
+        if isinstance(post_file, dict):
+            #for k in post_file:
+            #    if k.endswith(".md"): break
+
+            post_files = post_file
+            #post_file = post_files.pop(k)
+
+        else:
+            name = "{}.md".format(testdata.get_ascii(8))
+            post_files[name] = post_file
 
         posts = cls.get_posts(post_files)
         return posts.first_page
@@ -143,6 +128,14 @@ class TestCase(testdata.TestCase):
         with codecs.open(filepath, 'r+', 'utf-8') as fp:
             v = fp.read()
         return v
+
+    @classmethod
+    def get_html(cls, body):
+        md = Markdown.get_instance()
+        html = md.convert(body)
+        meta = md.Meta
+        html.meta = meta
+        return html
 
     def setUp(self):
         # clear the environment
