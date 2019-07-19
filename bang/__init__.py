@@ -2,7 +2,7 @@
 from __future__ import unicode_literals, division, print_function, absolute_import
 import logging
 
-from .config import Config
+from .config import Config, Bangfile
 from .event import event
 from .server import Server
 from .path import Directory
@@ -26,6 +26,11 @@ class Project(object):
         self.template_dir = Directory(self.project_dir, 'template')
         self.input_dir = Directory(self.project_dir, 'input')
         self.config = self.config_class(self)
+
+        self.config.bangfiles = [
+            Bangfile(self.project_dir),
+            Bangfile("{}.bangfile".format(self.config.module_name))
+        ]
 
     def __iter__(self):
         input_dir = self.input_dir.clone()

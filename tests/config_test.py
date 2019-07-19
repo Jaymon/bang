@@ -7,27 +7,6 @@ from . import TestCase
 
 
 class ConfigTest(TestCase):
-    def test_cru(self):
-        #conf = Config()
-        conf = self.create_config()
-
-        conf.bar = 1
-        self.assertEqual(1, conf.bar)
-
-        conf.context_name = "foo"
-        self.assertEqual("foo", conf.context_name)
-        self.assertFalse("context_name" in conf.fields)
-
-        self.assertEqual(None, conf.che)
-        conf.set("che", 2)
-        self.assertEqual(2, conf.che)
-
-        del conf.context_name
-        self.assertEqual("", conf.context_name)
-
-        conf.bar = 3
-        self.assertEqual(3, conf.get("bar"))
-
     def test_context_with(self):
         config = self.create_config()
         with config.context("foo", bar=1) as conf:
@@ -63,12 +42,14 @@ class ConfigTest(TestCase):
                 "def global_config(event_name, config):",
                 "    config.host = 'example.com'",
                 "    config.name = 'example site'",
-                "    config.scheme = 'https'",
                 "",
                 "@event('context.web')",
-                "def feed_context_handler(event_name, config):",
+                "def html_config(event_name, config):",
                 "    config.scheme = ''",
                 "",
+                "@event('context.feed')",
+                "def feed_config(event_name, config):",
+                "    config.scheme = 'https'",
             ]
         })
         s.output()

@@ -7,6 +7,7 @@ from contextlib import contextmanager
 from collections import defaultdict
 import importlib
 
+from .compat import *
 from .event import event
 from .types import Other, Aux, Post
 
@@ -35,7 +36,7 @@ class Bangfile(object):
         return module
 
     def __init__(self, dir_or_modpath, *args, **kwargs):
-        if os.path.isdir(str(dir_or_modpath)):
+        if os.path.isdir(String(dir_or_modpath)):
             self.module = self.get_file(dir_or_modpath, *args, **kwargs)
         else:
             self.module = self.get_module(dir_or_modpath)
@@ -52,14 +53,10 @@ class Config(object):
     a value it will check the current context, if there is no value there it will
     check for that value in the previous context, all the way down the line
     """
-
-    _context_name = ""
-
-    _previous_context_name = ""
-
     @property
-    def context_name(self):
-        return self._context_name
+    def module_name(self):
+        """Returns the main module name of this package"""
+        return __name__.split(".")[0]
 
     @property
     def input_dir(self):
@@ -73,32 +70,37 @@ class Config(object):
     def template_dir(self):
         return self.project.template_dir
 
-    @context_name.setter
-    def context_name(self, v):
-        self._previous_context_name = self._context_name
-        self._context_name = v
-        event.broadcast("context.{}".format(v), self)
-
-    @context_name.deleter
+    @property
     def context_name(self):
-        self._context_name = self._previous_context_name
-        self._previous_context_name = type(self)._previous_context_name
+        return self._context_names[-1]
 
-    @property
-    def context_fields(self):
-        """Return the fields set with the current context"""
-        return self._fields[self.context_name]
-
-    @property
-    def global_fields(self):
-        """return the fields set globally (no context fields)"""
-        return self._fields[type(self)._context_name]
+#     @context_name.setter
+#     def context_name(self, v):
+#         self._previous_context_name = self._context_name
+#         self._context_name = v
+#         event.broadcast("context.{}".format(v), self)
+# 
+#     @context_name.deleter
+#     def context_name(self):
+#         self._context_name = self._previous_context_name
+#         self._previous_context_name = type(self)._previous_context_name
+# 
+#     @property
+#     def context_fields(self):
+#         """Return the fields set with the current context"""
+#         return self._fields[self.context_name]
+# 
+#     @property
+#     def global_fields(self):
+#         """return the fields set globally (no context fields)"""
+#         return self._fields[type(self)._context_name]
 
     @property
     def fields(self):
         """return a dict of all active values in the config at the moment"""
-        fields = dict(self.global_fields)
-        fields.update(self.context_fields)
+        fields = {}
+        for context_name in self._context_names:
+            fields.update(self._fields[context_name])
         return fields
 
     @property
@@ -121,20 +123,19 @@ class Config(object):
         return base_url
 
     def __init__(self, project):
-        #self._context_name_stack = [""]
+        # we set support properties directly on the __dict__ so __setattr__ doesn't
+        # infinite loop, context properties can just be set normally
 
+        # a stack of the context names, where -1 is always the current active context
+        self.__dict__["_context_names"] = [""]
+
+        # this is where all the magic happens, the keys are the context names
+        # and the values are the set properties for that context, 
         self.__dict__["_fields"] = defaultdict(dict)
-        self._context_name = type(self)._context_name
-        self._previous_context_name = type(self)._previous_context_name
 
         self.project = project
 
         self.dirtypes = [Aux, Post, Other]
-
-        self.bangfiles = [
-            Bangfile(project.project_dir),
-            Bangfile("bang.bangfile")
-        ]
 
         # TODO -- https://github.com/Jaymon/bang/issues/41 this should force
         # re-calling events that have fired
@@ -153,31 +154,28 @@ class Config(object):
                 pass
             # anything outside this block will not use the foo configuration
         """
-        self.context_name = name
+        self._context_names.append(name)
 
         # passed in values get set on the instance directly
         for k, v in kwargs.items():
             self.set(k, v)
 
+        event.broadcast("context.{}".format(self.context_name), self)
+
         yield self
 
-        del self.context_name
+        self._context_names.pop(-1)
 
     def set(self, k, v):
         self._fields[self.context_name][k] = v
 
     def get(self, k, default_val=None):
-        """bangfile takes precedence, then environment variables"""
-        ret = default_val
-        fields = self.context_fields
-        if k in fields:
-            ret = fields[k]
-        else:
-            fields = self.global_fields
+        for context_name in reversed(self._context_names):
+            fields = self._fields[context_name]
             if k in fields:
-                ret = fields[k]
+                return fields[k]
 
-        return ret
+        return default_val
 
     def __getattr__(self, k):
         return self.get(k)
