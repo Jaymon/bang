@@ -7,12 +7,12 @@ import os
 import logging
 
 from markdown import util
-from markdown.extensions import Extension
 from markdown.postprocessors import Postprocessor
 from markdown.blockprocessors import BlockProcessor as BaseBlockProcessor
 import requests
 
 from ...path import Directory
+from . import Extension
 
 
 logger = logging.getLogger(__name__)
@@ -142,7 +142,7 @@ class BlockProcessor(BaseBlockProcessor):
     https://github.com/waylan/Python-Markdown/blob/master/markdown/blockparser.py
     """
     def get_figure(self, parent, name):
-        if self.parser.markdown.output_format in ["html5"]:
+        if self.parser.markdown.output_format in ["html"]:
             figure = util.etree.SubElement(parent, 'figure')
             figure.set("class", "embed {}".format(name))
 
@@ -381,12 +381,34 @@ class EmbedExtension(Extension):
     automatically
     """
     def extendMarkdown(self, md, md_globals):
-        md.postprocessors.add("embed", LinkifyPostprocessor(md), "_end")
-        md.parser.blockprocessors.add("embed_youtube", YoutubeProcessor(md.parser), "<paragraph")
-        md.parser.blockprocessors.add("embed_twitter", TwitterProcessor(md.parser), "<paragraph")
-        md.parser.blockprocessors.add("embed_instagram", InstagramProcessor(md.parser), "<paragraph")
-        md.parser.blockprocessors.add("embed_vimeo", VimeoProcessor(md.parser), "<paragraph")
-        md.parser.blockprocessors.add("embed_image", ImageProcessor(md.parser), "<paragraph")
+
+        md.postprocessors.register(
+            LinkifyPostprocessor(md),
+            "embed",
+            self.find_priority(md.postprocessors)
+        )
+
+        plugins = {
+            "embed_youtube": YoutubeProcessor(md.parser),
+            "embed_twitter": TwitterProcessor(md.parser),
+            "embed_instagram": InstagramProcessor(md.parser),
+            "embed_vimeo": VimeoProcessor(md.parser),
+            "embed_image": ImageProcessor(md.parser),
+        }
+
+        for name, instance in plugins.items():
+            md.parser.blockprocessors.register(
+                instance,
+                name,
+                self.find_priority(md.parser.blockprocessors, ["paragraph"])
+            )
+
+#         md.postprocessors.add("embed", LinkifyPostprocessor(md), "_end")
+#         md.parser.blockprocessors.add("embed_youtube", YoutubeProcessor(md.parser), "<paragraph")
+#         md.parser.blockprocessors.add("embed_twitter", TwitterProcessor(md.parser), "<paragraph")
+#         md.parser.blockprocessors.add("embed_instagram", InstagramProcessor(md.parser), "<paragraph")
+#         md.parser.blockprocessors.add("embed_vimeo", VimeoProcessor(md.parser), "<paragraph")
+#         md.parser.blockprocessors.add("embed_image", ImageProcessor(md.parser), "<paragraph")
 
 
 def makeExtension(*args, **kwargs):

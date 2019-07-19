@@ -3,7 +3,7 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 import re
 
 from markdown.preprocessors import Preprocessor
-from markdown.extensions import Extension
+from . import Extension
 
 
 class RefPositionFixPreprocessor(Preprocessor):
@@ -35,13 +35,16 @@ class RefPositionFixExtension(Extension):
     a blank line would be placed between the `[^n]` and `[n]` lines using this extension
     """
     def extendMarkdown(self, md, md_globals):
+        # it's best we run this before any other extension that messes with references
+        priority = self.find_priority(md.preprocessors, ["magicref", "footnote", "reference"])
+        md.preprocessors.register(RefPositionFixPreprocessor(md), "refpositionfix", priority)
 
         # it's best we run this before any other extension that messes with references
-        position = '<reference'
-        if "footnote" in md.preprocessors:
-            position = '<footnote'
-        if "magicref" in md.preprocessors:
-            position = '<magicref'
-
-        md.preprocessors.add('refpositionfix', RefPositionFixPreprocessor(md), position)
+#         position = '<reference'
+#         if "footnote" in md.preprocessors:
+#             position = '<footnote'
+#         if "magicref" in md.preprocessors:
+#             position = '<magicref'
+# 
+#         md.preprocessors.add('refpositionfix', RefPositionFixPreprocessor(md), position)
 

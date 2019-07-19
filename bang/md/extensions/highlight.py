@@ -29,7 +29,7 @@ class CodeBlockPreprocessor(fenced_code.FencedBlockPreprocessor):
                 # https://wiki.python.org/moin/EscapingHtml
                 block = escape(m.group('code').strip())
                 code = '<pre><code class="codeblock{}">{}</code></pre>'.format(lang, block)
-                placeholder = self.markdown.htmlStash.store(code, safe=True)
+                placeholder = self.markdown.htmlStash.store(code)
                 text = '{}\n{}\n{}'.format(text[:m.start()], placeholder, text[m.end():])
 
             else:

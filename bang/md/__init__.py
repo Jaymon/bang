@@ -31,14 +31,15 @@ class Markdown(markdown.Markdown):
     def create_instance(cls):
         return cls(
             extensions=[
-                RefPositionFixExtension(),
-                FootnoteExtension(UNIQUE_IDS=True),
+                # as of Markdown 3.0+ order can matter
+                FootnoteExtension(UNIQUE_IDS=True, SEPARATOR="-"),
                 MagicRefExtension(),
+                RefPositionFixExtension(),
                 HighlightExtension(),
                 'tables',
                 'nl2br',
                 'attr_list',
-                'smart_strong',
+                #'smart_strong',
                 'meta', # http://pythonhosted.org/Markdown/extensions/meta_data.html
                 'admonition', # https://pythonhosted.org/Markdown/extensions/admonition.html
                 TocExtension(baselevel=1), # https://pythonhosted.org/Markdown/extensions/toc.html
@@ -48,7 +49,7 @@ class Markdown(markdown.Markdown):
                 #DomEventExtension(),
                 EmbedExtension(),
             ],
-            output_format="html5"
+            output_format="html"
         )
 
     def reset(self):

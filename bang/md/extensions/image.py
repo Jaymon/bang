@@ -4,14 +4,19 @@ import os
 import re
 
 from markdown import util
-from markdown.extensions import Extension
+#from markdown.extensions import Extension
 from markdown.blockprocessors import BlockProcessor
-from markdown.inlinepatterns import ImagePattern as BaseImagePattern, \
-    ImageReferencePattern as BaseImageReferencePattern
-from markdown.inlinepatterns import LINK_RE, IMAGE_LINK_RE, \
-    REFERENCE_RE, IMAGE_REFERENCE_RE
+from markdown.inlinepatterns import (
+    ImageInlineProcessor as BaseImagePattern,
+    ImageReferenceInlineProcessor as BaseImageReferencePattern
+)
+# from markdown.inlinepatterns import ImagePattern as BaseImagePattern, \
+#     ImageReferencePattern as BaseImageReferencePattern
+# from markdown.inlinepatterns import LINK_RE, IMAGE_LINK_RE, \
+#     REFERENCE_RE, IMAGE_REFERENCE_RE
 
 from .absolutelink import AbsoluteLinkTreeprocessor
+from . import Extension
 
 
 class ImageTreeprocessor(AbsoluteLinkTreeprocessor):
@@ -30,8 +35,8 @@ class ImageTreeprocessor(AbsoluteLinkTreeprocessor):
 class ImagePattern(BaseImagePattern):
     """over-rides parent to swap alt with title if title is empty and then use
     the basename of src as the alt"""
-    def handleMatch(self, m):
-        el = super(ImagePattern, self).handleMatch(m)
+    def handleMatch(self, m, data):
+        el, start_offset, stop_offset = super(ImagePattern, self).handleMatch(m, data)
         if el is not None:
             title = el.get("title")
             alt = el.get("alt")
@@ -45,33 +50,62 @@ class ImagePattern(BaseImagePattern):
                 src = el.get("src")
                 el.set("alt", os.path.basename(src))
 
-        return el
+        return el, start_offset, stop_offset
 
 
 class ImageReferencePattern(BaseImageReferencePattern):
     """over-rides parent to swap alt with title if title is empty and then use
     the basename of src as the alt"""
     def makeTag(self, href, title, text):
+        pout.v(href, title, text)
         if not title:
             title = text
             text = os.path.basename(href)
+
         return super(ImageReferencePattern, self).makeTag(href, title, text)
 
 
 class ImageProcessor(BlockProcessor):
+
+    # these are ripped from the 2.6 branch because they've updated the regexes
+    # in the 3.0+ branch and this was no longer working, there probably is a
+    # better way to do this in the 3.0+ branch
+    NOBRACKET = r'[^\]\[]*'
+
+    BRK = (
+        r'\[(' +
+        (NOBRACKET + r'(\[')*6 +
+        (NOBRACKET + r'\])*')*6 +
+        NOBRACKET + r')\]'
+    )
+
+    NOIMG = r'(?<!\!)'
+
+    LINK_RE = NOIMG + BRK + r'''\(\s*(<.*?>|((?:(?:\(.*?\))|[^\(\)]))*?)\s*((['"])(.*?)\12\s*)?\)'''
+
+    REFERENCE_RE = NOIMG + BRK + r'\s?\[([^\]]*)\]'
+
+    IMAGE_LINK_RE = r'\!' + BRK + r'\s*\(\s*(<.*?>|([^"\)\s]+\s*"[^"]*"|[^\)\s]*))\s*\)'
+
+
+    IMAGE_REFERENCE_RE = r'\!' + BRK + r'\s?\[([^\]]*)\]'
+
+
     def test(self, parent, block):
-        if self.parser.markdown.output_format not in ["html5"]:
+        # figure tag isn't part of xhtml 1.0
+        # https://www.w3.org/2010/04/xhtml10-strict.html
+        if self.parser.markdown.output_format not in ["html"]:
             return False
 
         is_link = False
-        for regex in [LINK_RE, REFERENCE_RE]:
+        for regex in [self.LINK_RE, self.REFERENCE_RE]:
             regex = r"^\s*{}\s*$".format(regex)
             if re.match(regex, block):
                 is_link = True
                 break
 
         is_image = False
-        for regex in [IMAGE_LINK_RE, IMAGE_REFERENCE_RE]:
+        for regex in [self.IMAGE_LINK_RE, self.IMAGE_REFERENCE_RE]:
             if is_link:
                 if re.search(regex, block):
                     is_image = True
@@ -118,8 +152,14 @@ class ImageExtension(Extension):
             md
         )
 
-        md.parser.blockprocessors.add(
-            "image", ImageProcessor(md.parser), "<paragraph"
+        md.parser.blockprocessors.register(
+            ImageProcessor(md.parser),
+            "image",
+            self.find_priority(md.parser.blockprocessors, ["paragraph"])
         )
+
+#         md.parser.blockprocessors.add(
+#             "image", ImageProcessor(md.parser), "<paragraph"
+#         )
 
 

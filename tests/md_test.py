@@ -383,6 +383,16 @@ class MarkdownTest(TestCase):
     def test_easy_images(self):
         p = self.get_post({
             'easy_images_1.md': "\n".join([
+                "![foo title][n]",
+                "[n]: foo.jpg",
+            ])
+        })
+        r = p.html
+        self.assertTrue('alt="foo.jpg"' in r)
+        self.assertTrue('title="foo title"' in r)
+
+        p = self.get_post({
+            'easy_images_1.md': "\n".join([
                 "![foo title](foo.jpg)"
             ])
         })
@@ -397,16 +407,6 @@ class MarkdownTest(TestCase):
         })
         r = p.html
         self.assertTrue('alt="fooalt.jpg"' in r)
-        self.assertTrue('title="foo title"' in r)
-
-        p = self.get_post({
-            'easy_images_1.md': "\n".join([
-                "![foo title][n]",
-                "[n]: foo.jpg",
-            ])
-        })
-        r = p.html
-        self.assertTrue('alt="foo.jpg"' in r)
         self.assertTrue('title="foo title"' in r)
 
         p = self.get_post({
@@ -688,7 +688,7 @@ class EmbedPluginTest(TestCase):
         self.assertTrue('<a class="embed" href="http://foo.com">http://foo.com</a>' in r)
         self.assertEqual(1, r.count("embed"))
 
-    def test_embed_youtube(self):
+    def test_embed_youtube_1(self):
         p = self.get_post({
             'embed_youtube.md': "\n".join([
                 "before",
