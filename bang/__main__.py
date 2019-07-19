@@ -10,38 +10,32 @@ import logging
 import logging.config
 import time
 
-from bang import __version__
+from bang import __version__, Project
 from bang.server import Server
 from bang.path import Directory
-from bang.generator import Site
 from bang.skeleton import Skeleton
+from bang.utils import Profile
 
 
 logger = logging.getLogger(__name__)
 
 
 def console_compile(args, project_dir, output_dir):
-    start = time.time()
 
-    regex = args.regex
-    s = Site(project_dir, output_dir)
+    with Profile() as total:
+        regex = args.regex
+        s = Project(project_dir, output_dir)
 
-    if regex:
-        logger.info("Compiling directories matching {} in {} to {}".format(
-            regex,
-            s.input_dir,
-            s.output_dir
-        ))
-    else:
-        logger.info("Compiling directory {} to {}".format(s.input_dir, s.output_dir))
+        if regex:
+            logger.info("Compiling directories matching {} in {} to {}".format(
+                regex,
+                s.input_dir,
+                s.output_dir
+            ))
+        else:
+            logger.info("Compiling directory {} to {}".format(s.input_dir, s.output_dir))
 
-    s.output(regex)
-
-    stop = time.time()
-    multiplier = 1000.00
-    rnd = 2
-    elapsed = round(abs(stop - start) * float(multiplier), rnd)
-    total = "{:.1f} ms".format(elapsed)
+        s.output(regex)
 
     logger.info("Compile done in {}".format(total))
     return 0
@@ -250,7 +244,7 @@ def console():
     compile_parser = subparsers.add_parser(
         "compile",
         parents=[parent_parser],
-        help="compile your site",
+        help="Compile your site",
         add_help=False
     )
     compile_parser.add_argument(
@@ -264,7 +258,7 @@ def console():
     serve_parser = subparsers.add_parser(
         "serve",
         parents=[parent_parser],
-        help="serve your site",
+        help="Serve your site",
         add_help=False
     )
     serve_parser.add_argument(

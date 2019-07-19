@@ -4,15 +4,16 @@ import re
 
 import testdata
 
-from bang.types import Post, Aux, Directories
+from bang.compat import *
+from bang.types import Post, Aux, Types
 from . import TestCase
 from . import get_body, get_dirs, get_posts, get_post
 
 
-class DirectoriesTest(TestCase):
+class TypesTest(TestCase):
     def test_pages(self):
-        s = self.get_site({})
-        posts = Directories(s)
+        s = self.get_project({})
+        posts = Types(s)
         for x in range(29):
             p = Post(s.input_dir, s.output_dir, s)
             #p.body = x
@@ -36,10 +37,10 @@ class DirectoriesTest(TestCase):
         posts = self.get_count_posts(21)
 
         posts.output()
-        self.assertTrue(posts.site.output_dir.has_file("index.html"))
-        self.assertTrue(posts.site.output_dir.child("page", "2").has_file("index.html"))
-        self.assertTrue(posts.site.output_dir.child("page", "3").has_file("index.html"))
-        self.assertFalse(posts.site.output_dir.child("page", "4").has_file("index.html"))
+        self.assertTrue(posts.config.output_dir.has_file("index.html"))
+        self.assertTrue(posts.config.output_dir.child("page", "2").has_file("index.html"))
+        self.assertTrue(posts.config.output_dir.child("page", "3").has_file("index.html"))
+        self.assertFalse(posts.config.output_dir.child("page", "4").has_file("index.html"))
 
 
 class PostTest(TestCase):
@@ -52,7 +53,7 @@ class PostTest(TestCase):
             'bangfile.py': ""
         })
 
-        self.assertRegexpMatches(ps.first_post.url, "^/{}$".format(name))
+        self.assertRegexpMatches(ps.first_page.url, "^/{}$".format(name))
 
     def test_description_property(self):
         p = get_post({

@@ -16,14 +16,14 @@ logger = logging.getLogger(__name__)
 
 
 @event('output.finish')
-def output_sitemap(event_name, site):
-    if not len(site.posts): return
+def output_sitemap(event_name, config):
+    if not len(config.project.posts): return
 
-    with site.config.context("sitemap") as conf:
+    with config.context("sitemap") as conf:
         enabled = conf.get("sitemap_enabled", True)
         if not enabled: return
 
-        sitemap = os.path.join(str(site.output_dir), 'sitemap.xml')
+        sitemap = os.path.join(str(conf.output_dir), 'sitemap.xml')
         logger.info("writing sitemap to {}".format(sitemap))
 
         host = conf.host
@@ -35,7 +35,7 @@ def output_sitemap(event_name, site):
                 fp.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
                 fp.write("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n")
 
-                for p in conf.sitemap_iter(site):
+                for p in conf.sitemap_iter():
                     fp.write("  <url>\n")
                     fp.write("    <loc>{}</loc>\n".format(p.url))
                     fp.write("    <lastmod>{}</lastmod>\n".format(p.modified.strftime("%Y-%m-%dT%H:%M:%S+00:00")))

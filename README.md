@@ -12,7 +12,7 @@ You run bang from the command line:
 
 First, install bang:
 
-    $ pip install bang
+    $ pip install bangtext
 
 Make a new project:
 
@@ -89,7 +89,7 @@ def configure(event_name, conf):
 
 ### Environment configuration
 
-If you don't want to bother with a `bangfile.py` in your project directory, Bang can also be configured using environment variables, basically, any `BANG_*` environment variables wil be put into the configuration, here are a couple you might want to set:
+If you don't want to bother with a `bangfile.py` in your project directory, Bang can also be configured using environment variables, basically, any `BANG_*` environment variables will be put into the configuration, here are a couple you might want to set:
 
 * **BANG_HOST** -- the host of your website, this is used to generate urls and stuff.
 * **BANG_SCHEME** -- the http method to use (either `http` or `https`).
@@ -235,7 +235,7 @@ This event is fired after all the posts are compiled, right now it is used to do
 
 #### context.NAME
 
-Anytime the configuration context changes, this event is called, when the html pages are generated, `context.web` is the broadcast event, the feed plugin will broacast `context.feed` and the sitemap plugin will broadcast `context.sitemap`.
+Anytime the configuration context changes, this event is called, when the html pages are generated, `context.web` is the broadcast event, the feed plugin will broadcast `context.feed` and the sitemap plugin will broadcast `context.sitemap`.
 
 ```python
 from bang import event

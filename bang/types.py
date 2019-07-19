@@ -10,21 +10,21 @@ import datetime
 import re
 import logging
 
-from .config import Config
+from .decorators import classproperty
 from .path import Directory
-from .utils import HTMLStripper, Template, classproperty
+from .utils import HTMLStripper, Template
 from .md import Markdown
 
 
 logger = logging.getLogger(__name__)
 
 
-class Directories(object):
-    """this is a simple linked list of DirectoryType instances, the Post instances have next_post
-    and prev_post pointers that this class takes advantage of to build the list"""
-    first_post = None
+class Types(object):
+    """this is a simple linked list of Type instances, the Type instances have next_page
+    and prev_type pointers that this class takes advantage of to build the list"""
+    first_page = None
     total = 0
-    last_post = None
+    last_page = None
 
     template_name = 'posts'
     """this is the template that will be used to compile the posts into html"""
@@ -35,37 +35,36 @@ class Directories(object):
 
     @property
     def template(self):
-        return Template(self.template_name, self.site.template_dir)
+        return Template(self.template_name, self.config.template_dir)
 
-    def __init__(self, site):
-        self.output_dir = site.output_dir
-        self.site = site
+    def __init__(self, config):
+        self.config = config
 
-    def append(self, post):
-        if not self.first_post:
-            self.first_post = post
+    def append(self, page):
+        if not self.first_page:
+            self.first_page = page
 
-        if self.last_post:
-            post.prev_post = self.last_post
-            self.last_post.next_post = post
+        if self.last_page:
+            page.prev_page = self.last_page
+            self.last_page.next_page = page
 
-        self.last_post = post
+        self.last_page = page
         self.total += 1
 
     def count(self):
         return self.total
 
     def __iter__(self):
-        p = self.first_post
+        p = self.first_page
         while p:
             yield p
-            p = p.next_post
+            p = p.next_page
 
     def __reversed__(self):
-        p = self.last_post
+        p = self.last_page
         while p:
             yield p
-            p = p.prev_post
+            p = p.prev_page
 
     def reverse(self, count=0):
         """iterate backwards through the posts up to count"""
@@ -105,20 +104,20 @@ class Directories(object):
 
         **kwargs -- dict -- these will be passed to the template
         """
-        posts_pages = list(self.pages(self.site.config.get("post_limit", 10), reverse=True))
+        posts_pages = list(self.pages(self.config.get("page_limit", 10), reverse=True))
         for page, posts in enumerate(posts_pages, 1):
 
-            logger.info("output Posts page {}".format(page))
+            logger.info("output page {}".format(page))
 
             if page == 1:
-                output_dir = self.output_dir
+                output_dir = self.config.output_dir
             else:
-                output_dir = self.output_dir.child("page", str(page))
+                output_dir = self.config.output_dir.child("page", str(page))
             output_dir.create()
 
             output_file = os.path.join(str(output_dir), self.output_basename)
 
-            base_url = self.site.config.base_url
+            base_url = self.config.base_url
 
             kwargs["prev_url"] = ""
             kwargs["prev_title"] = ""
@@ -156,38 +155,53 @@ class Directories(object):
             self.template.output(
                 output_file,
                 posts=posts,
-                config=self.site.config,
-                site=self.site,
+                config=self.config,
                 **kwargs
             )
 
 
-class DirectoryType(Directory):
-
-    next_post = None
+class Type(object):
+    """Generic base class for types, a site is composed of different types, the 
+    compile phase should check all the types's .match() method and the first call
+    that returns True, that's what type the folder/file is"""
+    next_page = None
     """holds a pointer to the next Post"""
 
-    prev_post = None
+    prev_page = None
     """holds a pointer to the previous Post"""
 
-    list_class = Directories
+    list_class = Types
+    """Holds the aggregator class that will hold all instances of this type"""
 
     @classproperty
     def list_name(cls):
         return "{}s".format(cls.__name__.lower())
 
-    @property
-    def config(self):
-        return self.site.config
-
     @classmethod
-    def match(cls, directory):
+    def match(cls, t):
         raise NotImplementedError()
 
-    def __init__(self, input_dir, output_dir, site):
+    def __init__(self, input_dir, output_dir, config):
+        """create an instance
+
+        :param input_dir: Directory, this is the input directory of the actual
+            type, not the project input dir
+        :param output_dir: Directory, the output directory of the actual type, not
+            the project output dir
+        :param config: Config instance, useful for being able to populate information
+            about the rest of the site on this page
+        """
         self.input_dir = input_dir
         self.output_dir = output_dir
-        self.site = site
+        self.config = config
+
+
+class DirectoryType(Type, Directory):
+    """The base class for a directory type, which handles checking directories
+    that match certain format, if it finds a directory that matches then that
+    directory will be considered the type of whatever matched it and no files
+    or subdirectories within that directory would be traversed"""
+    pass
 
 
 class Other(DirectoryType):
@@ -235,18 +249,18 @@ class Aux(Other):
 
     @property
     def template(self):
-        return Template(self.template_name, self.site.template_dir)
+        return Template(self.template_name, self.config.template_dir)
 
     @property
     def next_url(self):
         """returns the url of the next post"""
-        p = self.next_post
+        p = self.next_page
         return p.url if p else ""
 
     @property
     def prev_url(self):
         """returns the url of the previous post"""
-        p = self.prev_post
+        p = self.prev_page
         return p.url if p else ""
 
     @property
@@ -267,7 +281,7 @@ class Aux(Other):
     @property
     def url(self):
         """the full url of the post with host and everything"""
-        base_url = self.site.config.base_url
+        base_url = self.config.base_url
         return "{}{}".format(base_url, self.uri)
 
     @property
@@ -364,6 +378,7 @@ class Aux(Other):
             except AttributeError as e:
                 # there might be attribute errors deep into Markdown that would
                 # be suppressed if they bubbled up from here
+                logger.exception(e)
                 raise ValueError(e)
 
         return html
@@ -394,9 +409,9 @@ class Aux(Other):
         self.output_file = output_file
 
         kwargs["prev_url"] = self.prev_url
-        kwargs["prev_title"] = self.prev_post.title if self.prev_post else ""
+        kwargs["prev_title"] = self.prev_page.title if self.prev_page else ""
         kwargs["next_url"] = self.next_url
-        kwargs["next_title"] = self.next_post.title if self.next_post else ""
+        kwargs["next_title"] = self.next_page.title if self.next_page else ""
 
         logger.debug(
             'Templating {} with template "{}" to output file {}'.format(
@@ -407,8 +422,7 @@ class Aux(Other):
 
         self.output_template(
             output_file,
-            config=self.site.config,
-            site=self.site,
+            config=self.config,
             **kwargs
         )
 

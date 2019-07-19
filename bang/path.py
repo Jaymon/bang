@@ -8,6 +8,8 @@ import types
 import codecs
 import logging
 
+from .compat import *
+
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +24,7 @@ class Directory(object):
         self.path = ''
         self.ancestor_dir = None
         if bits:
-            bits = list(bits)
+            bits = list(String(b) for b in bits)
             bits[0] = self.normalize(bits[0])
             for i in xrange(1, len(bits)):
                 bits[i] = bits[i].strip('\\/')
@@ -198,23 +200,4 @@ class Directory(object):
 
         relative = self.path.replace(str(ancestor_dir), '').strip(os.sep)
         return relative
-
-
-class Project(object):
-    def __init__(self, project_dir, output_dir):
-        self.project_dir = Directory(str(project_dir))
-        self.output_dir = Directory(str(output_dir))
-
-        self.template_dir = Directory(self.project_dir, 'template')
-        self.input_dir = Directory(self.project_dir, 'input')
-
-    def __iter__(self):
-        input_dir = self.input_dir.clone()
-        input_dir.ancestor_dir = self.input_dir
-        output_dir = self.output_dir.clone()
-        yield input_dir, output_dir
-
-        for input_dir in self.input_dir:
-            output_dir = self.output_dir / input_dir.relative()
-            yield input_dir, output_dir
 

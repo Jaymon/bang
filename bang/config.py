@@ -8,10 +8,11 @@ from collections import defaultdict
 import importlib
 
 from .event import event
+from .types import Other, Aux, Post
 
 
 class Bangfile(object):
-    """The purpose of this class is to load a Bangfile found in the directory"""
+    """load a Bangfile"""
     @classmethod
     def get_file(cls, directory, basename="bangfile.py"):
         """get the bangfile in the given directory with the given basename
@@ -45,7 +46,12 @@ class Config(object):
     but you can change the context by setting .context_name which means you can
     change values and then when you switch contexts the values will reset to what
     they were, this is handy for having a little different configuration in your
-    feed as opposed to your web"""
+    feed as opposed to your web
+
+    How this works is config keeps a history of the context changes, so when you request
+    a value it will check the current context, if there is no value there it will
+    check for that value in the previous context, all the way down the line
+    """
 
     _context_name = ""
 
@@ -54,6 +60,18 @@ class Config(object):
     @property
     def context_name(self):
         return self._context_name
+
+    @property
+    def input_dir(self):
+        return self.project.input_dir
+
+    @property
+    def output_dir(self):
+        return self.project.output_dir
+
+    @property
+    def template_dir(self):
+        return self.project.template_dir
 
     @context_name.setter
     def context_name(self, v):
@@ -102,14 +120,26 @@ class Config(object):
 
         return base_url
 
-    def __init__(self):
-        self.reset()
+    def __init__(self, project):
+        #self._context_name_stack = [""]
 
-    def reset(self):
         self.__dict__["_fields"] = defaultdict(dict)
         self._context_name = type(self)._context_name
         self._previous_context_name = type(self)._previous_context_name
-        self.dirtypes = []
+
+        self.project = project
+
+        self.dirtypes = [Aux, Post, Other]
+
+        self.bangfiles = [
+            Bangfile(project.project_dir),
+            Bangfile("bang.bangfile")
+        ]
+
+        # TODO -- https://github.com/Jaymon/bang/issues/41 this should force
+        # re-calling events that have fired
+        #event.push("config", self.config)
+        event.push("configure", self)
 
     @contextmanager
     def context(self, name, **kwargs):

@@ -1,13 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
 
+from bang.compat import *
 from bang.config import Config
 from . import TestCase
 
 
 class ConfigTest(TestCase):
     def test_cru(self):
-        conf = Config()
+        #conf = Config()
+        conf = self.create_config()
 
         conf.bar = 1
         self.assertEqual(1, conf.bar)
@@ -27,7 +29,7 @@ class ConfigTest(TestCase):
         self.assertEqual(3, conf.get("bar"))
 
     def test_context_with(self):
-        config = Config()
+        config = self.create_config()
         with config.context("foo", bar=1) as conf:
             self.assertEqual("foo", conf.context_name)
             self.assertEqual(1, conf.bar)
@@ -41,7 +43,7 @@ class ConfigTest(TestCase):
             self.assertEqual(1, conf.bar)
 
     def test_base_url(self):
-        config = Config()
+        config = self.create_config()
         with config.context("web", scheme="", host="example.com") as conf:
             self.assertEqual("//example.com", conf.base_url)
 
@@ -49,7 +51,7 @@ class ConfigTest(TestCase):
             self.assertEqual("https://example.com", conf.base_url)
 
     def test_context_lifecycle(self):
-        s = self.get_site({
+        s = self.get_project({
             'p1/blog_post.md': [
                 "foo.jpg"
             ],
@@ -57,7 +59,7 @@ class ConfigTest(TestCase):
                 "from bang import event",
                 "from bang.plugins import feed",
                 "",
-                "@event('config')",
+                "@event('configure')",
                 "def global_config(event_name, config):",
                 "    config.host = 'example.com'",
                 "    config.name = 'example site'",
@@ -77,4 +79,37 @@ class ConfigTest(TestCase):
         post_dir = s.output_dir / "p1"
         r = post_dir.file_contents("index.html")
         self.assertTrue('src="//example.com' in r)
+
+    def test_context_hierarchy(self):
+        """https://github.com/Jaymon/bang/issues/33"""
+        config = self.create_config()
+        config.foo = False
+
+        with config.context("foo") as c:
+            c.foo = True
+            self.assertEqual("foo", c.context_name)
+            self.assertTrue(c.foo)
+
+            with config.context("bar") as c:
+                self.assertEqual("bar", c.context_name)
+                self.assertTrue(c.foo)
+                c.foo = False
+
+                with config.context("che") as c:
+                    # should be in che context here
+                    self.assertEqual("che", c.context_name)
+                    self.assertFalse(c.foo)
+
+                # should be in bar context here
+                self.assertEqual("bar", c.context_name)
+                self.assertFalse(c.foo)
+
+            #should be in foo context here
+            self.assertEqual("foo", c.context_name)
+            self.assertTrue(c.foo)
+
+        # should be in "" context here
+        self.assertEqual("", c.context_name)
+        self.assertFalse(c.foo)
+
 

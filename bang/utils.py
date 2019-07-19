@@ -6,19 +6,7 @@ import fnmatch
 
 from jinja2 import Environment, FileSystemLoader
 
-
-class classproperty(property):
-    """creat a class property
-
-    :Example:
-        class Foo(object):
-            @classproperty
-            def bar(cls):
-                return 42
-        Foo.bar # 42
-    """
-    def __get__(self, instance, cls):
-        return self.fget(cls)
+from .compat import *
 
 
 # http://stackoverflow.com/a/925630/5006
@@ -76,4 +64,23 @@ class Template(object):
 
     def output(self, filepath, **kwargs):
         return self.tmpl.output(self.template_name, filepath, **kwargs)
+
+
+
+class Profile(object):
+    def __enter__(self):
+        self.start = time.time()
+
+    def __exit__(self, exception_type, exception_val, trace):
+        self.stop = time.time()
+        multiplier = 1000.00
+        rnd = 2
+        self.elapsed = round(abs(stop - start) * float(multiplier), rnd)
+        self.total = "{:.1f} ms".format(self.elapsed)
+
+    def __unicode__(self):
+        return self.total
+
+    def __str__(self):
+        return ByteString(self.total) if is_py2 else self.total
 

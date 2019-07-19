@@ -27,7 +27,7 @@ class AbsoluteLinkTreeprocessor(Treeprocessor):
         m = self.URL_RE.search(url)
         if not m:
             dtype = self.markdown.dirtype
-            config = dtype.site.config
+            config = dtype.config
             base_url = config.base_url
 
             if url.startswith('/'):

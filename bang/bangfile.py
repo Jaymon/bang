@@ -7,19 +7,24 @@ from .types import Post
 from .plugins import feed, sitemap
 
 
-@event("config")
+@event("configure")
 def configure(event_name, conf):
 
     # configure feed
-    def post_iter(site):
-        #for dt_class in conf.dirtypes:
-        for dt_class in [Post]:
-            instances = getattr(site, dt_class.list_name)
-            for instance in reversed(instances):
-                yield instance
+    class PostIter(object):
+        def __init__(self, config):
+            self.config = config
 
-    conf.feed_iter = post_iter
-    conf.sitemap_iter = post_iter
+        def __call__(self):
+            # for dt_class in conf.dirtypes:
+            for dt_class in [Post]:
+                instances = getattr(self.config.project, dt_class.list_name)
+                for instance in reversed(instances):
+                    yield instance
+
+
+    conf.feed_iter = PostIter(conf)
+    conf.sitemap_iter = PostIter(conf)
 
 
 @event("output.finish")

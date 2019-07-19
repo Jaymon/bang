@@ -6,11 +6,12 @@ import codecs
 import sys
 import json
 import re
-import warnings
 
 import testdata
 
-from bang.generator import Post, Site
+from bang.compat import *
+from bang.decorators import deprecated
+from bang import Project
 from bang.path import Directory
 from bang import skeleton
 from bang.__main__ import configure_logging
@@ -20,21 +21,6 @@ from bang.event import event
 # "" to turn on all logging for the tests
 configure_logging("")
 #configure_logging("DI")
-
-
-def deprecated(func):
-    def wrapped(*args, **kwargs):
-        # https://wiki.python.org/moin/PythonDecoratorLibrary#Generating_Deprecation_Warnings
-        # http://stackoverflow.com/questions/2536307/decorators-in-the-python-standard-lib-deprecated-specifically
-        warnings.warn_explicit(
-            "deprecated function {}".format(func.__name__),
-            category=DeprecationWarning,
-            filename=func.func_code.co_filename,
-            lineno=func.func_code.co_firstlineno + 1
-        )
-
-        return func(*args, **kwargs)
-    return wrapped
 
 
 @deprecated
@@ -60,7 +46,12 @@ def get_post(post_files, **kwargs):
     return TestCase.get_post(post_file, post_files, **kwargs)
 
 
-class TestCase(unittest.TestCase):
+class TestCase(testdata.TestCase):
+
+    @classmethod
+    def create_config(cls, input_files=None):
+        p = cls.get_project(input_files)
+        return p.config
 
     @classmethod
     def get_dirs(cls, input_files):
@@ -81,15 +72,16 @@ class TestCase(unittest.TestCase):
         output_dir = Directory(testdata.create_dir())
         project_dir = Directory(testdata.create_dir())
 
-        testdata.create_files(d, tmpdir=str(project_dir))
+        testdata.create_files(d, tmpdir=String(project_dir))
         return project_dir, output_dir
 
     @classmethod
-    def get_site(cls, input_files):
+    def get_project(cls, input_files=None):
+        input_files = input_files or {}
         di = {
             'bangfile.py': [
                 "from bang import event",
-                "@event('config')",
+                "@event('configure')",
                 "def global_config(event_name, config):",
                 "    config.host = 'example.com'",
                 "    config.name = 'example site'",
@@ -103,7 +95,9 @@ class TestCase(unittest.TestCase):
                 di[rp] = input_files.pop(rp)
 
         for basename, file_contents in input_files.items():
-            if "/" in basename:
+            if basename.startswith("input/"):
+                fp = basename
+            elif "/" in basename:
                 fp = os.path.join('input', basename)
             else:
                 name = testdata.get_ascii(16)
@@ -112,14 +106,14 @@ class TestCase(unittest.TestCase):
 
         project_dir, output_dir = cls.get_dirs(di)
 
-        s = Site(project_dir, output_dir)
-        return s
+        p = Project(project_dir, output_dir)
+        return p
 
     @classmethod
     def get_posts(cls, post_files):
-        s = cls.get_site(post_files)
-        s.compile()
-        return s.posts if len(s.posts) else s.auxs
+        p = cls.get_project(post_files)
+        p.compile()
+        return p.posts if len(p.posts) else p.auxs
 
     @classmethod
     def get_count_posts(cls, count):
@@ -128,9 +122,9 @@ class TestCase(unittest.TestCase):
             name = testdata.get_ascii(8)
             post_files["{}.md".format(name)] = testdata.get_words()
 
-        s = cls.get_site(post_files)
-        s.compile()
-        return s.posts if len(s.posts) else s.auxs
+        p = cls.get_project(post_files)
+        p.compile()
+        return p.posts if len(p.posts) else p.auxs
 
     @classmethod
     def get_post(cls, post_file, post_files=None):
@@ -141,7 +135,7 @@ class TestCase(unittest.TestCase):
         post_files[name] = post_file
 
         posts = cls.get_posts(post_files)
-        return posts.first_post
+        return posts.first_page
 
     @classmethod
     def get_body(cls, filepath):

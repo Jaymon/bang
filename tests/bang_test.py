@@ -6,24 +6,23 @@ import re
 
 import testdata
 
-from bang.generator import Site
+from bang.compat import *
 from bang.path import Directory
 from bang import skeleton
 from bang import config
 from . import TestCase
-from . import get_body, get_dirs, get_posts, get_post
 
 
 class PluginTest(TestCase):
     def test_feed(self):
         #from bang.plugins import feed
-        s = self.get_site({
+        s = self.get_project({
             '1/one.md': '1. {}'.format(testdata.get_unicode_words()),
             '2/two.md': '2. {}'.format(testdata.get_unicode_words()),
             '3/three.md': '3. {}'.format(testdata.get_unicode_words()),
             'bangfile.py': [
                 "from bang import event",
-                "@event('config')",
+                "@event('configure')",
                 "def global_config(event_name, config):",
                 "    config.host = 'example.com'",
                 "    config.name = 'example site'",
@@ -31,40 +30,40 @@ class PluginTest(TestCase):
         })
         s.output()
 
-        p = os.path.join(str(s.output_dir), 'feed.rss')
+        p = os.path.join(String(s.output_dir), 'feed.rss')
         self.assertTrue(os.path.isfile(p))
 
-        body = get_body(p)
+        body = self.get_body(p)
         self.assertTrue('example.com/1' in body)
         self.assertTrue('example.com/2' in body)
         self.assertTrue('example.com/3' in body)
 
     def test_sitemap(self):
         #from bang.plugins import sitemap
-        s = self.get_site({
+        s = self.get_project({
             '1/one.md': '1. {}'.format(testdata.get_unicode_words()),
             '2/two.md': '2. {}'.format(testdata.get_unicode_words()),
             '3/three.md': '3. {}'.format(testdata.get_unicode_words()),
             'bangfile.py': [
                 "from bang import event",
-                "@event('config')",
+                "@event('configure')",
                 "def global_config(event_name, config):",
                 "    config.host = 'example.com'",
             ]
         })
         s.output()
-        p = os.path.join(str(s.output_dir), 'sitemap.xml')
+        p = os.path.join(String(s.output_dir), 'sitemap.xml')
         self.assertTrue(os.path.isfile(p))
 
-        body = get_body(p)
+        body = self.get_body(p)
         self.assertTrue('example.com/1' in body)
         self.assertTrue('example.com/2' in body)
         self.assertTrue('example.com/3' in body)
 
 
-class SiteTest(TestCase):
+class ProjectTest(TestCase):
     def test_single_document(self):
-        s = self.get_site({
+        s = self.get_project({
             './index.md': 'aux text',
             './aux.jpg': '',
         })
@@ -74,7 +73,7 @@ class SiteTest(TestCase):
         self.assertTrue(s.output_dir.has_file("aux.jpg"))
 
     def test_file_structure(self):
-        s = self.get_site({
+        s = self.get_project({
             './one.jpg': '',
             './two.txt': 'some text',
             'other/three.txt': 'third text',
@@ -90,37 +89,40 @@ class SiteTest(TestCase):
         self.assertTrue(s.output_dir.child("aux").has_file("index.html"))
 
     def test_unicode_output(self):
-        project_dir, output_dir = get_dirs({
-            'input/aux/index.md': testdata.get_unicode_words(),
+        s = self.get_project({
+        #project_dir, output_dir = get_dirs({
+            'aux/index.md': testdata.get_unicode_words(),
         })
 
-        s = Site(project_dir, output_dir)
+        #s = Site(project_dir, output_dir)
         s.output()
 
-        self.assertTrue(os.path.isfile(os.path.join(str(output_dir), 'aux', 'index.html')))
+        self.assertTrue(os.path.isfile(os.path.join(String(s.output_dir), 'aux', 'index.html')))
 
     def test_drafts(self):
-        project_dir, output_dir = get_dirs({
-            'input/_draft/foo.md': testdata.get_words(),
-            'input/notdraft/_bar.md': testdata.get_words(),
+        s = self.get_project({
+        #project_dir, output_dir = get_dirs({
+            '_draft/foo.md': testdata.get_words(),
+            'notdraft/_bar.md': testdata.get_words(),
         })
 
-        s = Site(project_dir, output_dir)
+        #s = Site(project_dir, output_dir)
         s.output()
 
-        self.assertFalse(os.path.isfile(os.path.join(str(output_dir), '_draft', 'index.html')))
-        self.assertFalse(os.path.isfile(os.path.join(str(output_dir), 'notdraft', 'index.html')))
+        self.assertFalse(os.path.isfile(os.path.join(String(s.output_dir), '_draft', 'index.html')))
+        self.assertFalse(os.path.isfile(os.path.join(String(s.output_dir), 'notdraft', 'index.html')))
         self.assertEqual(0, len(s.posts))
 
     def test_regex_compile(self):
-        project_dir, output_dir = get_dirs({
-            'input/foo/post1.md': testdata.get_unicode_words(),
-            'input/foo2/post2.md': testdata.get_unicode_words(),
-            'input/bar/post3.md': testdata.get_unicode_words(),
-            'input/bar/fake.jpg': "",
+        s = self.get_project({
+        #project_dir, output_dir = get_dirs({
+            'foo/post1.md': testdata.get_unicode_words(),
+            'foo2/post2.md': testdata.get_unicode_words(),
+            'bar/post3.md': testdata.get_unicode_words(),
+            'bar/fake.jpg': "",
         })
 
-        s = Site(project_dir, output_dir)
+        #s = Site(project_dir, output_dir)
 
         s.output(r"bar")
         count = 0
@@ -144,16 +146,17 @@ class SiteTest(TestCase):
         self.assertEqual(3, count)
 
     def test_private_post(self):
-        project_dir, output_dir = get_dirs({
-            'input/_foo/post1.md': testdata.get_unicode_words(),
-            'input/_foo/fake.jpg': "",
-            'input/_bar/other/something.jpg': "",
+        s = self.get_project({
+        #project_dir, output_dir = get_dirs({
+            '_foo/post1.md': testdata.get_unicode_words(),
+            '_foo/fake.jpg': "",
+            '_bar/other/something.jpg': "",
         })
 
-        s = Site(project_dir, output_dir)
+        #s = Site(project_dir, output_dir)
 
         s.output()
-        self.assertIsNone(s.posts.first_post)
+        self.assertIsNone(s.posts.first_page)
         self.assertEqual(1, len(s.others))
 
 
@@ -198,7 +201,7 @@ class EmbedPluginTest(TestCase):
 
 
     def test_embed_link(self):
-        p = get_post({
+        p = self.get_post({
             'linkify.md': "\n".join([
                 "This is some [text](http://bar.com) < and then there > is just a url",
                 "",
@@ -213,7 +216,7 @@ class EmbedPluginTest(TestCase):
         self.assertEqual(1, r.count("embed"))
 
     def test_embed_youtube(self):
-        p = get_post({
+        p = self.get_post({
             'embed_youtube.md': "\n".join([
                 "before",
                 "",
@@ -227,7 +230,7 @@ class EmbedPluginTest(TestCase):
         self.assertTrue("<figure" in r)
 
     def test_embed_youtube_2(self):
-        p = get_post({
+        p = self.get_post({
             'embed_yt2.md': """12 notes, that's all you get! These 12 notes give us everything from [Beethoven's 5th symphony](https://www.youtube.com/watch?v=_4IRMYuE1hI) to [Hanson's MMMBop](https://www.youtube.com/watch?v=NHozn0YXAeE), and everything in between. They all use the same set of 12 notes"""
         })
 
@@ -235,7 +238,7 @@ class EmbedPluginTest(TestCase):
         self.assertFalse("<iframe" in r)
 
     def test_embed_twitter(self):
-        p = get_post({
+        p = self.get_post({
             'embed_twitter.md': "\n".join([
                 "before",
                 "",
@@ -266,7 +269,7 @@ class EmbedPluginTest(TestCase):
         self.assertEqual(2, len(contents))
 
     def test_no_embed_twitter_links(self):
-        p = get_post({
+        p = self.get_post({
             'no_embed_twitter.md': "\n".join([
                 "[@Jaymon](https://twitter.com/jaymon)",
             ]),
@@ -276,7 +279,7 @@ class EmbedPluginTest(TestCase):
         self.assertTrue("a href" in r)
 
     def test_embed_instagram(self):
-        p = get_post({
+        p = self.get_post({
             'embed_instagram.md': "\n".join([
                 "before text",
                 "",
@@ -294,7 +297,7 @@ class EmbedPluginTest(TestCase):
         self.assertTrue(p.input_dir.has_file("BNEweVYFVxq.jpg"))
 
     def test_embed_vimeo(self):
-        p = get_post({
+        p = self.get_post({
             'embed_vimeo.md': "\n".join([
                 "before text",
                 "",
@@ -308,7 +311,7 @@ class EmbedPluginTest(TestCase):
         self.assertEqual(1, r.count("<figure"))
 
     def test_embed_image(self):
-        p = get_post({
+        p = self.get_post({
             'bogus.jpg': "",
             'embed_image.md': "\n".join([
                 "before text",
@@ -324,7 +327,7 @@ class EmbedPluginTest(TestCase):
         self.assertTrue('title=""' in r)
 
     def test_embed_image_url(self):
-        p = get_post({
+        p = self.get_post({
             'bogus.jpg': "",
             'embed_image.md': "\n".join([
                 "before text",
@@ -341,7 +344,7 @@ class EmbedPluginTest(TestCase):
         self.assertTrue('src="http://embedded.com/full/url/bogus.jpg"' in r)
 
     def test_embed_highlight(self):
-        p = get_post({
+        p = self.get_post({
             'embed_highlight.md': "\n".join([
                 "```",
                 "",
