@@ -82,7 +82,7 @@ class ConfigTest(TestCase):
                 "    config.host = 'example.com'",
                 "    config.name = 'example site'",
                 "",
-                "@event('context.web')",
+                "@event('context.html')",
                 "def html_config(event_name, config):",
                 "    config.scheme = ''",
                 "",

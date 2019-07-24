@@ -56,7 +56,7 @@ class Project(object):
         self.config.theme.configure()
 
         with self.config.context("global") as config:
-            with self.config.context("web") as config:
+            with self.config.context("html") as config:
 
                 # go through input/ dir and compile the different types
                 for input_dir, output_dir in self:
