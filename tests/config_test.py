@@ -6,6 +6,45 @@ from bang.config import Config
 from . import TestCase
 
 
+class ThemeTest(TestCase):
+    def test_default(self):
+        c = self.create_config()
+        self.assertEqual("default", c.theme_name)
+
+    def test_custom_theme(self):
+        theme_name = "foobar"
+        project_files = {
+            'bangfile.py': [
+                "from bang import event",
+                "@event('configure')",
+                "def theme_config(event_name, config):",
+                "    config.theme_name = '{}'".format(theme_name),
+                ""
+            ],
+            'themes/{}/input/assets/app.css'.format(theme_name): "",
+            'themes/{}/input/assets/app.js'.format(theme_name): "",
+            'themes/{}/template/aux.html'.format(theme_name): "{{ aux.title }}\n{{ aux.html }}\n",
+            'themes/{}/template/post.html'.format(theme_name): "{{ post.title }}\n{{ post.html }}\n",
+            'themes/{}/template/posts.html'.format(theme_name): "\n".join([
+                "{% for post in posts %}",
+                "{% include 'post.html' %}",
+                "<hr>",
+                "{% endfor %}",
+                "",
+            ])
+        }
+
+        s = self.get_project(project_files=project_files)
+
+        self.assertEqual(theme_name, s.config.theme_name)
+
+        t = s.config.theme
+        t.output()
+
+        self.assertTrue(s.config.output_dir.has_file("assets/app.css"))
+        self.assertTrue(s.config.output_dir.has_file("assets/app.js"))
+
+
 class ConfigTest(TestCase):
     def test_context_with(self):
         config = self.create_config()

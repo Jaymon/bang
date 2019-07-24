@@ -31,57 +31,50 @@ class TestCase(testdata.TestCase):
         return p.config
 
     @classmethod
-    def get_dirs(cls, input_files):
-        # TODO -- switch these to use the skeleton templates
-        d = {
-            'template/aux.html': "{{ aux.title }}\n{{ aux.html }}\n",
-            'template/post.html': "{{ post.title }}\n{{ post.html }}\n{{ post.modified.strftime('%Y-%m-%d') }}\n",
-            'template/posts.html': "\n".join([
-                "{% for post in posts %}",
-                "{% include 'post.html' %}",
-                "<hr>",
-                "{% endfor %}",
-                "",
-            ])
-        }
-        d.update(input_files)
-
+    def get_dirs(cls, project_files=None):
         output_dir = Directory(testdata.create_dir())
         project_dir = Directory(testdata.create_dir())
 
-        testdata.create_files(d, tmpdir=String(project_dir))
+        if project_files:
+            testdata.create_files(project_files, tmpdir=String(project_dir))
         return project_dir, output_dir
 
     @classmethod
-    def get_project(cls, input_files=None):
+    def get_project(cls, input_files=None, project_files=None):
         input_files = input_files or {}
-        di = {
-            'bangfile.py': [
-                "from bang import event",
-                "@event('configure')",
-                "def global_config(event_name, config):",
-                "    config.host = 'example.com'",
-                "    config.name = 'example site'",
-                ""
-            ]
-        }
+        project_files = project_files or {}
+        project_files.setdefault('bangfile.py', [
+            "from bang import event",
+            "@event('configure')",
+            "def global_config(event_name, config):",
+            "    config.host = 'example.com'",
+            "    config.name = 'example site'",
+            ""
+        ])
 
         # replace any project files if they are present
-        for rp in di.keys():
+        for rp in project_files.keys():
             if rp in input_files:
-                di[rp] = input_files.pop(rp)
+                project_files[rp] = input_files.pop(rp)
 
         for basename, file_contents in input_files.items():
             if basename.startswith("input/"):
                 fp = basename
-            elif "/" in basename:
-                fp = os.path.join('input', basename)
-            else:
-                name = testdata.get_ascii(16)
-                fp = os.path.join('input', name, basename)
-            di[fp] = file_contents
 
-        project_dir, output_dir = cls.get_dirs(di)
+            elif basename.startswith("./"):
+                fp = basename.replace("./", "input/")
+
+            else:
+                fp = os.path.join('input', basename)
+
+#             elif "/" in basename:
+#                 fp = os.path.join('input', basename)
+#             else:
+#                 name = testdata.get_ascii(16)
+#                 fp = os.path.join('input', name, basename)
+            project_files[fp] = file_contents
+
+        project_dir, output_dir = cls.get_dirs(project_files)
 
         p = Project(project_dir, output_dir)
         return p

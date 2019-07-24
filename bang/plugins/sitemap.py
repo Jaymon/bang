@@ -9,6 +9,7 @@ import os
 import codecs
 import logging
 
+from ..compat import *
 from ..event import event
 
 
@@ -17,17 +18,17 @@ logger = logging.getLogger(__name__)
 
 @event('output.finish')
 def output_sitemap(event_name, config):
-    if not len(config.project.posts): return
+    if not config.sitemap_iter.has(): return
 
-    with config.context("sitemap") as conf:
-        enabled = conf.get("sitemap_enabled", True)
+    with config.context("sitemap") as config:
+        enabled = config.get("sitemap_enabled", True)
         if not enabled: return
 
-        sitemap = os.path.join(str(conf.output_dir), 'sitemap.xml')
+        sitemap = os.path.join(String(config.output_dir), 'sitemap.xml')
         logger.info("writing sitemap to {}".format(sitemap))
 
-        host = conf.host
-        max_count = conf.get("sitemap_max_count", 50000)
+        host = config.host
+        max_count = config.get("sitemap_max_count", 50000)
         count = 0
 
         if host:
@@ -35,7 +36,7 @@ def output_sitemap(event_name, config):
                 fp.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
                 fp.write("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n")
 
-                for p in conf.sitemap_iter():
+                for p in config.sitemap_iter():
                     fp.write("  <url>\n")
                     fp.write("    <loc>{}</loc>\n".format(p.url))
                     fp.write("    <lastmod>{}</lastmod>\n".format(p.modified.strftime("%Y-%m-%dT%H:%M:%S+00:00")))

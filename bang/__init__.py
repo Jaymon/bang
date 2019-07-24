@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
+#from collections import defaultdict
 import logging
 
 from .config import Config, Bangfile
@@ -26,92 +27,69 @@ class Project(object):
         self.template_dir = Directory(self.project_dir, 'template')
         self.input_dir = Directory(self.project_dir, 'input')
         self.config = self.config_class(self)
+        self.pages = {}
 
-        self.config.bangfiles = [
-            Bangfile(self.project_dir),
-            Bangfile("{}.bangfile".format(self.config.module_name))
-        ]
+        #self.configure()
+
+    def configure(self):
+        Bangfile(self.project_dir),
+        Bangfile("{}.bangfile".format(self.config.module_name))
+        #event.push("project", self.config)
 
     def __iter__(self):
-        input_dir = self.input_dir.clone()
-        input_dir.ancestor_dir = self.input_dir
-        output_dir = self.output_dir.clone()
-        yield input_dir, output_dir
+        return self.input_dir.copy_paths(self.output_dir)
+#         for subdirs in self.input_dir.copy_paths(self.output_dir):
+#             yield subdirs
 
-        for input_dir in self.input_dir:
-            output_dir = self.output_dir / input_dir.relative()
-            yield input_dir, output_dir
-
-    def compile(self):
-        """go through input/ dir and compile the different types"""
-        #event.push("config", self.config)
-        #event.push("configure", self.config)
-
-        # create placeholders for all the dirtypes, we do this so any templates
-        # won't have to check if the properties exist and can just start iterating
-        for dt_class in self.config.dirtypes:
-            instances = dt_class.list_class(self.config)
-            setattr(self, dt_class.list_name, instances)
-
-        with self.config.context("web") as conf:
-            for input_dir, output_dir in conf.project:
-                for dt_class in conf.dirtypes:
-                    if dt_class.match(input_dir):
-                        logger.debug("{}: {}".format(dt_class.__name__, input_dir.relative()))
-                        instance = dt_class(input_dir, output_dir, self.config)
-                        instances = getattr(self, instance.list_name)
-                        instances.append(instance)
-                        break
+#         input_dir = self.input_dir.clone()
+#         input_dir.ancestor_dir = self.input_dir
+#         output_dir = self.output_dir.clone()
+#         yield input_dir, output_dir
+# 
+#         for input_dir in self.input_dir:
+#             output_dir = self.output_dir / input_dir.relative()
+#             yield input_dir, output_dir
 
     def output(self, regex=None):
         """go through input/ dir and compile the files and move them to output/ dir"""
-        with self.config.context("global") as conf:
-            self.compile()
+        self.configure()
+        self.config.theme.configure()
 
-            with self.config.context("web") as conf:
+        with self.config.context("global") as config:
+            with self.config.context("web") as config:
+
+                # go through input/ dir and compile the different types
+                for input_dir, output_dir in self:
+                    for dt_class in config.dirtypes:
+                        if dt_class.match(input_dir):
+                            if dt_class.name not in self.pages:
+                                instances = dt_class.pages_class(self.config)
+                                self.pages[dt_class.name] = instances
+                            else:
+                                instances = self.pages[dt_class.name]
+
+                            logger.debug("{}: /{}".format(dt_class.name, input_dir.relative()))
+                            instance = dt_class(input_dir, output_dir, config)
+                            instances.append(instance)
+                            break
+
                 if regex:
                     logger.warning("output directory {} not cleared because regex present".format(self.output_dir))
+                    logger.warning("output.start event not broadcast because regex present")
                 else:
                     logger.info("Clearing output directory")
                     self.output_dir.clear()
 
-                for dt_class in conf.dirtypes:
-                    instances = getattr(self, dt_class.list_name, None)
-                    if instances:
-                        for instance in instances.matching(regex):
-                            instance.output()
+                    event.broadcast('output.start', config)
+                    config.theme.output()
 
+                for name, instances in self.pages.items():
+                    logger.debug("{}: {} pages".format(name, len(instances)))
+                    for instance in instances.matching(regex):
+                        instance.output()
 
-                # TODO -- I was using threading.Thread instead of
-                # multiprocess.Thread, I should try multiprocess threads since they
-                # aren't bound by the GIL
-                # this was NOT faster than syncronous, I could try green threads
-    #             import threading
-    #             from Queue import Queue
-    #             import multiprocessing
-    # 
-    #             q = Queue()
-    #             thread_count = multiprocessing.cpu_count()
-    # 
-    #             def target():
-    #                 while True:
-    #                     instance = q.get()
-    #                     instance.output()
-    #                     q.task_done()
-    # 
-    #             for i in range(thread_count):
-    #                 t = threading.Thread(target=target)
-    #                 t.daemon = True
-    #                 t.start()
-    # 
-    #             for dt_class in conf.dirtypes:
-    #                 instances = getattr(self, dt_class.list_name, None)
-    #                 if instances:
-    #                     for instance in instances.matching(regex):
-    #                         q.put(instance)
-
-                if regex:
-                    logger.warning("output.finish event not broadcast because regex present")
-                else:
-                    event.broadcast('output.finish', self.config)
+            if regex:
+                logger.warning("output.finish event not broadcast because regex present")
+            else:
+                event.broadcast('output.finish', config)
 

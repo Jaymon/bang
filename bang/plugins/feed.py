@@ -18,6 +18,7 @@ from xml.sax.saxutils import escape
 import codecs
 import logging
 
+from ..compat import *
 from ..event import event
 
 
@@ -42,21 +43,21 @@ def get_datestr(dt):
 
 @event('output.finish')
 def output_rss(event_name, config):
-    with config.context("feed") as conf:
-        feed_enabled = conf.get("feed_enabled", True)
+    with config.context("feed") as config:
+        feed_enabled = config.get("feed_enabled", True)
         if not feed_enabled: return
 
-        host = conf.host
+        host = config.host
         if not host:
             logger.error("RSS feed not generated because no config host set")
             return
 
-        feedpath = os.path.join(str(conf.output_dir), 'feed.rss')
+        feedpath = os.path.join(String(config.output_dir), 'feed.rss')
         logger.info("writing feed to {}".format(feedpath))
 
-        main_url = conf.base_url
+        main_url = config.base_url
         feed_url = 'http://{}/feed.rss'.format(host)
-        max_count = conf.get("feed_max_count", 10)
+        max_count = config.get("feed_max_count", 10)
         count = 0
 
         with codecs.open(feedpath, 'w+', 'utf-8') as fp:
@@ -69,8 +70,8 @@ def output_rss(event_name, config):
             #fp.write("  xmlns:georss=\"http://www.georss.org/georss\">\n")
 
             fp.write("  <channel>\n")
-            fp.write("    <title>{}</title>\n".format(get_safe(conf.get('name', host))))
-            fp.write("    <description>{}</description>\n".format(get_safe(conf.get('description', host))))
+            fp.write("    <title>{}</title>\n".format(get_safe(config.get('name', host))))
+            fp.write("    <description>{}</description>\n".format(get_safe(config.get('description', host))))
 
             fp.write("    <link>{}</link>\n".format(get_safe(main_url)))
             fp.write("    <atom:link href=\"{}\" rel=\"self\"/>\n".format(get_safe(feed_url)))
@@ -81,7 +82,7 @@ def output_rss(event_name, config):
             fp.write("    <lastBuildDate>{}</lastBuildDate>\n".format(get_datestr(dt)))
             fp.write("    <generator>github.com/Jaymon/bang</generator>\n")
 
-            for p in conf.feed_iter():
+            for p in config.feed_iter():
                 fp.write("    <item>\n")
                 fp.write("      <title>{}</title>\n".format(get_cdata(p.title)))
                 fp.write("      <description>{}</description>\n".format(get_cdata(p.html)))

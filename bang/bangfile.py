@@ -5,36 +5,29 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 from .event import event
 from .types import Post
 from .plugins import feed, sitemap
+from .utils import PageIterator
 
 
 @event("configure")
-def configure(event_name, conf):
+def configure(event_name, config):
 
     # configure feed
-    class PostIter(object):
-        def __init__(self, config):
-            self.config = config
-
-        def __call__(self):
-            # for dt_class in conf.dirtypes:
-            for dt_class in [Post]:
-                instances = getattr(self.config.project, dt_class.list_name)
-                for instance in reversed(instances):
-                    yield instance
-
-
-    conf.feed_iter = PostIter(conf)
-    conf.sitemap_iter = PostIter(conf)
+    config.feed_iter = PageIterator(config, [Post])
+    config.sitemap_iter = PageIterator(config, [Post])
 
 
 @event("output.finish")
-def finish_output(event_name, site):
+def finish_output(event_name, config):
     # this compiles the root index.html
-    for dt_class in [Post]:
-        instances = getattr(site, dt_class.list_name)
-        if instances:
-            output_cb = getattr(instances, "output")
-            if output_cb:
-                output_cb()
+    p = PageIterator(config, [Post])
+    for pages in p.get_pages():
+        pages.output()
+
+#     for dt_class in [Post]:
+#         instances = dt_class.get_pages(config)
+#         if instances:
+#             output_cb = getattr(instances, "output")
+#             if output_cb:
+#                 output_cb()
 
 

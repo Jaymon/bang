@@ -1,0 +1,17 @@
+{% extends "master.html" %}
+{% from 'macros.html' import opengraph %}
+
+{% block title %}{{ aux.title }}{% endblock %}
+
+{% block description %}
+  {{ opengraph(aux) }}
+{% endblock %}
+
+{% block content %}
+
+  {{ aux.html }}
+
+  {{ aux.modified.strftime('%Y-%m-%d') }}
+
+{% endblock %}
+

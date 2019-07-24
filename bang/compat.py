@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
 import sys
+import hashlib
 
 try:
     import cPickle as pickle
@@ -118,6 +119,10 @@ class ByteString(Bytes):
         """because sometimes you need a vanilla bytes()"""
         return b"" + self
 
+    def md5(self):
+        # http://stackoverflow.com/a/5297483/5006
+        return hashlib.md5(self).hexdigest()
+
 
 class String(Str):
     """Wrapper around a unicode string "" to make sure we have a unicode string that
@@ -161,4 +166,8 @@ class String(Str):
     def raw(self):
         """because sometimes you need a vanilla str() (or unicode() in py2)"""
         return "" + self
+
+    def md5(self):
+        # http://stackoverflow.com/a/5297483/5006
+        return hashlib.md5(self.bytes()).hexdigest()
 

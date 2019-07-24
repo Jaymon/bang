@@ -39,7 +39,7 @@ class Markdown(markdown.Markdown):
                 'tables',
                 'nl2br',
                 'attr_list',
-                #'smart_strong',
+                #'smart_strong', # removed in 3.0+
                 'meta', # http://pythonhosted.org/Markdown/extensions/meta_data.html
                 'admonition', # https://pythonhosted.org/Markdown/extensions/admonition.html
                 TocExtension(baselevel=1), # https://pythonhosted.org/Markdown/extensions/toc.html

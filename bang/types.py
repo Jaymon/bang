@@ -2,23 +2,22 @@
 from __future__ import unicode_literals, division, print_function, absolute_import
 import os
 import re
-from distutils import dir_util
-import shutil
-import types
-import codecs
 import datetime
 import re
 import logging
 
+from .compat import *
 from .decorators import classproperty
 from .path import Directory
-from .utils import HTMLStripper, Template
+from .utils import HTMLStripper
 from .md import Markdown
 
 
 logger = logging.getLogger(__name__)
 
 
+# TODO -- rename to Pages
+# TODO -- this class should be created in the Type baseclasses
 class Types(object):
     """this is a simple linked list of Type instances, the Type instances have next_page
     and prev_type pointers that this class takes advantage of to build the list"""
@@ -26,7 +25,7 @@ class Types(object):
     total = 0
     last_page = None
 
-    template_name = 'posts'
+    template_name = 'pages'
     """this is the template that will be used to compile the posts into html"""
 
     output_basename = 'index.html'
@@ -41,6 +40,7 @@ class Types(object):
         self.config = config
 
     def append(self, page):
+        page.pages = self
         if not self.first_page:
             self.first_page = page
 
@@ -170,16 +170,46 @@ class Type(object):
     prev_page = None
     """holds a pointer to the previous Post"""
 
-    list_class = Types
+    pages_class = Types
     """Holds the aggregator class that will hold all instances of this type"""
+
+    output_basename = 'index.html'
+    """this is the name of the file that this post will be outputted to after it
+    is templated"""
+
+    pages = None
+    """contains a reference to the container class if the instance was appended
+    to the container"""
+
+    @classproperty
+    def template_name(cls):
+        """this is the template that will be used to compile the post into html"""
+        return cls.name
+
+    @classproperty
+    def name(cls):
+        return cls.__name__.lower()
 
     @classproperty
     def list_name(cls):
-        return "{}s".format(cls.__name__.lower())
+        return "{}s".format(cls.name)
+
+#     @property
+#     def pages(self):
+#         return type(self).get_pages(self.config)
 
     @classmethod
     def match(cls, t):
         raise NotImplementedError()
+
+#     @classmethod
+#     def get_pages(cls, config=None):
+#         if not cls._pages:
+#             if config:
+#                 cls._pages = cls.pages_class(config)
+#             else:
+#                 raise ValueError("No pages_class is created and no config to create it")
+#         return cls._pages
 
     def __init__(self, input_dir, output_dir, config):
         """create an instance
@@ -209,13 +239,7 @@ class Other(DirectoryType):
 
     def output(self, **kwargs):
         if self.input_dir.is_private(): return
-
-        d = self.input_dir
-        output_dir = self.output_dir
-
-        output_dir.create()
-        for f in d.files():
-            output_dir.copy_file(f)
+        self.input_dir.copy_to(self.output_dir)
 
     @classmethod
     def match(cls, directory):
@@ -223,13 +247,6 @@ class Other(DirectoryType):
 
 
 class Aux(Other):
-
-    template_name = 'aux'
-    """this is the template that will be used to compile the post into html"""
-
-    output_basename = 'index.html'
-    """this is the name of the file that this post will be outputted to after it
-    is templated"""
 
     regex = r'^index\.(md|markdown)$'
 
@@ -242,10 +259,7 @@ class Aux(Other):
 
     @property
     def other_files(self):
-        d = self.input_dir
-        for f in d.files():
-            if not re.search(self.regex, f, re.I):
-                yield f
+        return self.input_dir.files(regex=self.regex, exclude=True)
 
     @property
     def template(self):
@@ -296,7 +310,7 @@ class Aux(Other):
 
         if not title:
             # default to just the name of the directory this aux file lives in
-            basename = os.path.basename(str(self.input_dir))
+            basename = os.path.basename(String(self.input_dir))
             title = basename.capitalize()
 
         return title
@@ -391,8 +405,8 @@ class Aux(Other):
         **kwargs -- dict -- these will be passed to the template
         """
         output_dir = self.output_dir
-        output_file = os.path.join(str(output_dir), self.output_basename)
-        logger.info("output {} to {}".format(self.title, output_file))
+        output_file = os.path.join(String(output_dir), self.output_basename)
+        logger.info("output {} \"{}\" to {}".format(self.name, self.title, output_file))
 
         r = output_dir.create()
         for input_file in self.other_files:
@@ -413,22 +427,28 @@ class Aux(Other):
         kwargs["next_url"] = self.next_url
         kwargs["next_title"] = self.next_page.title if self.next_page else ""
 
-        logger.debug(
-            'Templating {} with template "{}" to output file {}'.format(
-            self.content_file,
-            self.template_name,
-            output_file
-        ))
-
         self.output_template(
             output_file,
-            config=self.config,
             **kwargs
         )
 
     def output_template(self, output_file, **kwargs):
+        # TODO -- change this to "page"
         kwargs[self.template_name] = self
-        self.template.output(
+
+        theme = self.config.theme
+
+        logger.debug(
+            'Templating input file {} with theme.template [{}.{}] to output file {}'.format(
+                self.content_file,
+                theme.name,
+                self.template_name,
+                output_file
+            )
+        )
+
+        theme.output_template(
+            self.template_name,
             output_file,
             **kwargs
         )
@@ -441,7 +461,6 @@ class Aux(Other):
 class Post(Aux):
     """this is a node in the Posts linked list, it holds all the information needed
     to output a Post in the input directory to the output directory"""
-    template_name = 'post'
 
     regex = r'\.(md|markdown)$'
 

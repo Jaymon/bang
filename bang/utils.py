@@ -2,9 +2,7 @@
 from __future__ import unicode_literals, division, print_function, absolute_import
 from HTMLParser import HTMLParser
 import os
-import fnmatch
 
-from jinja2 import Environment, FileSystemLoader
 
 from .compat import *
 
@@ -29,44 +27,6 @@ class HTMLStripper(HTMLParser):
         return ''.join(self.fed)
 
 
-class TemplateDir(object):
-    """Thin wrapper around Jinja functionality that handles templating things
-
-    http://jinja.pocoo.org/docs/dev/
-    """
-    @property
-    def templates(self):
-        templates = {}
-        for f in fnmatch.filter(os.listdir(str(self.template_dir)), '*.html'):
-            filename, fileext = os.path.splitext(f)
-            templates[filename] = f
-        return templates
-
-    def __init__(self, template_dir):
-        self.template_dir = template_dir
-        self.env = Environment(
-            loader=FileSystemLoader(str(template_dir)),
-            #extensions=['jinja2.ext.with_'] # http://jinja.pocoo.org/docs/dev/templates/#with-statement
-        )
-
-    def has(self, template_name):
-        return template_name in self.templates
-
-    def output(self, template_name, filepath, **kwargs):
-        tmpl = self.env.get_template("{}.html".format(template_name))
-        return tmpl.stream(**kwargs).dump(filepath, encoding='utf-8')
-
-
-class Template(object):
-    def __init__(self, template_name, template_dir):
-        self.template_name = template_name
-        self.tmpl = TemplateDir(template_dir)
-
-    def output(self, filepath, **kwargs):
-        return self.tmpl.output(self.template_name, filepath, **kwargs)
-
-
-
 class Profile(object):
     def __enter__(self):
         self.start = time.time()
@@ -83,4 +43,27 @@ class Profile(object):
 
     def __str__(self):
         return ByteString(self.total) if is_py2 else self.total
+
+
+class PageIterator(object):
+    def __init__(self, config, pagetypes):
+        self.config = config
+        self.pagetypes = pagetypes
+
+    def __call__(self):
+        # for dt_class in conf.dirtypes:
+        for pages in self.get_pages():
+            for instance in reversed(pages):
+                yield instance
+
+    def has(self):
+        for pages in self.get_pages():
+            if pages:
+                return True
+        return False
+
+    def get_pages(self):
+        for pagetype in self.pagetypes:
+            if pagetype.name in self.config.project.pages:
+                yield self.config.project.pages[pagetype.name]
 

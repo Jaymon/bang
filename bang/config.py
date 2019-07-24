@@ -2,14 +2,18 @@
 from __future__ import unicode_literals, division, print_function, absolute_import
 import os
 import imp
-import hashlib
 from contextlib import contextmanager
 from collections import defaultdict
 import importlib
+import logging
 
 from .compat import *
 from .event import event
 from .types import Other, Aux, Post
+from .path import DataDirectory, Directory, TemplateDirectory
+
+
+logger = logging.getLogger(__name__)
 
 
 class Bangfile(object):
@@ -23,15 +27,17 @@ class Bangfile(object):
         basename -- string -- the basename of the bangfile
         """
         module = None
-        config_file = os.path.join(str(directory), basename)
+        config_file = os.path.join(String(directory), basename)
         if os.path.isfile(config_file):
             # http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
-            h = "bangfile_{}".format(hashlib.md5(config_file).hexdigest())
+            h = "bangfile_{}".format(ByteString(config_file).md5())
+            logger.debug("Running bangfile from file path {}".format(config_file))
             module = imp.load_source(h, config_file)
 
         return module
 
     def get_module(cls, modpath):
+        logger.debug("Running bangfile with module path {}".format(modpath))
         module = importlib.import_module(modpath)
         return module
 
@@ -54,6 +60,10 @@ class Config(object):
     check for that value in the previous context, all the way down the line
     """
     @property
+    def theme(self):
+        return self.themes[self.theme_name]
+
+    @property
     def module_name(self):
         """Returns the main module name of this package"""
         return __name__.split(".")[0]
@@ -73,27 +83,6 @@ class Config(object):
     @property
     def context_name(self):
         return self._context_names[-1]
-
-#     @context_name.setter
-#     def context_name(self, v):
-#         self._previous_context_name = self._context_name
-#         self._context_name = v
-#         event.broadcast("context.{}".format(v), self)
-# 
-#     @context_name.deleter
-#     def context_name(self):
-#         self._context_name = self._previous_context_name
-#         self._previous_context_name = type(self)._previous_context_name
-# 
-#     @property
-#     def context_fields(self):
-#         """Return the fields set with the current context"""
-#         return self._fields[self.context_name]
-# 
-#     @property
-#     def global_fields(self):
-#         """return the fields set globally (no context fields)"""
-#         return self._fields[type(self)._context_name]
 
     @property
     def fields(self):
@@ -133,14 +122,29 @@ class Config(object):
         # and the values are the set properties for that context, 
         self.__dict__["_fields"] = defaultdict(dict)
 
+        # initial settings for the themes
+        self.__dict__["themes"] = {}
+        self.add_themes(DataDirectory().themes_dir())
+        project_themes_d = project.project_dir.child("themes")
+        if project_themes_d.exists():
+            self.add_themes(project_themes_d)
+        self.theme_name = "default"
+
+        self.encoding = "UTF-8"
+        self.lang = "en"
+
         self.project = project
 
+        # order matters here, it should go from most strict matching to least
+        # TODO -- rename to pagetypes
         self.dirtypes = [Aux, Post, Other]
+
 
         # TODO -- https://github.com/Jaymon/bang/issues/41 this should force
         # re-calling events that have fired
         #event.push("config", self.config)
-        event.push("configure", self)
+        event.push("configure", self) # deprecate this in favor of "project"?
+        #event.push("config", self)
 
     @contextmanager
     def context(self, name, **kwargs):
@@ -165,6 +169,19 @@ class Config(object):
         yield self
 
         self._context_names.pop(-1)
+
+    def add_themes(self, themes_dir):
+        """a themes directory is a directory that contains themes, each theme in
+        its own subdirectory (which is the name of the theme) so this will create
+        Theme instances for all the immediate subdirectories of the passed in 
+        themes_dir
+
+        :param themes_dir: Directory, a directory where themes can be found
+        """
+        themes_dir = Directory(themes_dir)
+        for theme_dir in themes_dir.directories():
+            t = Theme(theme_dir, self)
+            self.themes[t.name] = t
 
     def set(self, k, v):
         self._fields[self.context_name][k] = v
@@ -191,4 +208,35 @@ class Config(object):
         for k, v in os.environ.items():
             if k.startswith(prefix):
                 self.set(k[5:].lower(), v)
+
+
+class Theme(object):
+    def __init__(self, theme_dir, config):
+        self.theme_dir = theme_dir
+        self.name = self.theme_dir.basename
+        self.config = config
+        #self.configure()
+        self.template_dir = TemplateDirectory(self.theme_dir.child("template"))
+        self.input_dir = self.theme_dir.child("input")
+
+    def configure(self):
+        Bangfile(self.theme_dir)
+        event.push("theme", self.config)
+        event.push("theme.".format(self.name), self.config)
+
+    def output(self):
+        if self.input_dir.exists():
+            logger.info("output theme {} input directory to {}".format(
+                self.name,
+                self.config.output_dir
+            ))
+            self.input_dir.copy_to(self.config.output_dir)
+
+    def output_template(self, template_name, filepath, **kwargs):
+        return self.template_dir.output(
+            template_name,
+            filepath,
+            self.config,
+            **kwargs
+        )
 

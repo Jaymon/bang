@@ -1,0 +1,17 @@
+<!-- render a group of posts -->
+{% extends "master.html" %}
+{% from 'macros.html' import article %}
+
+{% block title %}{{ config.title }}{% endblock %}
+
+{% block description %}
+<meta name="description" content="{{ config.description }}">
+{% endblock %}
+
+{% block content %}
+  {% for post in posts %}
+    {{ article(post) }}
+    <hr>
+  {% endfor %}
+{% endblock %}
+

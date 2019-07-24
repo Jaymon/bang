@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
 import os
+import sys
 import re
 from distutils import dir_util
 import shutil
-import types
 import codecs
 import logging
+from jinja2 import Environment, FileSystemLoader
+import fnmatch
+
 
 from .compat import *
 
@@ -80,6 +83,36 @@ class Directory(object):
         logger.debug("copy file {} to {}".format(input_file, output_file))
         return shutil.copy(input_file, output_file)
 
+    def copy_paths(self, output_dir):
+        """you have current directory self and you want to copy the entire directory
+        tree of self into output_dir, this finds all the subdirectories of self and
+        creates an equivalent path in output_dir
+
+        :param output_dir: Directory, the directory you want to copy the tree of this
+            Directory (self) into
+        :returns: yields tuples of (input_subdir, output_subdir)
+        """
+        input_dir = self.clone()
+        input_dir.ancestor_dir = self
+        output_dir = Directory(output_dir).clone()
+        yield input_dir, output_dir
+
+        for input_subdir in input_dir:
+            output_subdir = output_dir / input_subdir.relative()
+            yield input_subdir, output_subdir
+
+    def copy_to(self, output_dir):
+        """Copies the entire tree of self to output_dir
+
+        :param output_dir: Directory, the directory you want to copy the tree of this
+            Directory (self) into
+        """
+        for input_subdir, output_subdir in self.copy_paths(output_dir):
+            #if input_subdir.is_private(): continue
+            output_subdir.create()
+            for f in input_subdir.files():
+                output_subdir.copy_file(f)
+
     def create(self):
         """create the directory path"""
         logger.debug("create dir: {}".format(self.path))
@@ -109,14 +142,16 @@ class Directory(object):
 
     def clone(self):
         """return a new instance with the same path"""
-        return type(self)(self.path)
+        d = type(self)(self.path)
+        d.ancestor_dir = self.ancestor_dir
+        return d
 
     def child(self, *bits):
         """Return a new instance with bits added onto self's path"""
-        return type(self)(self.path, *bits)
+        return Directory(self.path, *bits)
 
     def __div__(self, bits):
-        if isinstance(bits, types.StringTypes):
+        if isinstance(bits, basestring):
             bits = [bits]
         else:
             bits = list(bits)
@@ -126,35 +161,91 @@ class Directory(object):
         return self.__div__(bits)
 
     def __str__(self):
-        return self.path
+        return ByteString(self.path) if is_py2 else self.__unicode__()
 
     def __unicode__(self):
-        return unicode(self.path)
+        return String(self.path)
 
     def __iter__(self):
-        for root_dir, dirs, _ in os.walk(self.path, topdown=True):
-            dirs[:] = [d for d in dirs if not d.startswith("_")]
-            dirs.sort()
-            for basename in dirs:
-                d = Directory(root_dir, basename)
-                d.ancestor_dir = self
-                yield d
+        for d in self.directories(depth=0):
+            yield d
 
-    def files(self, regex=None):
+    def files(self, regex=None, depth=1, exclude=False):
+        """return files in self
+
+        :param regex: string, the regular expression
+        :param depth: int, if 1, just return immediate files, if 0 return all files
+            of the entire tree, otherwise just return depth files
+        :param exclude: bool, if True then any files that would be returned won't
+            and files that wouldn't be returned normally will be
+        :returns: list, the matching files
+        """
         fs = []
-        for root_dir, _, files in os.walk(self.path, topdown=True):
+        for root_dir, subdirs, files in os.walk(self.path, topdown=True):
             for basename in files:
-                if basename.startswith('_'): continue
-                if regex and not re.search(regex, basename, re.I):
-                    continue
-                fs.append(os.path.join(root_dir, basename))
+                if not basename.startswith('_'):
+                    if exclude:
+                        if regex and not re.search(regex, basename, re.I):
+                            fs.append(os.path.join(root_dir, basename))
+
+                    else:
+                        if not regex or re.search(regex, basename, re.I):
+                            fs.append(os.path.join(root_dir, basename))
+
+
+            fs.sort()
+            if depth != 1:
+                fs2 = []
+                depth = depth - 1 if depth else depth
+                for sd in subdirs:
+                    d = Directory(root_dir, sd)
+                    if not d.is_private():
+                        fs2.extend(d.files(regex=regex, depth=depth))
+                fs.extend(fs2)
+
             break
 
         return fs
 
-    def has_file(self, basename):
+    def directories(self, regex=None, depth=1):
+        """return directories in self
+
+        :param regex: string, the regular expression
+        :param depth: int, if 1, just return immediate dirs, if 0 return all subdirs
+            of the entire tree, otherwise just return depth dirs
+        :returns: list, the matching directories
+        """
+        ds = []
+        for root_dir, dirs, _ in os.walk(self.path, topdown=True):
+            for basename in dirs:
+                if not regex or re.search(regex, basename, re.I):
+                    d = Directory(root_dir, basename)
+                    d.ancestor_dir = self
+                    if not d.is_private():
+                        ds.append(d)
+
+            ds.sort(key=lambda d: d.path)
+            if depth != 1:
+                ds2 = []
+                depth = depth - 1 if depth else depth
+                for d in ds:
+                    for sd in d.directories(regex=regex, depth=depth):
+                        sd.ancestor_dir = self
+                        ds2.append(sd)
+
+                ds.extend(ds2)
+
+            break
+
+        return ds
+
+    def has_file(self, *bits):
         """return true if the file basename exists in this directory"""
-        return os.path.isfile(os.path.join(str(self), basename))
+        return os.path.isfile(os.path.join(String(self), *bits))
+
+    def has_directory(self, *bits):
+        d = self.child(*bits)
+        return d.exists()
 
     def has_index(self):
         """returns True if this directory has an index.* file already"""
@@ -184,20 +275,62 @@ class Directory(object):
         """
         returns the relative bits to the parent_dir
 
-        example --
+        :Example:
             d = Directory("/foo/bar/baz/che")
             d.relative("/foo/bar") # baz/che
             d.relative("/foo") # bar/baz/che
 
-        ancestor_dir -- string|Directory -- the directory you want to return that self
-            is a child of, if parent_dir is empty than it will use self.ancestor_dir
-        return -- string -- the part of the path that is relative
+        :param ancestor_dir: string|Directory, the directory you want to return that self
+            is a child of, if ancestor_dir is empty then it will use self.ancestor_dir
+        :returns: string, the part of the path that is relative
         """
         if not ancestor_dir:
             ancestor_dir = self.ancestor_dir
         if not ancestor_dir:
             raise ValueError("no ancestor_dir found")
 
-        relative = self.path.replace(str(ancestor_dir), '').strip(os.sep)
+        relative = self.path.replace(String(ancestor_dir), '').strip(os.sep)
         return relative
+
+
+class DataDirectory(Directory):
+    def __init__(self):
+        base_dir = os.path.dirname(sys.modules[__name__.split(".")[0]].__file__)
+        super(DataDirectory, self).__init__(base_dir, "data")
+
+    def themes_dir(self):
+        return self.child("themes")
+
+
+class TemplateDirectory(object):
+    """Thin wrapper around Jinja functionality that handles templating things
+
+    http://jinja.pocoo.org/docs/dev/
+    """
+    def __init__(self, template_dir):
+        self.template_dir = template_dir
+        self.env = Environment(
+            loader=FileSystemLoader(String(template_dir)),
+            #extensions=['jinja2.ext.with_'] # http://jinja.pocoo.org/docs/dev/templates/#with-statement
+        )
+
+        self.templates = {}
+        for f in fnmatch.filter(os.listdir(String(self.template_dir)), '*.html'):
+            filename, fileext = os.path.splitext(f)
+            self.templates[filename] = f
+
+    def has(self, template_name):
+        return template_name in self.templates
+
+    def output(self, template_name, filepath, config, **kwargs):
+        """output kwargs using the template template_name to filepath
+
+        :param template_name: string, the template you want to use for kwargs
+        :param filepath: string, the destination file that will be output to
+        :param config: Config instance
+        :param **kwargs: dict, all these will be passed to the template
+        """
+        tmpl = self.env.get_template("{}.html".format(template_name))
+        return tmpl.stream(config=config, **kwargs).dump(filepath, encoding=config.encoding)
+
 

@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
 import logging
-import hashlib
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 
 from collections import defaultdict
+
+from .compat import *
 
 
 logger = logging.getLogger(__name__)
@@ -44,7 +41,7 @@ class Receipt(object):
         return ret
 
 
-class Event(str):
+class Event(String):
     def __new__(cls, event_name, receipt):
         instance = super(Event, cls).__new__(cls, event_name)
         instance.receipt = receipt
@@ -114,7 +111,5 @@ class Events(object):
         return wrap
 
 
-# !!! I can't decide if I like event or events as the primary interface
-events = Events()
-event = events
+event = Events()
 
