@@ -40,11 +40,12 @@ class TestCase(testdata.TestCase):
         return project_dir, output_dir
 
     @classmethod
-    def get_project(cls, input_files=None, project_files=None):
+    def get_project(cls, input_files=None, project_files=None, blog=False):
         input_files = input_files or {}
         project_files = project_files or {}
         project_files.setdefault('bangfile.py', [
             "from bang import event",
+            "from bang.plugins import blog" if blog else "",
             "@event('configure')",
             "def global_config(event_name, config):",
             "    config.host = 'example.com'",
@@ -65,7 +66,7 @@ class TestCase(testdata.TestCase):
                 fp = basename.replace("./", "input/")
 
             else:
-                fp = os.path.join('input', basename)
+                fp = "/".join(['input', basename])
 
 #             elif "/" in basename:
 #                 fp = os.path.join('input', basename)
@@ -75,31 +76,27 @@ class TestCase(testdata.TestCase):
             project_files[fp] = file_contents
 
         project_dir, output_dir = cls.get_dirs(project_files)
-
         p = Project(project_dir, output_dir)
         return p
 
     @classmethod
     def get_posts(cls, post_files):
-        p = cls.get_project(post_files)
+        p = cls.get_project(post_files, blog=True)
         p.compile()
-        return p.posts if len(p.posts) else p.auxs
+        return p.types["post"]
 
     @classmethod
     def get_count_posts(cls, count):
         post_files = {}
         for x in range(count):
             name = testdata.get_ascii(8)
-            post_files["{}.md".format(name)] = testdata.get_words()
+            post_files["{}/{}.md".format(name, testdata.get_ascii_words(4))] = testdata.get_words()
 
-        p = cls.get_project(post_files)
-        p.compile()
-        return p.posts if len(p.posts) else p.auxs
+        return cls.get_posts(post_files)
 
     @classmethod
     def get_post(cls, post_file, post_files=None):
-        if not post_files:
-            post_files = {}
+        post_file = post_file or {}
 
         if isinstance(post_file, dict):
             #for k in post_file:
@@ -109,11 +106,45 @@ class TestCase(testdata.TestCase):
             #post_file = post_files.pop(k)
 
         else:
-            name = "{}.md".format(testdata.get_ascii(8))
+            name = "{}/{}.md".format(testdata.get_ascii(8), testdata.get_ascii_words(4))
             post_files[name] = post_file
 
-        posts = cls.get_posts(post_files)
-        return posts.first_page
+        return cls.get_posts(post_files).first_page
+
+    @classmethod
+    def get_pages(cls, page_files):
+        p = cls.get_project(page_files, blog=False)
+        p.compile()
+        return p.types["page"]
+
+    @classmethod
+    def get_count_pages(cls, count):
+        page_files = {}
+        for x in range(count):
+            name = testdata.get_ascii(8)
+            page_files["{}/index.md".format(name)] = testdata.get_words()
+
+        return cls.get_pages(page_files)
+
+    @classmethod
+    def get_page(cls, page_file="", page_files=None):
+        if not page_file:
+            page_file = [
+                "# title text",
+                "",
+                "body text",
+            ]
+
+        page_files = page_files or {}
+
+        if isinstance(page_file, dict):
+            page_files.update(page_file)
+
+        else:
+            name = "{}/index.md".format(testdata.get_ascii(8))
+            page_files[name] = page_file
+
+        return cls.get_pages(page_files).first_page
 
     @classmethod
     def get_body(cls, filepath):

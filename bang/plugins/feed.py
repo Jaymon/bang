@@ -82,7 +82,7 @@ def output_rss(event_name, config):
             fp.write("    <lastBuildDate>{}</lastBuildDate>\n".format(get_datestr(dt)))
             fp.write("    <generator>github.com/Jaymon/bang</generator>\n")
 
-            for p in config.feed_iter():
+            for p in config.feed_iter:
                 fp.write("    <item>\n")
                 fp.write("      <title>{}</title>\n".format(get_cdata(p.title)))
                 fp.write("      <description>{}</description>\n".format(get_cdata(p.html)))

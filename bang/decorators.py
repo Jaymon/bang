@@ -32,3 +32,29 @@ def deprecated(func):
     return wrapped
 
 
+class once(object):
+    """run the decorated function only once
+
+    @once
+    def func(x):
+        return x + 1
+
+    func(4) # return 5
+    func(10) # return 5
+    func.reset()
+    func(10) # return 11
+    """
+    def __init__(self, f):
+        self.f = f
+        self.reset()
+
+    def __call__(self, *args, **kwargs):
+        if not self.called:
+            self.ret = self.f(*args, **kwargs)
+        self.called = True
+        return self.ret
+
+    def reset(self):
+        self.called = False
+        self.ret = None
+

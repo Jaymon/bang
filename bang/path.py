@@ -17,7 +17,8 @@ from .compat import *
 logger = logging.getLogger(__name__)
 
 
-class Directory(object):
+class Path(object):
+    """Parent class containing common methods for File and Directory"""
 
     @property
     def basename(self):
@@ -38,15 +39,74 @@ class Directory(object):
         """completely normalize a relative path (a path with ../, ./, or ~/)"""
         return os.path.abspath(os.path.expanduser(str(d)))
 
-    def exists(self):
-        return os.path.isdir(self.path)
+    def __str__(self):
+        return ByteString(self.path) if is_py2 else self.__unicode__()
 
-    def file_contents(self, basename):
-        """return the contents of the basename file in this directory"""
+    def __unicode__(self):
+        return String(self.path)
+
+    def is_private(self):
+        basename = self.basename
+        return basename.startswith('_')
+
+    def in_private(self):
+        """make sure this path isn't an any private directory"""
+        ret = False
+        path = self.path
+        while path:
+            path, basename = os.path.split(path)
+            if basename.startswith('_'):
+                ret = True
+                break
+        return ret
+
+    def relative(self, ancestor_dir=None):
+        """
+        returns the relative bits to the parent_dir
+
+        :Example:
+            d = Directory("/foo/bar/baz/che")
+            d.relative("/foo/bar") # baz/che
+            d.relative("/foo") # bar/baz/che
+
+        :param ancestor_dir: string|Directory, the directory you want to return that self
+            is a child of, if ancestor_dir is empty then it will use self.ancestor_dir
+        :returns: string, the part of the path that is relative
+        """
+        if not ancestor_dir:
+            ancestor_dir = self.ancestor_dir
+        if not ancestor_dir:
+            raise ValueError("no ancestor_dir found")
+
+        relative = self.path.replace(String(ancestor_dir), '').strip(os.sep)
+        return relative
+
+    def clone(self):
+        """return a new instance with the same path"""
+        d = type(self)(self.path)
+        d.ancestor_dir = self.ancestor_dir
+        return d
+
+
+class File(Path):
+
+    @property
+    def ext(self):
+        """return the extension of the file, the basename without the fileroot"""
+        return os.path.splitext(self.basename)[1]
+
+    @property
+    def fileroot(self):
+        """return the basename without the extension"""
+        return os.path.splitext(self.basename)[0]
+
+    def exists(self):
+        return os.path.isfile(self.path)
+
+    def contents(self, encoding="UTF-8"):
         contents = ""
-        output_file = os.path.join(self.path, basename)
         try:
-            with codecs.open(output_file, encoding='utf-8', mode='r+') as f:
+            with codecs.open(self.path, encoding=encoding, mode='r+') as f:
                 contents = f.read()
         except IOError:
             # ignore file does not exist errors
@@ -54,34 +114,52 @@ class Directory(object):
 
         return contents
 
-    def create_file(self, basename, contents, binary=False):
+    def create(self, contents, binary=False, encoding="UTF-8"):
         """create the file with basename in this directory with contents"""
-        output_file = os.path.join(self.path, basename)
         logger.debug("create file {}".format(output_file))
 
         oldmask = os.umask(0)
 
         if binary:
             # https://docs.python.org/2.7/library/functions.html#open
-            f = open(output_file, mode="w+b")
+            f = open(self.path, mode="w+b")
 
         else:
-            f = codecs.open(output_file, encoding='utf-8', mode='w+')
+            f = codecs.open(self.path, encoding=encoding, mode='w+')
             f.truncate(0)
             f.seek(0)
 
         f.write(contents)
         f.close()
         oldmask = os.umask(oldmask)
+        return self
 
-        return output_file
+    def copy_to(self, output_dir):
+        basename = self.basename
+        output_file = File(output_dir, basename)
+        logger.debug("copy file {} to {}".format(self.path, output_file))
+        return File(shutil.copy(String(self.path), String(output_file)))
+
+
+class Directory(Path):
+
+    def exists(self):
+        return os.path.isdir(self.path)
+
+    def file_contents(self, basename):
+        """return the contents of the basename file in this directory"""
+        contents = ""
+        output_file = File(self.path, basename)
+        return output_file.contents()
+
+    def create_file(self, basename, contents, binary=False):
+        """create the file with basename in this directory with contents"""
+        output_file = File(self.path, basename)
+        return output_file.create(contents, binary=binary)
 
     def copy_file(self, input_file):
         """copy the input_file to this directory"""
-        basename = os.path.basename(input_file)
-        output_file = os.path.join(self.path, basename)
-        logger.debug("copy file {} to {}".format(input_file, output_file))
-        return shutil.copy(input_file, output_file)
+        return File(input_file).copy_to(self.path)
 
     def copy_paths(self, output_dir):
         """you have current directory self and you want to copy the entire directory
@@ -140,12 +218,6 @@ class Directory(object):
         dir_util._path_created = {}
         return True
 
-    def clone(self):
-        """return a new instance with the same path"""
-        d = type(self)(self.path)
-        d.ancestor_dir = self.ancestor_dir
-        return d
-
     def child(self, *bits):
         """Return a new instance with bits added onto self's path"""
         return Directory(self.path, *bits)
@@ -159,12 +231,6 @@ class Directory(object):
 
     def __truediv__(self, bits):
         return self.__div__(bits)
-
-    def __str__(self):
-        return ByteString(self.path) if is_py2 else self.__unicode__()
-
-    def __unicode__(self):
-        return String(self.path)
 
     def __iter__(self):
         for d in self.directories(depth=0):
@@ -241,7 +307,7 @@ class Directory(object):
 
     def has_file(self, *bits):
         """return true if the file basename exists in this directory"""
-        return os.path.isfile(os.path.join(String(self), *bits))
+        return File(self.path, *bits).exists()
 
     def has_directory(self, *bits):
         d = self.child(*bits)
@@ -255,42 +321,6 @@ class Directory(object):
             break
 
         return r
-
-    def is_private(self):
-        basename = self.basename
-        return basename.startswith('_')
-
-    def in_private(self):
-        """make sure this path isn't an any private directory"""
-        ret = False
-        path = self.path
-        while path:
-            path, basename = os.path.split(path)
-            if basename.startswith('_'):
-                ret = True
-                break
-        return ret
-
-    def relative(self, ancestor_dir=None):
-        """
-        returns the relative bits to the parent_dir
-
-        :Example:
-            d = Directory("/foo/bar/baz/che")
-            d.relative("/foo/bar") # baz/che
-            d.relative("/foo") # bar/baz/che
-
-        :param ancestor_dir: string|Directory, the directory you want to return that self
-            is a child of, if ancestor_dir is empty then it will use self.ancestor_dir
-        :returns: string, the part of the path that is relative
-        """
-        if not ancestor_dir:
-            ancestor_dir = self.ancestor_dir
-        if not ancestor_dir:
-            raise ValueError("no ancestor_dir found")
-
-        relative = self.path.replace(String(ancestor_dir), '').strip(os.sep)
-        return relative
 
 
 class DataDirectory(Directory):

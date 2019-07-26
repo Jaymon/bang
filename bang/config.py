@@ -9,7 +9,7 @@ import logging
 
 from .compat import *
 from .event import event
-from .types import Other, Aux, Post
+from .types import Other, Page
 from .path import DataDirectory, Directory, TemplateDirectory
 
 
@@ -136,14 +136,13 @@ class Config(object):
         self.project = project
 
         # order matters here, it should go from most strict matching to least
-        # TODO -- rename to pagetypes
-        self.dirtypes = [Aux, Post, Other]
+        self.types = [Page, Other]
 
 
         # TODO -- https://github.com/Jaymon/bang/issues/41 this should force
         # re-calling events that have fired
         #event.push("config", self.config)
-        event.push("configure", self) # deprecate this in favor of "project"?
+        #event.push("configure", self) # deprecate this in favor of "project"?
         #event.push("config", self)
 
     @contextmanager
@@ -168,6 +167,7 @@ class Config(object):
 
         yield self
 
+        event.broadcast("context.{}.finish".format(self.context_name), self)
         self._context_names.pop(-1)
 
     def add_themes(self, themes_dir):
@@ -215,18 +215,12 @@ class Theme(object):
         self.theme_dir = theme_dir
         self.name = self.theme_dir.basename
         self.config = config
-        #self.configure()
         self.template_dir = TemplateDirectory(self.theme_dir.child("template"))
         self.input_dir = self.theme_dir.child("input")
 
-    def configure(self):
-        Bangfile(self.theme_dir)
-        event.push("theme", self.config)
-        event.push("theme.".format(self.name), self.config)
-
     def output(self):
         if self.input_dir.exists():
-            logger.info("output theme {} input directory to {}".format(
+            logger.info("output theme [{}] input/ directory to {}".format(
                 self.name,
                 self.config.output_dir
             ))
@@ -239,4 +233,8 @@ class Theme(object):
             self.config,
             **kwargs
         )
+
+    def has_template(self, template_name):
+        """Return True if the theme contains template_name"""
+        return self.template_dir.has(template_name)
 

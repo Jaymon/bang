@@ -7,29 +7,39 @@ import re
 import testdata
 
 from bang.compat import *
-from bang.path import Directory
+from bang.path import Directory, File
 from bang import skeleton
 from bang import config
 from . import TestCase
 
 
 class ProjectTest(TestCase):
+    def test_no_bangfile_host(self):
+        name = testdata.get_ascii(16)
+        ps = self.get_pages({
+            '{}/index.md'.format(name): "\n".join([
+                "hi"
+            ]),
+            'bangfile.py': ""
+        })
+
+        self.assertRegexpMatches(ps.first_page.url, "^/{}$".format(name))
+
     def test_single_document(self):
-        s = self.get_project({
+        p = self.get_page({
             'index.md': 'aux text',
             'aux.jpg': '',
         })
-        s.output()
+        p.output()
 
-        self.assertTrue(s.output_dir.has_file("index.html"))
-        self.assertTrue(s.output_dir.has_file("aux.jpg"))
+        self.assertTrue(p.output_dir.has_file("index.html"))
+        self.assertTrue(p.output_dir.has_file("aux.jpg"))
 
     def test_file_structure(self):
         s = self.get_project({
             './one.jpg': '',
             './two.txt': 'some text',
             'other/three.txt': 'third text',
-            'post/foo.md': 'post text',
             'aux/index.md': 'aux text',
         })
         s.output()
@@ -37,79 +47,65 @@ class ProjectTest(TestCase):
         self.assertTrue(s.output_dir.has_file("one.jpg"))
         self.assertTrue(s.output_dir.has_file("two.txt"))
         self.assertTrue(s.output_dir.child("other").has_file("three.txt"))
-        self.assertTrue(s.output_dir.child("post").has_file("index.html"))
         self.assertTrue(s.output_dir.child("aux").has_file("index.html"))
 
     def test_unicode_output(self):
-        s = self.get_project({
-        #project_dir, output_dir = get_dirs({
-            'aux/index.md': testdata.get_unicode_words(),
-        })
-
-        #s = Site(project_dir, output_dir)
-        s.output()
-
-        self.assertTrue(os.path.isfile(os.path.join(String(s.output_dir), 'aux', 'index.html')))
+        #p = self.get_page({'aux/index.md': testdata.get_unicode_words()})
+        p = self.get_page(testdata.get_unicode_words())
+        p.output()
+        self.assertTrue(p.output_dir.has_file('index.html'))
 
     def test_drafts(self):
         s = self.get_project({
-        #project_dir, output_dir = get_dirs({
-            '_draft/foo.md': testdata.get_words(),
-            'notdraft/_bar.md': testdata.get_words(),
+            '_draft/index.md': testdata.get_words(),
+            'notdraft/_index.md': testdata.get_words(),
+            'notdraft/foo.jpg': "",
         })
-
-        #s = Site(project_dir, output_dir)
         s.output()
 
-        self.assertFalse(os.path.isfile(os.path.join(String(s.output_dir), '_draft', 'index.html')))
-        self.assertFalse(os.path.isfile(os.path.join(String(s.output_dir), 'notdraft', 'index.html')))
-        self.assertEqual(0, len(s.posts))
+        self.assertFalse(s.output_dir.has_file('_draft', 'index.html'))
+        self.assertFalse(s.output_dir.has_file('notdraft', 'index.html'))
+        self.assertFalse(s.output_dir.has_file('notdraft', '_index.md'))
+        self.assertTrue(s.output_dir.has_file('notdraft', 'foo.jpg'))
+        self.assertEqual(0, len(s.get_type("page")))
 
-    def test_regex_compile(self):
+    def test_private(self):
+        s = self.get_project({
+            '_foo/index.md': testdata.get_unicode_words(),
+            '_foo/fake.jpg': "",
+            '_bar/other/something.jpg': "",
+        })
+        s.output()
+
+        self.assertEqual([], s.get_type("page"))
+        self.assertEqual(1, len(s.get_type("other")))
+
+    def test_regex(self):
         s = self.get_project({
         #project_dir, output_dir = get_dirs({
-            'foo/post1.md': testdata.get_unicode_words(),
-            'foo2/post2.md': testdata.get_unicode_words(),
-            'bar/post3.md': testdata.get_unicode_words(),
+            'foo/index.md': testdata.get_unicode_words(),
+            'foo2/index.md': testdata.get_unicode_words(),
+            'bar/index.md': testdata.get_unicode_words(),
             'bar/fake.jpg': "",
         })
 
         #s = Site(project_dir, output_dir)
 
-        s.output(r"bar")
-        count = 0
-        for p in s.posts:
-            if p.output_dir.exists():
-                count += 1
-        self.assertEqual(1, count)
+        s.compile()
+        ps = list(s.get_type("page").filter(r"bar"))
+        self.assertEqual(1, len(ps))
 
-        s.output(r"bar")
-        count = 0
-        for p in s.posts:
-            if p.output_dir.exists():
-                count += 1
-        self.assertEqual(1, count)
+        ps = list(s.get_type("page").filter(r"foo"))
+        self.assertEqual(2, len(ps))
 
-        s.output()
-        count = 0
-        for p in s.posts:
-            if p.output_dir.exists():
-                count += 1
-        self.assertEqual(3, count)
+        ps = list(s.get_type("page").filter(r""))
+        self.assertEqual(3, len(ps))
 
-    def test_private_post(self):
-        s = self.get_project({
-        #project_dir, output_dir = get_dirs({
-            '_foo/post1.md': testdata.get_unicode_words(),
-            '_foo/fake.jpg': "",
-            '_bar/other/something.jpg': "",
-        })
+        ps = list(s.get_type("page").filter(None))
+        self.assertEqual(3, len(ps))
 
-        #s = Site(project_dir, output_dir)
-
-        s.output()
-        self.assertIsNone(s.posts.first_page)
-        self.assertEqual(1, len(s.others))
+        ps = list(s.get_type("page").filter())
+        self.assertEqual(3, len(ps))
 
 
 class SkeletonTest(TestCase):

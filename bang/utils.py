@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
-from HTMLParser import HTMLParser
 import os
-
+import re
 
 from .compat import *
 
@@ -45,25 +44,29 @@ class Profile(object):
         return ByteString(self.total) if is_py2 else self.total
 
 
-class PageIterator(object):
-    def __init__(self, config, pagetypes):
-        self.config = config
-        self.pagetypes = pagetypes
+class Url(String):
+    REGEX = re.compile(r"^(?:https?:\/\/|\/\/)", re.I)
+    """regex to decide if something is a url"""
 
-    def __call__(self):
-        # for dt_class in conf.dirtypes:
-        for pages in self.get_pages():
-            for instance in reversed(pages):
-                yield instance
+    def __new__(cls, base_url, *paths):
+        paths = cls.normalize_paths(*paths)
+        url = "{}/{}".format(base_url.rstrip("/"), "/".join(paths))
+        instance = super(Url, cls).__new__(cls, url)
+        return instance
 
-    def has(self):
-        for pages in self.get_pages():
-            if pages:
-                return True
-        return False
+    @classmethod
+    def normalize_paths(cls, *paths):
+        args = []
+        for ps in paths:
+            if isinstance(ps, basestring):
+                args.extend(filter(None, ps.split("/")))
+                #args.append(ps.strip("/"))
+            else:
+                for p in ps:
+                    args.extend(cls.normalize_paths(p))
+        return args
 
-    def get_pages(self):
-        for pagetype in self.pagetypes:
-            if pagetype.name in self.config.project.pages:
-                yield self.config.project.pages[pagetype.name]
+    @classmethod
+    def match(cls, url):
+        return True if cls.REGEX.match(url) else False
 

@@ -40,7 +40,7 @@ class ReceiptTest(TestCase):
     def test_event(self):
         def cb1(*args, **kwargs): return 1
         def cb2(event_name):
-            for ret in event_name.receipt.rets:
+            for ret in event_name.receipt.returns:
                 if ret == 1:
                     return ret
             return 2

@@ -4,7 +4,7 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 import testdata
 
 from bang.compat import *
-from bang.path import Directory
+from bang.path import Directory, File
 from . import TestCase
 
 
@@ -77,4 +77,24 @@ class DirectoryTest(TestCase):
         d = Directory(testdata.create_dir("/foo/_bar"))
         self.assertTrue(d.in_private())
         self.assertTrue(d.is_private())
+
+    def test_has_file(self):
+        f = testdata.create_file("/foo/bar/che/index.html")
+
+        d = Directory(f.parent)
+        self.assertTrue(d.has_file("index.html"))
+
+        d = Directory(f.parent.parent)
+        self.assertTrue(d.has_file("che", "index.html"))
+
+        d = Directory(f.parent.parent.parent)
+        self.assertTrue(d.has_file("bar", "che", "index.html"))
+
+
+class FileTest(TestCase):
+    def test_create(self):
+        path = testdata.create_file("/foo/bar/che/index.html")
+        f = File(path.basedir, "foo", "bar", "che", "index.html")
+        self.assertTrue(path, f.path)
+
 

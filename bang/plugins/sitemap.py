@@ -36,7 +36,7 @@ def output_sitemap(event_name, config):
                 fp.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
                 fp.write("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n")
 
-                for p in config.sitemap_iter():
+                for p in config.sitemap_iter:
                     fp.write("  <url>\n")
                     fp.write("    <loc>{}</loc>\n".format(p.url))
                     fp.write("    <lastmod>{}</lastmod>\n".format(p.modified.strftime("%Y-%m-%dT%H:%M:%S+00:00")))

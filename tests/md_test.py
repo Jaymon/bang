@@ -12,33 +12,24 @@ from . import TestCase
 
 
 class MarkdownTest(TestCase):
-
     def test_image_full_path(self):
-        p = self.get_post({
-            'images/che.jpg': "",
-            'foo.md': "\n".join([
-                '![this is the file](images/che.jpg)',
-                ""
-            ])
-        })
+        p = self.get_page('![this is the file](images/che.jpg)')
         self.assertRegexpMatches(p.html, r'//{}/[^/]+/images/che.jpg'.format(p.config.host))
 
     def test_image_figure(self):
-        p = self.get_post({
-            'figure.md': "\n".join([
-                "this is some text before the image",
-                "",
-                "![this is the caption](foo.jpg)",
-                "",
-                "this is some text after the image",
-                "",
-                "This text has an image ![](bar.jpg)",
-                "",
-                "![](che.jpg) this text after an image",
-                "",
-                "![](baz.jpg) this text after an image with [link](http://baz.com)",
-            ])
-        })
+        p = self.get_page([
+            "this is some text before the image",
+            "",
+            "![this is the caption](foo.jpg)",
+            "",
+            "this is some text after the image",
+            "",
+            "This text has an image ![](bar.jpg)",
+            "",
+            "![](che.jpg) this text after an image",
+            "",
+            "![](baz.jpg) this text after an image with [link](http://baz.com)",
+        ])
         r = p.html
         self.assertTrue('<figure><img alt="foo.jpg" src=' in r)
         self.assertTrue('<p>This text has an image <img alt="bar.jpg" src=' in r)
@@ -46,63 +37,39 @@ class MarkdownTest(TestCase):
         self.assertTrue('<p><img alt="baz.jpg" src=' in r)
 
     def test_image_position(self):
-        p = self.get_post({
-            'che.jpg': "",
-            'foo.md': "\n".join([
-                '[![this is the alt](che.jpg "this is the title")](http://example.com)',
-                ""
-            ])
-        })
+        p = self.get_page('[![this is the alt](che.jpg "this is the title")](http://example.com)')
         r = p.html
         self.assertTrue("figure" in r)
         self.assertTrue("example.com" in r)
         self.assertTrue("figcaption" in r)
         self.assertTrue("img" in r)
 
-        p = self.get_post({
+        p = self.get_page({
             'che.jpg': "",
-            'foo.md': "\n".join([
+            'index.md': [
                 '![this is the file](che.jpg)',
                 ""
-            ])
+            ]
         })
         r = p.html
         self.assertTrue("figure" in r)
         self.assertTrue("figcaption" in r)
 
-        p = self.get_post({
-            'che.jpg': "",
-            'foo.md': "\n".join([
-                '![this is the file](che.jpg) and some text',
-                ""
-            ])
-        })
+        p = self.get_page('![this is the file](che.jpg) and some text')
         r = p.html
         self.assertFalse("figure" in r)
         self.assertFalse("figcaption" in r)
         self.assertTrue("img" in r)
         self.assertTrue("title=" in r)
 
-        p = self.get_post({
-            'che.jpg': "",
-            'foo.md': "\n".join([
-                'and this has some text in front of the image ![this is the file](che.jpg)',
-                ""
-            ])
-        })
+        p = self.get_page('and this has some text in front of the image ![this is the file](che.jpg)')
         r = p.html
         self.assertFalse("figure" in r)
         self.assertFalse("figcaption" in r)
         self.assertTrue("img" in r)
         self.assertTrue("title=" in r)
 
-        p = self.get_post({
-            'che.jpg': "",
-            'foo.md': "\n".join([
-                'all business in the front ![this is the file](che.jpg) and a party in the back',
-                ""
-            ])
-        })
+        p = self.get_page('all business in the front ![this is the file](che.jpg) and a party in the back')
         r = p.html
         self.assertFalse("figure" in r)
         self.assertFalse("figcaption" in r)
@@ -111,69 +78,42 @@ class MarkdownTest(TestCase):
 
     def test_image_title_alt(self):
         # alt = "alternate", title = ""
-        p = self.get_post({
-            'che.jpg': "",
-            'foo.md': "\n".join([
-                '![alternate](che.jpg "")',
-                ""
-            ])
-        })
+        p = self.get_page('![alternate](che.jpg "")')
         r = p.html
         self.assertTrue('title=""' in r)
         self.assertTrue('alt="alternate"' in r)
 
         # alt = "alternate", title = "image title"
-        p = self.get_post({
-            'che.jpg': "",
-            'foo.md': "\n".join([
-                '![alternate](che.jpg "image title")',
-                ""
-            ])
-        })
+        p = self.get_page('![alternate](che.jpg "image title")')
         r = p.html
         self.assertTrue('title="image title"' in r)
         self.assertTrue('alt="alternate"' in r)
 
         # alt = "alternate", title = None
-        p = self.get_post({
-            'che.jpg': "",
-            'foo.md': "\n".join([
-                '![alternate](che.jpg)',
-                ""
-            ])
-        })
+        p = self.get_page('![alternate](che.jpg)')
         r = p.html
         self.assertTrue('title="alternate"' in r)
         self.assertTrue('alt="che.jpg"' in r)
 
         # alt = "", title = "image title"
-        p = self.get_post({
-            'che.jpg': "",
-            'foo.md': "\n".join([
-                '![](che.jpg "image title")',
-                ""
-            ])
-        })
+        p = self.get_page('![](che.jpg "image title")')
         r = p.html
         self.assertTrue('title="image title"' in r)
         self.assertTrue('alt="che.jpg"' in r)
 
     def test_attr(self):
-        p = self.get_post(
+        p = self.get_page(
             ['![this is the file](che.jpg){: .centered }'],
             {'che.jpg': ""}
         )
 
-        self.assertRegexpMatches(p.html, 'class=\"centered')
+        self.assertRegex(p.html, r'class=\"centered')
 
     def test_image_property(self):
-        p = self.get_post({
-            'images/che.jpg': "",
-            'foo.md': "\n".join([
-                '![this is the file](images/che.jpg)',
-                ""
-            ])
-        })
+        p = self.get_page(
+            ['![this is the file](images/che.jpg)'],
+            {'images/che.jpg': ""}
+        )
 
         im = p.image
         self.assertTrue(im.endswith("images/che.jpg"))
@@ -182,37 +122,35 @@ class MarkdownTest(TestCase):
         self.assertTrue(im.endswith("images/che.jpg"))
 
     def test_href(self):
-        p = self.get_post({
+        p = self.get_page({
             'che.txt': testdata.get_words(),
-            'foo.md': "\n".join([
+            'index.md': [
                 "full [link](http://foo.com)",
                 "full [path](/bar)",
                 "file [path](che.txt)",
                 "file [relative link](//bar.com)",
                 ""
-            ])
+            ]
         })
 
         html = p.html
-        self.assertRegexpMatches(html, '\"http://foo.com\"')
-        self.assertRegexpMatches(html, '\"//{}/bar\"'.format(p.config.host))
-        self.assertRegexpMatches(html, '\"//{}/[^\/]+/che.txt\"'.format(p.config.host))
-        self.assertRegexpMatches(html, '\"//bar.com\"')
+        self.assertRegex(html, r'\"http://foo.com\"')
+        self.assertRegex(html, r'\"//{}/bar\"'.format(p.config.host))
+        self.assertRegex(html, r'\"//{}/che.txt\"'.format(p.config.host))
+        self.assertRegex(html, r'\"//bar.com\"')
 
     def test_codeblocks_2(self):
-        p = self.get_post({
-            'blocks.md': "\n".join([
-                "```python",
-                #"```no-highlight",
-                "s = 'here we are'",
-                "```"
-            ])
-        })
+        p = self.get_page([
+            "```python",
+            #"```no-highlight",
+            "s = 'here we are'",
+            "```"
+        ])
 
-        self.assertRegexpMatches(p.html, '<code class=\"codeblock python\">')
+        self.assertRegex(p.html, r'<code class=\"codeblock python\">')
 
     def test_codeblocks_2(self):
-        content = u"\n".join([
+        p = self.get_page([
             u'this is the post',
             u'',
             u'```python',
@@ -221,23 +159,20 @@ class MarkdownTest(TestCase):
             u'```',
             ''
         ])
-        p = self.get_post({'this is the post.md': content})
         r = p.html
-        self.assertRegexpMatches(r, 'class=\"codeblock python\"')
+        self.assertRegex(r, r'class=\"codeblock python\"')
 
     def test_easy_links(self):
-        p = self.get_post({
-            'easy_links_1.md': "\n".join([
-                "[first][n]",
-                "[n]: http://first.com",
-                "",
-                "[second][n]",
-                "[n]: http://second.com",
-                "",
-                "[third][foo]",
-                "[foo]: http://third.com",
-            ])
-        })
+        p = self.get_page([
+            "[first][n]",
+            "[n]: http://first.com",
+            "",
+            "[second][n]",
+            "[n]: http://second.com",
+            "",
+            "[third][foo]",
+            "[foo]: http://third.com",
+        ])
 
         r = p.html
         for x in ["first", "second", "third"]:
@@ -245,29 +180,25 @@ class MarkdownTest(TestCase):
             self.assertTrue("{}.com".format(x) in r)
 
     def test_link_titles(self):
-        p = self.get_post({
-            'link_titles_1.md': "\n".join([
-                "[first][n]",
-                "[n]: http://first.com \"this is the title\"",
-            ])
-        })
+        p = self.get_page([
+            "[first][n]",
+            "[n]: http://first.com \"this is the title\"",
+        ])
 
         r = p.html
         self.assertTrue("this is the title" in r)
 
     def test_toc(self):
-        p = self.get_post({
-            'toc_1.md': [
-                "[TOC]",
-                "# Header 1",
-                "## Header 2",
-                "### Header 3",
-                "#### Header 4",
-                "##### Header 5",
-                "###### Header 6",
-                "# Other Header 1",
-            ]
-        })
+        p = self.get_page([
+            "[TOC]",
+            "# Header 1",
+            "## Header 2",
+            "### Header 3",
+            "#### Header 4",
+            "##### Header 5",
+            "###### Header 6",
+            "# Other Header 1",
+        ])
 
         r = p.html
         self.assertTrue("toc" in r)
@@ -278,33 +209,29 @@ class MarkdownTest(TestCase):
         for x in range(1, 7):
             self.assertTrue("h{}".format(x) in r)
 
-        p = self.get_post({
-            'toc_2.md': [
-                "# Header 1",
-                "## Header 2",
-                "### Header 3",
-                "#### Header 4",
-                "##### Header 5",
-                "###### Header 6",
-                "# Other Header 1",
-            ]
-        })
+        p = self.get_page([
+            "# Header 1",
+            "## Header 2",
+            "### Header 3",
+            "#### Header 4",
+            "##### Header 5",
+            "###### Header 6",
+            "# Other Header 1",
+        ])
         r = p.html
         self.assertFalse("toc" in r)
 
     def test_easy_footnotes(self):
-        p = self.get_post({
-            'easy_footnotes_1.md': "\n".join([
-                "first text[^n]",
-                "[^n]: first footnote",
-                "",
-                "second text[^n]",
-                "[^n]: second footnote",
-                "",
-                "third text[^foo]",
-                "[^foo]: third footnote",
-            ])
-        })
+        p = self.get_page([
+            "first text[^n]",
+            "[^n]: first footnote",
+            "",
+            "second text[^n]",
+            "[^n]: second footnote",
+            "",
+            "third text[^foo]",
+            "[^foo]: third footnote",
+        ])
 
         r = p.html
         for x in ["1", "2", "foo"]:
@@ -314,16 +241,16 @@ class MarkdownTest(TestCase):
             self.assertRegexpMatches(r, "#fnref-.+?-{}".format(x))
 
     def test_uniq_footnotes(self):
-        ps = self.get_posts({
-            'uniq_footnotes_1.md': [
+        ps = self.get_pages({
+            'uniq_footnotes_1/index.md': [
                 "first text[^n]",
                 "[^n]: first footnote",
             ],
-            'uniq_footnotes_2.md': [
+            'uniq_footnotes_2/index.md': [
                 "second text[^n]",
                 "[^n]: second footnote",
             ],
-            'uniq_footnotes_3.md': [
+            'uniq_footnotes_3/index.md': [
                 "third text[^n]",
                 "[^n]: third footnote",
             ]
@@ -342,7 +269,7 @@ class MarkdownTest(TestCase):
         self.assertEqual(3, len(uniqs))
 
     def test_ref_pos_fix(self):
-        p = self.get_post({'ref_pos_fix_1.md': [
+        p = self.get_page([
             "[first][n] [text][n][^n] and [again][n]",
             "",
             "[n]: http://first.com",
@@ -350,7 +277,7 @@ class MarkdownTest(TestCase):
             "[^n]: first footnote",
             "[n]: http://again.com",
             "",
-        ]})
+        ])
         r = p.html
         vals = [
             '<a href="http://first.com">first</a>',
@@ -362,14 +289,14 @@ class MarkdownTest(TestCase):
         for v in vals:
             self.assertTrue(v in r, "{} NOT IN {}".format(v, r))
 
-        p = self.get_post({'ref_pos_fix_2.md': [
+        p = self.get_page([
             "first text[^n] and [again][n]",
             "",
             "[^n]: first footnote",
             "second line of footnote",
             "[n]: http://again.com",
             "",
-        ]})
+        ])
         r = p.html
         vals = [
             'href="#fn-',
@@ -381,75 +308,61 @@ class MarkdownTest(TestCase):
 
 
     def test_easy_images(self):
-        p = self.get_post({
-            'easy_images_1.md': "\n".join([
-                "![foo title][n]",
-                "[n]: foo.jpg",
-            ])
-        })
+        p = self.get_page([
+            "![foo title][n]",
+            "[n]: foo.jpg",
+        ])
         r = p.html
         self.assertTrue('alt="foo.jpg"' in r)
         self.assertTrue('title="foo title"' in r)
 
-        p = self.get_post({
-            'easy_images_1.md': "\n".join([
-                "![foo title](foo.jpg)"
-            ])
-        })
+        p = self.get_page([
+            "![foo title](foo.jpg)"
+        ])
         r = p.html
         self.assertTrue('alt="foo.jpg"' in r)
         self.assertTrue('title="foo title"' in r)
 
-        p = self.get_post({
-            'easy_images_1.md': "\n".join([
-                "![fooalt.jpg](foo.jpg \"foo title\")"
-            ])
-        })
+        p = self.get_page([
+            "![fooalt.jpg](foo.jpg \"foo title\")"
+        ])
         r = p.html
         self.assertTrue('alt="fooalt.jpg"' in r)
         self.assertTrue('title="foo title"' in r)
 
-        p = self.get_post({
-            'easy_images_1.md': "\n".join([
-                "![fooalt.jpg][n]",
-                "[n]: foo.jpg \"foo title\"",
-            ])
-        })
+        p = self.get_page([
+            "![fooalt.jpg][n]",
+            "[n]: foo.jpg \"foo title\"",
+        ])
         r = p.html
         self.assertTrue('alt="fooalt.jpg"' in r)
         self.assertTrue('title="foo title"' in r)
 
-        p = self.get_post({
-            'easy_images_1.md': "\n".join([
-                "![](foo.jpg)",
-            ])
-        })
+        p = self.get_page([
+            "![](foo.jpg)",
+        ])
         r = p.html
         self.assertTrue('alt="foo.jpg"' in r)
         self.assertFalse('title' in r)
 
     def test_meta(self):
-        p = self.get_post({
-            'meta.md': "\n".join([
-                "foo: bar",
-                "tags: one, two, three",
-                "",
-                "This is the first sentence"
-            ])
-        })
+        p = self.get_page([
+            "foo: bar",
+            "tags: one, two, three",
+            "",
+            "This is the first sentence"
+        ])
 
         r = p.html
         self.assertEqual("<p>This is the first sentence</p>", p.html)
         self.assertTrue("foo" in p.meta)
 
     def test_html_entities_codeblock(self):
-        p = self.get_post({
-            'embed_highlight.md': "\n".join([
-                "```",
-                "<b>This is html in a code block</b>",
-                "```",
-            ])
-        })
+        p = self.get_page([
+            "```",
+            "<b>This is html in a code block</b>",
+            "```",
+        ])
 
         r = p.html
         self.assertEqual(2, r.count("&lt;"))
@@ -481,9 +394,7 @@ class MarkdownTest(TestCase):
             ])
 
 
-        p = self.get_post({
-            "admonition.md": body
-        })
+        p = self.get_page(body)
 
         r = p.html
         self.assertEqual(4, r.count("admonition-title"))
@@ -495,32 +406,30 @@ class MarkdownTest(TestCase):
             '-3">3</a>',
         ]
 
-        p = self.get_post({
-            'fn_bq_1.md': [
-                "before one[^n]",
-                "",
-                "[^n]: onefn",
-                "",
-                ">blockquote two[^n]",
-                "",
-                "[^n]: twofn",
-                "",
-                "after three[^n]",
-                "",
-                "[^n]: threefn",
-            ]
-        })
+        p = self.get_page([
+            "before one[^n]",
+            "",
+            "[^n]: onefn",
+            "",
+            ">blockquote two[^n]",
+            "",
+            "[^n]: twofn",
+            "",
+            "after three[^n]",
+            "",
+            "[^n]: threefn",
+        ])
 
         r = p.html
         for v in vals:
             self.assertTrue(v in r)
 
-        p = self.get_post({'fn_bq_2.md': [
+        p = self.get_page([
             "before one[^n]",
             "",
             "[^n] onefn",
             "",
-        ]})
+        ])
         with self.assertRaises(RuntimeError):
             r = p.html
 
@@ -531,57 +440,53 @@ class MarkdownTest(TestCase):
             '<a href="http://three.com">three</a>',
         ]
 
-        p = self.get_post({
-            'link_bq_1.md': [
-                "before [one][n]",
-                "",
-                "[n]: http://one.com",
-                "",
-                ">blockquote [two][n]",
-                "",
-                "[n]: http://two.com",
-                "",
-                "after [three][n]",
-                "",
-                "[n]: http://three.com",
-            ]
-        })
+        p = self.get_page([
+            "before [one][n]",
+            "",
+            "[n]: http://one.com",
+            "",
+            ">blockquote [two][n]",
+            "",
+            "[n]: http://two.com",
+            "",
+            "after [three][n]",
+            "",
+            "[n]: http://three.com",
+        ])
 
         r = p.html
         for v in vals:
             self.assertTrue(v in r)
 
-        p = self.get_post({
-            'link_bq_2.md': [
-                "before [one][n]",
-                "",
-                "[n]: http://one.com",
-                "",
-                "* [two][n]",
-                "",
-                "[n]: http://two.com",
-                "",
-                "after [three][n]",
-                "",
-                "[n]: http://three.com",
-            ]
-        })
+        p = self.get_page([
+            "before [one][n]",
+            "",
+            "[n]: http://one.com",
+            "",
+            "* [two][n]",
+            "",
+            "[n]: http://two.com",
+            "",
+            "after [three][n]",
+            "",
+            "[n]: http://three.com",
+        ])
 
         r = p.html
         for v in vals:
             self.assertTrue(v in r)
 
-        p = self.get_post({'link_bq_3.md': [
+        p = self.get_page([
             "before [one][n]",
             "",
             "[n] http://one.com",
             "",
-        ]})
+        ])
         with self.assertRaises(RuntimeError):
             r = p.html
 
     def test_easy_footnote_inline_codeblock(self):
-        p = self.get_post([
+        p = self.get_page([
             "this is describing a `[^n]` ref and not declaring one",
             "",
             "describing a `[^n]` ref and has a ref[^n]",
@@ -593,7 +498,7 @@ class MarkdownTest(TestCase):
         self.assertEqual(2, r.count("<code>[^n]</code>"))
 
     def test_footnote_with_colon(self):
-        p = self.get_post([
+        p = self.get_page([
             "link before a [quote][n]:",
             "",
             "> quote",
@@ -620,7 +525,7 @@ class MarkdownTest(TestCase):
             '-6">3</a>',
         ]
 
-        p = self.get_post({'mixed_bq_1.md': [
+        p = self.get_page([
             "before [one][n][^n]",
             "",
             "[n]: http://one.com",
@@ -638,7 +543,7 @@ class MarkdownTest(TestCase):
             "[n]: http://three.com",
             ""
             "[^n]: threefn",
-        ]})
+        ])
 
         r = p.html
         for v in vals:
@@ -674,45 +579,44 @@ class EmbedPluginTest(TestCase):
 
 
     def test_embed_link(self):
-        p = self.get_post({
-            'linkify.md': "\n".join([
-                "This is some [text](http://bar.com) < and then there > is just a url",
-                "",
-                "http://foo.com",
-                "",
-                "another [link **with** tags](http://che.com) text after",
-            ])
-        })
+        p = self.get_page([
+            "This is some [text](http://bar.com) < and then there > is just a url",
+            "",
+            "http://foo.com",
+            "",
+            "another [link **with** tags](http://che.com) text after",
+        ])
 
         r = p.html
         self.assertTrue('<a class="embed" href="http://foo.com">http://foo.com</a>' in r)
         self.assertEqual(1, r.count("embed"))
 
     def test_embed_youtube_1(self):
-        p = self.get_post({
-            'embed_youtube.md': "\n".join([
-                "before",
-                "",
-                "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-                "",
-                "after",
-            ])
-        })
+        p = self.get_page([
+            "before",
+            "",
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "",
+            "after",
+        ])
 
         r = p.html
         self.assertTrue("<figure" in r)
 
     def test_embed_youtube_2(self):
-        p = self.get_post({
-            'embed_yt2.md': """12 notes, that's all you get! These 12 notes give us everything from [Beethoven's 5th symphony](https://www.youtube.com/watch?v=_4IRMYuE1hI) to [Hanson's MMMBop](https://www.youtube.com/watch?v=NHozn0YXAeE), and everything in between. They all use the same set of 12 notes"""
-        })
+        p = self.get_page(" ".join([
+            "12 notes, that's all you get! These 12 notes give us everything from",
+            "[Beethoven's 5th symphony](https://www.youtube.com/watch?v=_4IRMYuE1hI)",
+            "to [Hanson's MMMBop](https://www.youtube.com/watch?v=NHozn0YXAeE),"
+            "and everything in between. They all use the same set of 12 notes"
+        ]))
 
         r = p.html
         self.assertFalse("<iframe" in r)
 
     def test_embed_twitter(self):
-        p = self.get_post({
-            'embed_twitter.md': "\n".join([
+        p = self.get_page(
+            [
                 "before",
                 "",
                 "https://twitter.com/JohnKirk/status/801086441325375491",
@@ -722,18 +626,20 @@ class EmbedPluginTest(TestCase):
                 "https://twitter.com/foo/status/100",
                 "",
                 "after",
-            ]),
-            "twitter.json": json.dumps({
-                "https://twitter.com/foo/status/100": {
-                    'html': "".join([
-                        '<blockquote class="twitter-tweet">',
-                        '<p lang="en" dir="ltr">foo</p>',
-                        '&mdash; foo <a href="https://twitter.com/foo/status/100">month DD, YYYY</a>',
-                        '</blockquote>',
-                    ]),
-                },
-            }),
-        })
+            ],
+            {
+                "twitter.json": json.dumps({
+                    "https://twitter.com/foo/status/100": {
+                        'html': "".join([
+                            '<blockquote class="twitter-tweet">',
+                            '<p lang="en" dir="ltr">foo</p>',
+                            '&mdash; foo <a href="https://twitter.com/foo/status/100">month DD, YYYY</a>',
+                            '</blockquote>',
+                        ]),
+                    },
+                })
+            }
+        )
 
         r = p.html
         self.assertEqual(2, r.count("<figure"))
@@ -742,25 +648,21 @@ class EmbedPluginTest(TestCase):
         self.assertEqual(2, len(contents))
 
     def test_no_embed_twitter_links(self):
-        p = self.get_post({
-            'no_embed_twitter.md': "\n".join([
-                "[@Jaymon](https://twitter.com/jaymon)",
-            ]),
-        })
+        p = self.get_page([
+            "[@Jaymon](https://twitter.com/jaymon)",
+        ])
 
         r = p.html
         self.assertTrue("a href" in r)
 
     def test_embed_instagram(self):
-        p = self.get_post({
-            'embed_instagram.md': "\n".join([
-                "before text",
-                "",
-                "https://www.instagram.com/p/BNEweVYFVxq/",
-                "",
-                "after text",
-            ]),
-        })
+        p = self.get_page([
+            "before text",
+            "",
+            "https://www.instagram.com/p/BNEweVYFVxq/",
+            "",
+            "after text",
+        ])
 
         r = p.html
         self.assertEqual(1, r.count("<figure"))
@@ -770,29 +672,27 @@ class EmbedPluginTest(TestCase):
         self.assertTrue(p.input_dir.has_file("BNEweVYFVxq.jpg"))
 
     def test_embed_vimeo(self):
-        p = self.get_post({
-            'embed_vimeo.md': "\n".join([
-                "before text",
-                "",
-                "https://vimeo.com/182739998",
-                "",
-                "after text",
-            ]),
-        })
+        p = self.get_page([
+            "before text",
+            "",
+            "https://vimeo.com/182739998",
+            "",
+            "after text",
+        ])
 
         r = p.html
         self.assertEqual(1, r.count("<figure"))
 
     def test_embed_image(self):
-        p = self.get_post({
+        p = self.get_page({
             'bogus.jpg': "",
-            'embed_image.md': "\n".join([
+            'index.md': [
                 "before text",
                 "",
                 "bogus.jpg",
                 "",
                 "after text",
-            ]),
+            ],
         })
 
         r = p.html
@@ -800,15 +700,15 @@ class EmbedPluginTest(TestCase):
         self.assertTrue('title=""' in r)
 
     def test_embed_image_url(self):
-        p = self.get_post({
+        p = self.get_page({
             'bogus.jpg': "",
-            'embed_image.md': "\n".join([
+            'index.md': [
                 "before text",
                 "",
                 "http://embedded.com/full/url/bogus.jpg",
                 "",
                 "after text",
-            ]),
+            ],
         })
 
         r = p.html
@@ -817,27 +717,14 @@ class EmbedPluginTest(TestCase):
         self.assertTrue('src="http://embedded.com/full/url/bogus.jpg"' in r)
 
     def test_embed_highlight(self):
-        p = self.get_post({
-            'embed_highlight.md': "\n".join([
-                "```",
-                "",
-                "https://foo.com",
-                "",
-                "```",
-            ])
-        })
+        p = self.get_page([
+            "```",
+            "",
+            "https://foo.com",
+            "",
+            "```",
+        ])
 
         r = p.html
         self.assertFalse("embed" in r)
-
-
-class DirectoryTest(TestCase):
-    def test_in_private(self):
-        d = Directory(testdata.create_dir("/foo/_bar/che"))
-        self.assertTrue(d.in_private())
-        self.assertFalse(d.is_private())
-
-        d = Directory(testdata.create_dir("/foo/_bar"))
-        self.assertTrue(d.in_private())
-        self.assertTrue(d.is_private())
 

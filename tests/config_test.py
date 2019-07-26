@@ -23,11 +23,10 @@ class ThemeTest(TestCase):
             ],
             'themes/{}/input/assets/app.css'.format(theme_name): "",
             'themes/{}/input/assets/app.js'.format(theme_name): "",
-            'themes/{}/template/aux.html'.format(theme_name): "{{ aux.title }}\n{{ aux.html }}\n",
-            'themes/{}/template/post.html'.format(theme_name): "{{ post.title }}\n{{ post.html }}\n",
-            'themes/{}/template/posts.html'.format(theme_name): "\n".join([
-                "{% for post in posts %}",
-                "{% include 'post.html' %}",
+            'themes/{}/template/page.html'.format(theme_name): "{{ instance.title }}\n{{ instance.html }}\n",
+            'themes/{}/template/pages.html'.format(theme_name): "\n".join([
+                "{% for instance in instances %}",
+                "{% include 'page.html' %}",
                 "<hr>",
                 "{% endfor %}",
                 "",
@@ -67,38 +66,6 @@ class ConfigTest(TestCase):
 
         with config.context("feed", scheme="https", host="example.com") as conf:
             self.assertEqual("https://example.com", conf.base_url)
-
-    def test_context_lifecycle(self):
-        s = self.get_project({
-            'p1/blog_post.md': [
-                "foo.jpg"
-            ],
-            'bangfile.py': [
-                "from bang import event",
-                "from bang.plugins import feed",
-                "",
-                "@event('configure')",
-                "def global_config(event_name, config):",
-                "    config.host = 'example.com'",
-                "    config.name = 'example site'",
-                "",
-                "@event('context.html')",
-                "def html_config(event_name, config):",
-                "    config.scheme = ''",
-                "",
-                "@event('context.feed')",
-                "def feed_config(event_name, config):",
-                "    config.scheme = 'https'",
-            ]
-        })
-        s.output()
-
-        r = s.output_dir.file_contents("feed.rss")
-        self.assertTrue("<link>https://example.com" in r)
-
-        post_dir = s.output_dir / "p1"
-        r = post_dir.file_contents("index.html")
-        self.assertTrue('src="//example.com' in r)
 
     def test_context_hierarchy(self):
         """https://github.com/Jaymon/bang/issues/33"""

@@ -13,8 +13,6 @@ class AbsoluteLinkTreeprocessor(Treeprocessor):
     http://effbot.org/zone/pythondoc-elementtree-ElementTree.htm
     https://github.com/waylan/Python-Markdown/blob/master/markdown/treeprocessors.py
     """
-    URL_RE = re.compile(r"^(?:https?:\/\/|\/\/)", re.I)
-
     def get_tags(self, elem, *tags):
         """go through and return all the *tags elements that are children of elem"""
         tags = set(tags)
@@ -24,19 +22,8 @@ class AbsoluteLinkTreeprocessor(Treeprocessor):
 
     def normalize_url(self, url):
         """normalizes the url into a full url"""
-        m = self.URL_RE.search(url)
-        if not m:
-            dtype = self.markdown.dirtype
-            config = dtype.config
-            base_url = config.base_url
-
-            if url.startswith('/'):
-                url = "{}{}".format(base_url, url)
-
-            else:
-                url = "{}/{}".format(dtype.url, url)
-
-        return url
+        dtype = self.markdown.dirtype
+        return dtype.absolute_url(url)
 
     def run(self, doc):
         for elem in self.get_tags(doc, "a", "img"):

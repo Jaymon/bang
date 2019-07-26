@@ -9,8 +9,8 @@
 {% endblock %}
 
 {% block content %}
-  {% for post in posts %}
-    {{ article(post) }}
+  {% for instance in instances %}
+    {{ article(instance) }}
     <hr>
   {% endfor %}
 {% endblock %}

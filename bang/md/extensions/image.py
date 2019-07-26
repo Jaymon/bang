@@ -54,7 +54,7 @@ class ImagePattern(BaseImagePattern):
 
 
 class ImageReferencePattern(BaseImageReferencePattern):
-    """over-rides parent to swap alt with title if title is empty and then use
+    """overrides parent to swap alt with title if title is empty and then use
     the basename of src as the alt"""
     def makeTag(self, href, title, text):
         pout.v(href, title, text)
@@ -81,14 +81,14 @@ class ImageProcessor(BlockProcessor):
 
     NOIMG = r'(?<!\!)'
 
-    LINK_RE = NOIMG + BRK + r'''\(\s*(<.*?>|((?:(?:\(.*?\))|[^\(\)]))*?)\s*((['"])(.*?)\12\s*)?\)'''
+    LINK_REGEX = NOIMG + BRK + r'''\(\s*(<.*?>|((?:(?:\(.*?\))|[^\(\)]))*?)\s*((['"])(.*?)\12\s*)?\)'''
 
-    REFERENCE_RE = NOIMG + BRK + r'\s?\[([^\]]*)\]'
+    REFERENCE_REGEX = NOIMG + BRK + r'\s?\[([^\]]*)\]'
 
-    IMAGE_LINK_RE = r'\!' + BRK + r'\s*\(\s*(<.*?>|([^"\)\s]+\s*"[^"]*"|[^\)\s]*))\s*\)'
+    IMAGE_LINK_REGEX = r'\!' + BRK + r'\s*\(\s*(<.*?>|([^"\)\s]+\s*"[^"]*"|[^\)\s]*))\s*\)'
 
 
-    IMAGE_REFERENCE_RE = r'\!' + BRK + r'\s?\[([^\]]*)\]'
+    IMAGE_REFERENCE_REGEX = r'\!' + BRK + r'\s?\[([^\]]*)\]'
 
 
     def test(self, parent, block):
@@ -98,14 +98,14 @@ class ImageProcessor(BlockProcessor):
             return False
 
         is_link = False
-        for regex in [self.LINK_RE, self.REFERENCE_RE]:
+        for regex in [self.LINK_REGEX, self.REFERENCE_REGEX]:
             regex = r"^\s*{}\s*$".format(regex)
             if re.match(regex, block):
                 is_link = True
                 break
 
         is_image = False
-        for regex in [self.IMAGE_LINK_RE, self.IMAGE_REFERENCE_RE]:
+        for regex in [self.IMAGE_LINK_REGEX, self.IMAGE_REFERENCE_REGEX]:
             if is_link:
                 if re.search(regex, block):
                     is_image = True

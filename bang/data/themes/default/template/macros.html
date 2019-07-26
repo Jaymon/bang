@@ -1,23 +1,22 @@
-{% macro article(post) %}
+{% macro article(instance) %}
   <article class="body">
-    <h1><a href="{{post.url}}">{{ post.title }}</a></h1>
+    <h1><a href="{{instance.url}}">{{ instance.title }}</a></h1>
 
-    {{ post.html }}
+    {{ instance.html }}
 
-    <time datetime="{{ post.modified.strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}" class="post-meta">
-        {{ post.modified.strftime('%b %d %Y') }}
+    <time datetime="{{ instance.modified.strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}" class="metadata">
+        {{ instance.modified.strftime('%b %d %Y') }}
     </time>
   </article>
-
 {% endmacro %}
 
-{% macro opengraph(post) %}
+{% macro opengraph(instance) %}
   {# <!-- http://ogp.me/ --> #}
-  <meta name="description" content="{{ post.description }}">
-  <meta property="og:url" content="{{ post.url }}" />
+  <meta name="description" content="{{ instance.description }}">
+  <meta property="og:url" content="{{ instance.url }}" />
   <meta property="og:type" content="article" />
-  <meta property="og:title" content="{{ post.title }}" />
-  <meta property="og:description" content="{{ post.description }}" />
-  <meta property="og:image" content="{{ post.image }}" />
+  <meta property="og:title" content="{{ instance.title }}" />
+  <meta property="og:description" content="{{ instance.description }}" />
+  <meta property="og:image" content="{{ instance.image }}" />
 {% endmacro %}
 

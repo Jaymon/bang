@@ -39,6 +39,7 @@ if is_py2:
     import Cookie as cookies
     import urlparse
     import __builtin__ as builtins
+    from HTMLParser import HTMLParser
 
 
 elif is_py3:
@@ -53,6 +54,7 @@ elif is_py3:
     from http import cookies
     from urllib import parse as urlparse
     import builtins
+    from html.parser import HTMLParser
 
     # ripped from six https://bitbucket.org/gutworth/six
     def reraise(tp, value, tb=None):
