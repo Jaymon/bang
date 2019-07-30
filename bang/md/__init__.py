@@ -18,6 +18,11 @@ from .extensions.embed import EmbedExtension
 class Markdown(markdown.Markdown):
     """
     https://github.com/Python-Markdown/markdown/blob/master/markdown/__init__.py
+    https://python-markdown.github.io/
+    https://github.com/Python-Markdown/markdown/blob/master/docs/change_log/release-3.0.md
+
+    extends this class:
+        https://github.com/Python-Markdown/markdown/blob/master/markdown/core.py
     """
     instance = None
 
@@ -32,6 +37,7 @@ class Markdown(markdown.Markdown):
         return cls(
             extensions=[
                 # as of Markdown 3.0+ order can matter
+                # https://python-markdown.github.io/extensions/footnotes/
                 FootnoteExtension(UNIQUE_IDS=True, SEPARATOR="-"),
                 MagicRefExtension(),
                 RefPositionFixExtension(),

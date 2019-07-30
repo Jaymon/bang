@@ -6,6 +6,7 @@ import re
 from markdown import util
 #from markdown.extensions import Extension
 from markdown.blockprocessors import BlockProcessor
+# https://github.com/Python-Markdown/markdown/blob/master/markdown/inlinepatterns.py
 from markdown.inlinepatterns import (
     ImageInlineProcessor as BaseImagePattern,
     ImageReferenceInlineProcessor as BaseImageReferencePattern
@@ -70,6 +71,7 @@ class ImageProcessor(BlockProcessor):
     # these are ripped from the 2.6 branch because they've updated the regexes
     # in the 3.0+ branch and this was no longer working, there probably is a
     # better way to do this in the 3.0+ branch
+    # got these from: https://github.com/Python-Markdown/markdown/blob/2.6/markdown/inlinepatterns.py
     NOBRACKET = r'[^\]\[]*'
 
     BRK = (

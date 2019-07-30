@@ -141,6 +141,54 @@ class File(Path):
         return File(shutil.copy(String(self.path), String(output_file)))
 
 
+class Image(File):
+    @property
+    def dimensions(self):
+
+        import struct
+        import imghdr
+
+        with open(self.path, 'rb') as fp:
+            head = fp.read(24)
+            if len(head) != 24:
+                return 0, 0
+
+            what = imghdr.what(None, head)
+
+            if what == 'png':
+                check = struct.unpack('>i', head[4:8])[0]
+                if check != 0x0d0a1a0a:
+                    return 0, 0
+
+                width, height = struct.unpack('>ii', head[16:24])
+
+            elif what == 'gif':
+                width, height = struct.unpack('<HH', head[6:10])
+
+            elif what == 'jpeg':
+                try:
+                    fp.seek(0) # Read 0xff next
+                    size = 2
+                    ftype = 0
+                    while not 0xc0 <= ftype <= 0xcf or ftype in (0xc4, 0xc8, 0xcc):
+                        fp.seek(size, 1)
+                        byte = fp.read(1)
+                        while ord(byte) == 0xff:
+                            byte = fp.read(1)
+                        ftype = ord(byte)
+                        size = struct.unpack('>H', fp.read(2))[0] - 2
+                    # We are at a SOFn block
+                    fp.seek(1, 1)  # Skip `precision' byte.
+                    height, width = struct.unpack('>HH', fp.read(4))
+                except Exception: #IGNORE:W0703
+                    return
+
+            else:
+                return
+
+            return width, height
+
+
 class Directory(Path):
 
     def exists(self):

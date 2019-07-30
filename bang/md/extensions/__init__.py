@@ -12,8 +12,10 @@ extension for the markdown lib I use: https://github.com/waylan/Python-Markdown
 
 http://pythonhosted.org/Markdown/extensions/index.html
 http://pythonhosted.org/Markdown/extensions/api.html
+https://python-markdown.github.io/extensions/api/#registry
 
-https://github.com/waylan/Python-Markdown/wiki/Third-Party-Extensions
+https://github.com/Python-Markdown/markdown/wiki/Third-Party-Extensions
+https://python-markdown.github.io/extensions/
 """
 
 from markdown.extensions import Extension as BaseExtension
@@ -22,7 +24,10 @@ from markdown.extensions import Extension as BaseExtension
 class Extension(BaseExtension):
     def find_priority(self, registry, names=None, priority=0):
         """compensates for Markdown's 3.0 branch deprecation and bug in md.preprocessors.add()
-        method"""
+        method
+
+        https://python-markdown.github.io/extensions/api/#extendmarkdown
+        """
 
         if names:
             position = ""
