@@ -44,8 +44,9 @@ def get_datestr(dt):
 @event('output.finish')
 def output_rss(event_name, config):
     with config.context("feed") as config:
-        feed_enabled = config.get("feed_enabled", True)
-        if not feed_enabled: return
+        if "feed_iter" not in config:
+            logger.error("feed plugin not running because no config.feed_iter found")
+            return
 
         host = config.host
         if not host:

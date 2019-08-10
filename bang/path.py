@@ -9,7 +9,8 @@ import codecs
 import logging
 from jinja2 import Environment, FileSystemLoader
 import fnmatch
-
+import struct
+import imghdr
 
 from .compat import *
 
@@ -93,20 +94,26 @@ class File(Path):
     @property
     def ext(self):
         """return the extension of the file, the basename without the fileroot"""
-        return os.path.splitext(self.basename)[1]
+        return os.path.splitext(self.basename)[1].lstrip(".")
+    extension = ext
 
     @property
     def fileroot(self):
         """return the basename without the extension"""
         return os.path.splitext(self.basename)[0]
 
+    def __init__(self, *bits, **kwargs):
+        self.encoding = kwargs.pop("encoding", "UTF-8")
+        super(File, self).__init__(*bits)
+
     def exists(self):
         return os.path.isfile(self.path)
 
-    def contents(self, encoding="UTF-8"):
+    def contents(self, encoding=""):
         contents = ""
         try:
-            with codecs.open(self.path, encoding=encoding, mode='r+') as f:
+            with self.open(encoding=encoding) as f:
+            #with codecs.open(self.path, encoding=encoding, mode='r+') as f:
                 contents = f.read()
         except IOError:
             # ignore file does not exist errors
@@ -114,24 +121,22 @@ class File(Path):
 
         return contents
 
-    def create(self, contents, binary=False, encoding="UTF-8"):
+    def create(self, contents, encoding=""):
         """create the file with basename in this directory with contents"""
         logger.debug("create file {}".format(output_file))
+        encoding = encoding or self.encoding
 
         oldmask = os.umask(0)
-
-        if binary:
-            # https://docs.python.org/2.7/library/functions.html#open
-            f = open(self.path, mode="w+b")
-
+        if encoding:
+            f = self.open(mode="w+", encoding=encoding)
         else:
-            f = codecs.open(self.path, encoding=encoding, mode='w+')
-            f.truncate(0)
-            f.seek(0)
+            # https://docs.python.org/2.7/library/functions.html#open
+            f = self.open(mode="w+b")
 
         f.write(contents)
         f.close()
         oldmask = os.umask(oldmask)
+        self.encoding = encoding
         return self
 
     def copy_to(self, output_dir):
@@ -140,20 +145,51 @@ class File(Path):
         logger.debug("copy file {} to {}".format(self.path, output_file))
         return File(shutil.copy(String(self.path), String(output_file)))
 
+    def open(self, mode="", encoding=""):
+        """open the file"""
+        encoding = encoding or self.encoding
+        if not mode:
+            mode = "r" if encoding else "rb"
+
+        if encoding:
+            return codecs.open(self.path, encoding=encoding, mode=mode)
+
+        else:
+            return open(self.path, mode=mode)
+
 
 class Image(File):
     @property
+    def width(self):
+        width, height = self.dimensions
+        return width
+
+    @property
+    def height(self):
+        width, height = self.dimensions
+        return height
+
+    @property
     def dimensions(self):
+        return self.get_info()["dimensions"][-1]
 
-        import struct
-        import imghdr
+        dimensions = getattr(self, "_dimensions", None)
+        if dimensions:
+            return dimensions
 
-        with open(self.path, 'rb') as fp:
+        # this makes heavy use of struct: https://docs.python.org/3/library/struct.html
+        # based on this great answer on SO: https://stackoverflow.com/a/39778771/5006
+        # read/write ico files: https://github.com/grigoryvp/pyico
+
+        with self.open() as fp:
             head = fp.read(24)
             if len(head) != 24:
                 return 0, 0
 
+            # https://docs.python.org/2.7/library/imghdr.html
             what = imghdr.what(None, head)
+            if what is None:
+                what = self.extension
 
             if what == 'png':
                 check = struct.unpack('>i', head[4:8])[0]
@@ -183,10 +219,240 @@ class Image(File):
                 except Exception: #IGNORE:W0703
                     return
 
-            else:
-                return
+            elif what == "ico":
+                # https://en.wikipedia.org/wiki/ICO_(file_format)#Outline
+                fp.seek(0)
+                reserved, image_type, image_count = struct.unpack('<HHH', fp.read(6))
+#                 reserved = struct.unpack('<H', fp.read(2))
+#                 image_type = struct.unpack('<H', fp.read(2))[0]
+#                 image_count = struct.unpack('<H', fp.read(2))[0]
 
+                for x in range(image_count):
+                    width = struct.unpack('<B', fp.read(1))[0] or 256
+                    height = struct.unpack('<B', fp.read(1))[0] or 256
+                    fp.read(6) # we don't care about color or density info
+                    size = struct.unpack('<I', fp.read(4))[0]
+                    offset = struct.unpack('<I', fp.read(4))[0]
+
+            else:
+                raise ValueError("Unsupported image type {}".format(self.extension))
+
+            self._dimensions = (width, height)
             return width, height
+
+    def __init__(self, *bits):
+        super(Image, self).__init__(*bits, encoding="")
+
+    def get_info(self):
+        info = getattr(self, "_info", None)
+        if info:
+            return info
+
+        # this makes heavy use of struct: https://docs.python.org/3/library/struct.html
+        # based on this great answer on SO: https://stackoverflow.com/a/39778771/5006
+        # read/write ico files: https://github.com/grigoryvp/pyico
+
+        info = {"dimensions": [], "what": ""}
+
+        with self.open() as fp:
+            head = fp.read(24)
+            if len(head) != 24:
+                return 0, 0
+
+            # https://docs.python.org/2.7/library/imghdr.html
+            what = imghdr.what(None, head)
+            if what is None:
+                what = self.extension
+
+            if what == 'png':
+                check = struct.unpack('>i', head[4:8])[0]
+                if check != 0x0d0a1a0a:
+                    return 0, 0
+
+                width, height = struct.unpack('>ii', head[16:24])
+                info["dimensions"].append((width, height))
+
+            elif what == 'gif':
+                width, height = struct.unpack('<HH', head[6:10])
+                info["dimensions"].append((width, height))
+
+            elif what == 'jpeg':
+                try:
+                    fp.seek(0) # Read 0xff next
+                    size = 2
+                    ftype = 0
+                    while not 0xc0 <= ftype <= 0xcf or ftype in (0xc4, 0xc8, 0xcc):
+                        fp.seek(size, 1)
+                        byte = fp.read(1)
+                        while ord(byte) == 0xff:
+                            byte = fp.read(1)
+                        ftype = ord(byte)
+                        size = struct.unpack('>H', fp.read(2))[0] - 2
+                    # We are at a SOFn block
+                    fp.seek(1, 1)  # Skip `precision' byte.
+                    height, width = struct.unpack('>HH', fp.read(4))
+                    info["dimensions"].append((width, height))
+
+                except Exception: #IGNORE:W0703
+                    return
+
+            elif what == "ico":
+                # https://en.wikipedia.org/wiki/ICO_(file_format)#Outline
+                fp.seek(0)
+                reserved, image_type, image_count = struct.unpack('<HHH', fp.read(6))
+#                 reserved = struct.unpack('<H', fp.read(2))
+#                 image_type = struct.unpack('<H', fp.read(2))[0]
+#                 image_count = struct.unpack('<H', fp.read(2))[0]
+
+                for x in range(image_count):
+                    width = struct.unpack('<B', fp.read(1))[0] or 256
+                    height = struct.unpack('<B', fp.read(1))[0] or 256
+                    info["dimensions"].append((width, height))
+
+                    fp.read(6) # we don't care about color or density info
+                    size = struct.unpack('<I', fp.read(4))[0]
+                    offset = struct.unpack('<I', fp.read(4))[0]
+
+            else:
+                raise ValueError("Unsupported image type {}".format(self.extension))
+
+            info["what"] = what
+            self._info = info
+            return info
+            #return width, height
+
+    def is_animated(self):
+        """Return true if image is an animated gif
+
+        TODO -- support for animated png?
+
+        :returns: boolean, True if the image is an animated gif
+        """
+        return self.is_animated_gif()
+
+    def is_animated_gif(self):
+        """Return true if image is an animated gif
+
+        primarily used this great deep dive into the structure of an animated gif
+        to figure out how to parse it:
+
+            http://www.matthewflickinger.com/lab/whatsinagif/bits_and_bytes.asp
+
+        Other links that also helped:
+
+            https://en.wikipedia.org/wiki/GIF#Animated_GIF
+            https://www.w3.org/Graphics/GIF/spec-gif89a.txt
+            https://stackoverflow.com/a/1412644/5006
+
+        :returns: boolean, True if the image is an animated gif
+        """
+        info = self.get_info()
+        if info["what"] != "gif": return False
+
+        ret = False
+        image_count = 0
+
+        def skip_color_table(fp, packed_byte):
+            """this will fp.seek() completely passed the color table
+
+            http://www.matthewflickinger.com/lab/whatsinagif/bits_and_bytes.asp#global_color_table_block
+
+            :param fp: io, the open image file
+            :param packed_byte: the byte that tells if the color table exists and 
+                how big it is
+            """
+            if is_py2:
+                packed_byte = int(packed_byte.encode("hex"), 16)
+            # https://stackoverflow.com/a/13107/5006
+            has_gct = (packed_byte & 0b10000000) >> 7
+            gct_size = packed_byte & 0b00000111
+
+            if has_gct:
+                global_color_table = fp.read(3 * pow(2, gct_size + 1))
+                #pout.v(" ".join("{:02x}".format(ord(c)) for c in global_color_table))
+
+        def skip_image_data(fp):
+            """skips the image data, which is basically just a series of sub blocks
+            with the addition of the lzw minimum code to decompress the file data
+
+            http://www.matthewflickinger.com/lab/whatsinagif/bits_and_bytes.asp#image_data_block
+
+            :param fp: io, the open image file
+            """
+            lzw_minimum_code_size = fp.read(1)
+            skip_sub_blocks(fp)
+
+        def skip_sub_blocks(fp):
+            """skips over the sub blocks
+
+            the first byte of the sub block tells you how big that sub block is, then
+            you read those, then read the next byte, which will tell you how big
+            the next sub block is, you keep doing this until you get a sub block
+            size of zero
+
+            :param fp: io, the open image file
+            """
+            num_sub_blocks = ord(fp.read(1))
+            while num_sub_blocks != 0x00:
+                fp.read(num_sub_blocks)
+                num_sub_blocks = ord(fp.read(1))
+
+        with self.open() as fp:
+            header = fp.read(6)
+            #pout.v(header)
+            if header == b"GIF89a": # GIF87a doesn't support animation
+                logical_screen_descriptor = fp.read(7)
+                #pout.v(" ".join("{:02x}".format(ord(c)) for c in logical_screen_descriptor))
+                #pout.v(bytearray(logical_screen_descriptor))
+                #pout.v(logical_screen_descriptor.encode("hex"))
+                skip_color_table(fp, logical_screen_descriptor[4])
+
+                b = ord(fp.read(1))
+                while b != 0x3B: # 3B is always the last byte in the gif
+                    if b == 0x21: # 21 is the extension block byte
+                        b = ord(fp.read(1))
+                        if b == 0xF9: # graphic control extension
+                            # http://www.matthewflickinger.com/lab/whatsinagif/bits_and_bytes.asp#graphics_control_extension_block
+                            block_size = ord(fp.read(1))
+                            fp.read(block_size)
+                            b = ord(fp.read(1))
+                            if b != 0x00:
+                                raise ValueError("GCT should end with 0x00")
+
+                        elif b == 0xFF: # application extension
+                            # http://www.matthewflickinger.com/lab/whatsinagif/bits_and_bytes.asp#application_extension_block
+                            block_size = ord(fp.read(1))
+                            fp.read(block_size)
+                            skip_sub_blocks(fp)
+
+                        elif b == 0x01: # plain text extension
+                            # http://www.matthewflickinger.com/lab/whatsinagif/bits_and_bytes.asp#plain_text_extension_block
+                            block_size = ord(fp.read(1))
+                            fp.read(block_size)
+                            skip_sub_blocks(fp)
+
+                        elif b == 0xFE: # comment extension
+                            # http://www.matthewflickinger.com/lab/whatsinagif/bits_and_bytes.asp#comment_extension_block
+                            skip_sub_blocks(fp)
+
+                    elif b == 0x2C: # Image descriptor
+                        # http://www.matthewflickinger.com/lab/whatsinagif/bits_and_bytes.asp#image_descriptor_block
+                        image_count += 1
+                        if image_count > 1:
+                            # if we've seen more than one image it's animated so
+                            # we're done
+                            ret = True
+                            break
+
+                        # total size is 10 bytes, we already have the first byte so
+                        # let's grab the other 9 bytes
+                        image_descriptor = fp.read(9)
+                        skip_color_table(fp, image_descriptor[-1])
+                        skip_image_data(fp)
+
+                    b = ord(fp.read(1))
+
+        return ret
 
 
 class Directory(Path):
@@ -268,7 +534,11 @@ class Directory(Path):
 
     def child(self, *bits):
         """Return a new instance with bits added onto self's path"""
-        return Directory(self.path, *bits)
+        ret = Directory(self.path, *bits)
+        if not os.path.isdir(ret.path):
+            if os.path.isfile(ret.path):
+                ret = File(ret.path)
+        return ret
 
     def __div__(self, bits):
         if isinstance(bits, basestring):

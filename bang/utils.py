@@ -48,9 +48,28 @@ class Url(String):
     REGEX = re.compile(r"^(?:https?:\/\/|\/\/)", re.I)
     """regex to decide if something is a url"""
 
+    @property
+    def parts(self):
+        o = getattr(self, "_parts", None)
+        if o is None:
+            o = parse.urlsplit(self)
+            self._parts = o
+        return o
+
+    @property
+    def host(self):
+        return self.parts.hostname
+
+    @property
+    def path(self):
+        return self.parts.path
+
     def __new__(cls, base_url, *paths):
         paths = cls.normalize_paths(*paths)
-        url = "{}/{}".format(base_url.rstrip("/"), "/".join(paths))
+        if paths:
+            url = "{}/{}".format(base_url.rstrip("/"), "/".join(paths))
+        else:
+            url = base_url
         instance = super(Url, cls).__new__(cls, url)
         return instance
 
@@ -69,4 +88,19 @@ class Url(String):
     @classmethod
     def match(cls, url):
         return True if cls.REGEX.match(url) else False
+
+    def is_host(self, host):
+        """return true if the url's host matches host"""
+        return self.host.lower() == host.lower()
+
+    def is_local(self, config):
+        """return True if is a local url to the project"""
+        ret = False
+        if self.startswith("//"):
+            ret = True
+        elif re.match(r"^/[^/]", self):
+            ret = True
+        elif self.is_host(config.host):
+            ret = True
+        return ret
 

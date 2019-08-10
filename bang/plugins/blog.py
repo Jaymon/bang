@@ -23,7 +23,7 @@ class Post(Page):
         return True if directory.files(cls.regex) else False
 
 
-@event("configure")
+@event("configure.plugins")
 def configure(event_name, config):
     config.feed_iter = TypeIterator(config, [Post])
     config.sitemap_iter = TypeIterator(config, [Post])
@@ -33,7 +33,7 @@ def configure(event_name, config):
 
 
 @event("output.finish")
-def finish_output(event_name, config):
+def compile_root_index_files(event_name, config):
     # this compiles the root index.html
     p = TypeIterator(config, [Post])
     for pages in p:

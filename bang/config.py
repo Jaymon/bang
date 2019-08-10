@@ -11,6 +11,7 @@ from .compat import *
 from .event import event
 from .types import Other, Page
 from .path import DataDirectory, Directory, TemplateDirectory
+from .md import Markdown
 
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,7 @@ class Bangfile(object):
 
 class Config(object):
     """A context aware configuration class, really this is a glorified getter/setter
-    but you can change the context by setting .context_name which means you can
+    but you can change the context using with .context(name) which means you can
     change values and then when you switch contexts the values will reset to what
     they were, this is handy for having a little different configuration in your
     feed as opposed to your web
@@ -93,6 +94,21 @@ class Config(object):
         return fields
 
     @property
+    def markdown(self):
+        context_name = self.context_name
+        md = self._markdown_instances.get(context_name, None)
+        if not md:
+            logger.debug("Creating Markdown instance for context [{}]".format(context_name))
+            md = Markdown.create_instance(self)
+            self._markdown_instances[context_name] = md
+        return md
+
+    @property
+    def page_types(self):
+        """returns types of Page and above (any children of Page)"""
+        return [t for t in self.types if issubclass(t, Page)]
+
+    @property
     def base_url(self):
         """Return the base url with scheme (scheme) and host and everything, if scheme
         is unknown this will use // (instead of http://) but that might make things
@@ -121,6 +137,9 @@ class Config(object):
         # this is where all the magic happens, the keys are the context names
         # and the values are the set properties for that context, 
         self.__dict__["_fields"] = defaultdict(dict)
+
+        # holds a markdown instance for each context
+        self.__dict__["_markdown_instances"] = dict()
 
         # initial settings for the themes
         self.__dict__["themes"] = {}
@@ -201,6 +220,22 @@ class Config(object):
         if k in self.__dict__ or k in self.__class__.__dict__:
             super(Config, self).__setattr__(k, v)
         else:
+            self.set(k, v)
+
+    def __setitem__(self, k, v):
+        return self.__setattr__(k, v)
+
+    def __getitem__(self, k):
+        return self.__getattr__(k)
+
+    def __contains__(self, k):
+        for context_name in reversed(self._context_names):
+            if k in self._fields[context_name]:
+                return True
+        return False
+
+    def setdefault(self, k, v):
+        if k not in self:
             self.set(k, v)
 
     def load_environ(self, prefix="BANG_"):

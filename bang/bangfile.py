@@ -5,9 +5,3 @@ from .event import event
 from .types import Page, TypeIterator
 from .plugins import sitemap
 
-
-@event("configure")
-def configure(event_name, config):
-    config.sitemap_iter = TypeIterator(config, [Page])
-
-

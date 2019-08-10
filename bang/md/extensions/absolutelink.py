@@ -2,8 +2,9 @@
 from __future__ import unicode_literals, division, print_function, absolute_import
 import re
 
-from markdown.extensions import Extension
-from markdown.treeprocessors import Treeprocessor
+from . import Extension, Treeprocessor
+#from markdown.extensions import Extension
+#from markdown.treeprocessors import Treeprocessor
 
 
 class AbsoluteLinkTreeprocessor(Treeprocessor):
@@ -13,13 +14,6 @@ class AbsoluteLinkTreeprocessor(Treeprocessor):
     http://effbot.org/zone/pythondoc-elementtree-ElementTree.htm
     https://github.com/waylan/Python-Markdown/blob/master/markdown/treeprocessors.py
     """
-    def get_tags(self, elem, *tags):
-        """go through and return all the *tags elements that are children of elem"""
-        tags = set(tags)
-        for child in elem.getiterator():
-            if child.tag in tags:
-                yield child
-
     def normalize_url(self, url):
         """normalizes the url into a full url"""
         dtype = self.markdown.dirtype
@@ -56,9 +50,11 @@ class AbsoluteLinkExtension(Extension):
     will be converted to a full url (http://domain.com/relative/path.ext), and if
     it is a /full/path then it will be converted to http://domain.com/full/path
     """
-    def extendMarkdown(self, md, md_globals):
-        md.registerExtension(self)
-        self.processor = AbsoluteLinkTreeprocessor(md)
-        md.treeprocessors.add('absolute_link', self.processor, "_end")
+    def extendMarkdown(self, md):
+        md.register(self, AbsoluteLinkTreeprocessor(md), "_end")
+
+#         md.registerExtension(self)
+#         self.processor = AbsoluteLinkTreeprocessor(md)
+#         md.treeprocessors.add('absolute_link', self.processor, "_end")
 
 

@@ -37,7 +37,7 @@ if is_py2:
     from SimpleHTTPServer import SimpleHTTPRequestHandler
     from BaseHTTPServer import HTTPServer
     import Cookie as cookies
-    import urlparse
+    import urlparse as parse
     import __builtin__ as builtins
     from HTMLParser import HTMLParser
 
@@ -52,7 +52,7 @@ elif is_py3:
     from io import StringIO
     from http.server import HTTPServer, SimpleHTTPRequestHandler
     from http import cookies
-    from urllib import parse as urlparse
+    from urllib import parse
     import builtins
     from html.parser import HTMLParser
 

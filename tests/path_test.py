@@ -4,7 +4,7 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 import testdata
 
 from bang.compat import *
-from bang.path import Directory, File
+from bang.path import Directory, File, Image
 from . import TestCase
 
 
@@ -96,5 +96,43 @@ class FileTest(TestCase):
         path = testdata.create_file("/foo/bar/che/index.html")
         f = File(path.basedir, "foo", "bar", "che", "index.html")
         self.assertTrue(path, f.path)
+
+
+class ImageTest(TestCase):
+    def test_dimensions(self):
+#         im = Image(testdata.get_content_file("favicon.ico"))
+#         pout.v(im.dimensions)
+#         return
+
+        ts = [
+            ("agif", (11, 29)),
+            ("gif", (190, 190)),
+            ("jpg", (190, 190)),
+            ("png", (190, 190)),
+            ("ico", (64, 64)),
+        ]
+
+        for t in ts:
+            im = Image(testdata.create_image(t[0]))
+            #pout.v(im.dimensions)
+            self.assertEqual(t[1], im.dimensions)
+
+
+    def test_is_animated(self):
+        im = Image(testdata.create_animated_gif())
+        self.assertTrue(im.is_animated())
+
+        im = Image(testdata.create_gif())
+        self.assertFalse(im.is_animated())
+
+        im = Image(testdata.create_jpg())
+        self.assertFalse(im.is_animated())
+
+        #im = Image("/Users/jaymon/Projects/Testdata/images/favicon-no-alpha.ico")
+        #pout.v(im.get_info())
+        #im = Image("./sample_1.gif")
+        #r = im.is_animated()
+        #pout.v(r)
+
 
 

@@ -8,20 +8,37 @@ can look at the individual modules to see all the goodies, and you can check out
 
 to see how they are instantiated.
 
+Extension api: https://python-markdown.github.io/extensions/api/
+
 extension for the markdown lib I use: https://github.com/waylan/Python-Markdown
 
-http://pythonhosted.org/Markdown/extensions/index.html
-http://pythonhosted.org/Markdown/extensions/api.html
 https://python-markdown.github.io/extensions/api/#registry
-
 https://github.com/Python-Markdown/markdown/wiki/Third-Party-Extensions
 https://python-markdown.github.io/extensions/
 """
 
 from markdown.extensions import Extension as BaseExtension
+from markdown.treeprocessors import Treeprocessor as BaseTreeprocessor
+
+
+class Treeprocessor(BaseTreeprocessor):
+    """
+    http://effbot.org/zone/pythondoc-elementtree-ElementTree.htm
+    https://github.com/waylan/Python-Markdown/blob/master/markdown/treeprocessors.py
+    """
+    def get_tags(self, elem, *tags):
+        """go through and return all the *tags elements that are children of elem"""
+        tags = set(tags)
+        for child in elem.getiterator():
+            #pout.v(child.tag, tags, child.tag in tags)
+            if child.tag in tags:
+                yield child
 
 
 class Extension(BaseExtension):
+    """
+    https://github.com/Python-Markdown/markdown/blob/master/markdown/extensions/__init__.py
+    """
     def find_priority(self, registry, names=None, priority=0):
         """compensates for Markdown's 3.0 branch deprecation and bug in md.preprocessors.add()
         method

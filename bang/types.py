@@ -11,7 +11,6 @@ from .compat import *
 from .decorators import classproperty, once
 from .path import Directory
 from .utils import HTMLStripper, Url
-from .md import Markdown
 
 
 logger = logging.getLogger(__name__)
@@ -46,6 +45,16 @@ class TypeIterator(object):
         for t in self.types:
             if t.name in self.config.project.types:
                 yield self.config.project.types[t.name]
+
+
+class PageIterator(TypeIterator):
+    """like TypeIterator but will iterate through all config defined page_types"""
+    @property
+    def types(self):
+        return self.config.page_types
+
+    def __init__(self, config):
+        self.config = config
 
 
 class Pages(object):
@@ -460,7 +469,7 @@ class Page(Type):
 
     @property
     def markdown(self):
-        return Markdown.get_instance()
+        return self.config.markdown
 
     @property
     def html(self):

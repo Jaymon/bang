@@ -11,9 +11,16 @@ import logging
 
 from ..compat import *
 from ..event import event
+from ..types import PageIterator
 
 
 logger = logging.getLogger(__name__)
+
+
+
+@event("configure.plugins")
+def configure(event_name, config):
+    config.setdefault("sitemap_iter", PageIterator(config))
 
 
 @event('output.finish')
@@ -21,8 +28,9 @@ def output_sitemap(event_name, config):
     if not config.sitemap_iter.has(): return
 
     with config.context("sitemap") as config:
-        enabled = config.get("sitemap_enabled", True)
-        if not enabled: return
+        if "sitemap_iter" not in config:
+            logger.error("sitemap plugin not running because no config.sitemap_iter found")
+            return
 
         sitemap = os.path.join(String(config.output_dir), 'sitemap.xml')
         logger.info("writing sitemap to {}".format(sitemap))

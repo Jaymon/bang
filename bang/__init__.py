@@ -36,7 +36,9 @@ class Project(object):
         Bangfile("{}.bangfile".format(self.config.module_name))
         Bangfile(self.project_dir),
 
-        event.push("configure", self.config)
+        event.push("configure.plugins", self.config)
+        event.push("configure.project", self.config)
+        event.push("configure", self.config) # deprecated 8-5-2019, move to configure.project
 
         theme = self.config.theme
         Bangfile(theme.theme_dir)
