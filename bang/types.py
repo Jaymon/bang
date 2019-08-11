@@ -509,7 +509,8 @@ class Page(Type):
         **kwargs -- dict -- these will be passed to the template
         """
         output_dir = self.output_dir
-        output_file = os.path.join(String(output_dir), self.output_basename)
+        output_file = output_dir.child_file(self.output_basename)
+        #output_file = os.path.join(String(output_dir), self.output_basename)
         logger.info("output {} [{}] to {}".format(self.name, self.title, output_file))
 
         r = output_dir.create()
@@ -536,12 +537,13 @@ class Page(Type):
             **kwargs
         )
 
-    def output_template(self, output_file, **kwargs):
+    def output_template(self, output_file, theme=None, **kwargs):
         # not sure which one I like better yet
         kwargs["page"] = self
         kwargs["instance"] = self
 
-        theme = self.config.theme
+        if not theme:
+            theme = self.config.theme
 
         logger.info(
             'Templating input file {} with theme.template [{}.{}] to output file {}'.format(

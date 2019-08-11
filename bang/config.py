@@ -61,6 +61,16 @@ class Config(object):
     check for that value in the previous context, all the way down the line
     """
     @property
+    def default_theme_name(self):
+        """the default theme name, .theme_name can change but this should stay
+        constant since it is the fallback theme"""
+        return "default"
+
+    @property
+    def default_theme(self):
+        return self.themes[self.default_theme_name]
+
+    @property
     def theme(self):
         return self.themes[self.theme_name]
 
@@ -76,10 +86,6 @@ class Config(object):
     @property
     def output_dir(self):
         return self.project.output_dir
-
-    @property
-    def template_dir(self):
-        return self.project.template_dir
 
     @property
     def context_name(self):
@@ -147,7 +153,7 @@ class Config(object):
         project_themes_d = project.project_dir.child("themes")
         if project_themes_d.exists():
             self.add_themes(project_themes_d)
-        self.theme_name = "default"
+        self.theme_name = self.default_theme_name
 
         self.encoding = "UTF-8"
         self.lang = "en"

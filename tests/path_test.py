@@ -56,7 +56,7 @@ class DirectoryTest(TestCase):
         ds = [v.path for v in d.directories(depth=1)]
         self.assertEqual(2, len(ds))
 
-    def test_files(self):
+    def test_files_1(self):
         d = Directory(testdata.create_files({
             "foo.txt": "",
             "bar/che.txt": "",
@@ -68,6 +68,25 @@ class DirectoryTest(TestCase):
 
         fs = [v for v in d.files(depth=1)]
         self.assertEqual(1, len(fs))
+
+    def test_files_2(self):
+        d = Directory(testdata.create_files({
+            "foo.txt": "",
+            "che.txt": "",
+            "bah.txt": ""
+        }))
+
+        fs = d.files()
+        self.assertEqual(3, len(d.files()))
+
+        fs2 = d.files(regex=r"^che")
+        self.assertEqual(1, len(fs2))
+        self.assertTrue(fs2[0].endswith("che.txt"))
+
+        fs2 = d.files(regex=r"^che", exclude=True)
+        self.assertEqual(2, len(fs2))
+        for f in fs2:
+            self.assertFalse(f.endswith("che.txt"))
 
     def test_in_private(self):
         d = Directory(testdata.create_dir("/foo/_bar/che"))

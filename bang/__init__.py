@@ -25,7 +25,6 @@ class Project(object):
     def __init__(self, project_dir, output_dir):
         self.project_dir = Directory(project_dir)
         self.output_dir = Directory(output_dir)
-        self.template_dir = Directory(self.project_dir, 'template')
         self.input_dir = Directory(self.project_dir, 'input')
         self.config = self.config_class(self)
         self.types = {}
@@ -43,8 +42,8 @@ class Project(object):
         theme = self.config.theme
         Bangfile(theme.theme_dir)
 
-        event.push("theme", self.config)
-        event.push("theme.{}".format(theme.name), self.config)
+        event.push("configure.theme", self.config)
+        event.push("configure.theme.{}".format(theme.name), self.config)
 
     def __iter__(self):
         return self.input_dir.copy_paths(self.output_dir)
@@ -93,7 +92,7 @@ class Project(object):
                 config.theme.output()
 
             for name, instances in self.types.items():
-                logger.debug("{}: {} pages".format(name, len(instances)))
+                logger.debug("{}: {}".format(name, len(instances)))
                 for instance in instances.filter(regex):
                     instance.output()
 

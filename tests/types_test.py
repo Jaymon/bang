@@ -84,6 +84,20 @@ class PageTest(TestCase):
         p = self.get_page('![this is the file](images/che.jpg)')
         self.assertNotEqual(p.absolute_url("/images/che.jpg"), p.absolute_url("images/che.jpg"))
 
+    def test_other_files(self):
+        p = self.get_page({
+            "index.md": ["![this is the file](foo.jpg)",
+                "",
+                "bar.png",
+                ""
+            ],
+            "foo.jpg": "",
+            "bar.png": "",
+        })
+
+        for of in p.other_files:
+            self.assertFalse(of.endswith("index.md"))
+
 
 class PagesTest(TestCase):
     def test_chunk(self):

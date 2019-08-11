@@ -540,6 +540,12 @@ class Directory(Path):
                 ret = File(ret.path)
         return ret
 
+    def child_file(self, *bits):
+        return File(self.path, *bits)
+
+    def child_directory(self, *bits):
+        return Directory(self.path, *bits)
+
     def __div__(self, bits):
         if isinstance(bits, basestring):
             bits = [bits]
@@ -570,11 +576,11 @@ class Directory(Path):
                 if not basename.startswith('_'):
                     if exclude:
                         if regex and not re.search(regex, basename, re.I):
-                            fs.append(os.path.join(root_dir, basename))
+                            fs.append(String(os.path.join(root_dir, basename)))
 
                     else:
                         if not regex or re.search(regex, basename, re.I):
-                            fs.append(os.path.join(root_dir, basename))
+                            fs.append(String(os.path.join(root_dir, basename)))
 
 
             fs.sort()
@@ -650,20 +656,20 @@ class DataDirectory(Directory):
         return self.child("themes")
 
 
-class TemplateDirectory(object):
+class TemplateDirectory(Directory):
     """Thin wrapper around Jinja functionality that handles templating things
 
     http://jinja.pocoo.org/docs/dev/
     """
     def __init__(self, template_dir):
-        self.template_dir = template_dir
+        self.path = template_dir
         self.env = Environment(
             loader=FileSystemLoader(String(template_dir)),
             #extensions=['jinja2.ext.with_'] # http://jinja.pocoo.org/docs/dev/templates/#with-statement
         )
 
         self.templates = {}
-        for f in fnmatch.filter(os.listdir(String(self.template_dir)), '*.html'):
+        for f in fnmatch.filter(os.listdir(String(self.path)), '*.html'):
             filename, fileext = os.path.splitext(f)
             self.templates[filename] = f
 
@@ -679,6 +685,6 @@ class TemplateDirectory(object):
         :param **kwargs: dict, all these will be passed to the template
         """
         tmpl = self.env.get_template("{}.html".format(template_name))
-        return tmpl.stream(config=config, **kwargs).dump(filepath, encoding=config.encoding)
+        return tmpl.stream(config=config, **kwargs).dump(String(filepath), encoding=config.encoding)
 
 
