@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
 
-from markdown.extensions import Extension
+from . import Extension
 from markdown.inlinepatterns import SimpleTagPattern
 
 
@@ -17,8 +17,21 @@ class DelInsExtension(Extension):
     DEL_RE = r"(\~{2})(.+?)(\~{2})"
     INS_RE = r"(\+{2})(.+?)(\+{2})"
 
-    def extendMarkdown(self, md, md_globals):
-        md.inlinePatterns.add('del', SimpleTagPattern(self.DEL_RE, 'del'), '<not_strong')
-        md.inlinePatterns.add('ins', SimpleTagPattern(self.INS_RE, 'ins'), '<not_strong')
+    def extendMarkdown(self, md):
+        md.register(
+            self,
+            SimpleTagPattern(self.DEL_RE, 'del'),
+            "<not_strong",
+            name="del"
+        )
 
+        md.register(
+            self,
+            SimpleTagPattern(self.INS_RE, 'ins'),
+            "<not_strong",
+            name="ins"
+        )
+
+        #md.inlinePatterns.add('del', SimpleTagPattern(self.DEL_RE, 'del'), '<not_strong')
+        #md.inlinePatterns.add('ins', SimpleTagPattern(self.INS_RE, 'ins'), '<not_strong')
 

@@ -42,6 +42,8 @@ class Project(object):
         theme = self.config.theme
         Bangfile(theme.theme_dir)
 
+        # theme configuration comes after project configuration because project
+        # configuration will most likely set the theme to be used
         event.push("configure.theme", self.config)
         event.push("configure.theme.{}".format(theme.name), self.config)
 
@@ -73,7 +75,6 @@ class Project(object):
                     instance = dt_class(input_dir, output_dir, self.config)
                     instances.append(instance)
                     break
-
 
     def output(self, regex=None):
         """go through input/ dir and compile the files and move them to output/ dir"""

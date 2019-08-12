@@ -47,14 +47,22 @@ class HighlightExtension(fenced_code.FencedCodeExtension):
 
     extends this markdown ext: http://pythonhosted.org/Markdown/extensions/fenced_code_blocks.html
     """
-    def extendMarkdown(self, md, md_globals):
+    def extendMarkdown(self, md):
         """ Add FencedBlockPreprocessor to the Markdown instance. """
-        md.registerExtension(self)
-
-        md.preprocessors.add(
-            'code_block',
-            CodeBlockPreprocessor(md),
+        processor = CodeBlockPreprocessor(md)
+        md.register(
+            self,
+            processor, #CodeBlockPreprocessor(md),
             ">normalize_whitespace"
         )
+
+        pout.v(md.registered(processor))
+
+#         md.registerExtension(self)
+#         md.preprocessors.add(
+#             'code_block',
+#             CodeBlockPreprocessor(md),
+#             ">normalize_whitespace"
+#         )
 
 

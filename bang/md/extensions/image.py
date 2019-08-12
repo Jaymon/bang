@@ -58,7 +58,6 @@ class ImageReferencePattern(BaseImageReferencePattern):
     """overrides parent to swap alt with title if title is empty and then use
     the basename of src as the alt"""
     def makeTag(self, href, title, text):
-        pout.v(href, title, text)
         if not title:
             title = text
             text = os.path.basename(href)
@@ -139,29 +138,53 @@ class ImageExtension(Extension):
     syntax have a bit less cognitive overhead, if you specify a title it will use
     that instead, so ![alt](name.jpg "title text") would still work
     """
-    def extendMarkdown(self, md, md_globals):
-        md.registerExtension(self)
-        self.processor = ImageTreeprocessor()
-        #md.treeprocessors.add('href', self.processor, ">")
-        md.treeprocessors['image'] = self.processor
+    def extendMarkdown(self, md):
 
-        md.inlinePatterns["image_link"] = ImagePattern(
-            md.inlinePatterns["image_link"].pattern,
-            md
+        # we are actually going to be replacing some builtin markdown things
+        md.register(self, ImageTreeprocessor())
+        md.register(
+            self,
+            ImagePattern(
+                md.inlinePatterns["image_link"].pattern,
+                md
+            ),
+            name="image_link",
         )
-        md.inlinePatterns["image_reference"] = ImageReferencePattern(
-            md.inlinePatterns["image_reference"].pattern,
-            md
+        md.register(
+            self,
+            ImageReferencePattern(
+                md.inlinePatterns["image_reference"].pattern,
+                md
+            ),
+            name="image_reference",
         )
 
-        md.parser.blockprocessors.register(
-            ImageProcessor(md.parser),
-            "image",
-            self.find_priority(md.parser.blockprocessors, ["paragraph"])
-        )
+        md.register(self, ImageProcessor(md.parser), "<paragraph")
 
-#         md.parser.blockprocessors.add(
-#             "image", ImageProcessor(md.parser), "<paragraph"
+
+
+#         md.registerExtension(self)
+#         self.processor = ImageTreeprocessor()
+#         #md.treeprocessors.add('href', self.processor, ">")
+#         md.treeprocessors['image'] = self.processor
+# 
+#         md.inlinePatterns["image_link"] = ImagePattern(
+#             md.inlinePatterns["image_link"].pattern,
+#             md
 #         )
+#         md.inlinePatterns["image_reference"] = ImageReferencePattern(
+#             md.inlinePatterns["image_reference"].pattern,
+#             md
+#         )
+# 
+#         md.parser.blockprocessors.register(
+#             ImageProcessor(md.parser),
+#             "image",
+#             self.find_priority(md.parser.blockprocessors, ["paragraph"])
+#         )
+# 
+# #         md.parser.blockprocessors.add(
+# #             "image", ImageProcessor(md.parser), "<paragraph"
+# #         )
 
 

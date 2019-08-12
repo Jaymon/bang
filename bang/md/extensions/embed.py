@@ -86,7 +86,7 @@ class UnlinkedTagTokenizer(object):
 
 
 class LinkifyPostprocessor(Postprocessor):
-    """This goes through and linkes any plain links in the body of the html
+    """This goes through and links any plain links in the body of the html
 
     other linkify example: https://github.com/Jaymon/Montage/blob/master/plugins/Utilities/src/Str.php
     """
@@ -380,28 +380,41 @@ class EmbedExtension(Extension):
     Any link that isn't already wrapped in an <a> tag will be wrapped in an <a> tag
     automatically
     """
-    def extendMarkdown(self, md, md_globals):
+    def extendMarkdown(self, md):
 
-        md.postprocessors.register(
-            LinkifyPostprocessor(md),
-            "embed",
-            self.find_priority(md.postprocessors)
-        )
+        md.register(self, LinkifyPostprocessor(md))
 
-        plugins = {
-            "embed_youtube": YoutubeProcessor(md.parser),
-            "embed_twitter": TwitterProcessor(md.parser),
-            "embed_instagram": InstagramProcessor(md.parser),
-            "embed_vimeo": VimeoProcessor(md.parser),
-            "embed_image": ImageProcessor(md.parser),
-        }
+        plugins = [
+            YoutubeProcessor(md.parser),
+            TwitterProcessor(md.parser),
+            InstagramProcessor(md.parser),
+            VimeoProcessor(md.parser),
+            ImageProcessor(md.parser),
+        ]
 
-        for name, instance in plugins.items():
-            md.parser.blockprocessors.register(
-                instance,
-                name,
-                self.find_priority(md.parser.blockprocessors, ["paragraph"])
-            )
+        for instance in plugins:
+            md.register(self, instance, "<paragraph")
+
+#         md.postprocessors.register(
+#             LinkifyPostprocessor(md),
+#             "embed",
+#             self.find_priority(md.postprocessors)
+#         )
+# 
+#         plugins = {
+#             "embed_youtube": YoutubeProcessor(md.parser),
+#             "embed_twitter": TwitterProcessor(md.parser),
+#             "embed_instagram": InstagramProcessor(md.parser),
+#             "embed_vimeo": VimeoProcessor(md.parser),
+#             "embed_image": ImageProcessor(md.parser),
+#         }
+# 
+#         for name, instance in plugins.items():
+#             md.parser.blockprocessors.register(
+#                 instance,
+#                 name,
+#                 self.find_priority(md.parser.blockprocessors, ["paragraph"])
+#             )
 
 #         md.postprocessors.add("embed", LinkifyPostprocessor(md), "_end")
 #         md.parser.blockprocessors.add("embed_youtube", YoutubeProcessor(md.parser), "<paragraph")
@@ -411,6 +424,6 @@ class EmbedExtension(Extension):
 #         md.parser.blockprocessors.add("embed_image", ImageProcessor(md.parser), "<paragraph")
 
 
-def makeExtension(*args, **kwargs):
-    return EmbedExtension(*args, **kwargs)
+#def makeExtension(*args, **kwargs):
+#    return EmbedExtension(*args, **kwargs)
 

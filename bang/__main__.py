@@ -12,7 +12,7 @@ import time
 
 from bang import __version__, Project
 from bang.server import Server
-from bang.path import Directory
+from bang.path import Directory, DataDirectory
 from bang.skeleton import Skeleton
 from bang.utils import Profile
 
@@ -43,32 +43,37 @@ def console_compile(args, project_dir, output_dir):
 
 def console_generate(args, project_dir, output_dir):
     logger.info("Generating new project in {}".format(project_dir))
-    s = Skeleton(project_dir)
-    s.output()
-    logger.info("generate done")
+    with Profile() as total:
+
+        data_d = DataDirectory()
+        data_d.project_directory().copy_to(project_dir)
+
+    logger.info("Generate done in {}".format(total))
     return 0
 
 
 def console_serve(args, project_dir, output_dir):
-    ret_code = 0
-    logger.info("* " * 40)
-    logger.info("serving directory")
-    logger.info("serving directory")
-    logger.info("")
-    logger.info("    {}".format(output_dir))
-    logger.info("")
-    logger.info("at url")
-    logger.info("")
-    logger.info("    http://localhost:{}".format(args.port))
-    logger.info("")
-    logger.info("* " * 40)
-    s = Server(str(output_dir), args.port)
-    try:
-        s.serve_forever()
-    except KeyboardInterrupt:
-        pass
+    with Profile() as total:
+        ret_code = 0
+        logger.info("* " * 40)
+        logger.info("serving directory")
+        logger.info("serving directory")
+        logger.info("")
+        logger.info("    {}".format(output_dir))
+        logger.info("")
+        logger.info("at url")
+        logger.info("")
+        logger.info("    http://localhost:{}".format(args.port))
+        logger.info("")
+        logger.info("* " * 40)
+        s = Server(str(output_dir), args.port)
+        try:
+            s.serve_forever()
 
-    logger.info("serve done")
+        except KeyboardInterrupt:
+            pass
+
+    logger.info("serve done in {}".format(total))
     return ret_code
 
 

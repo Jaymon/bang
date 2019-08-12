@@ -2,6 +2,7 @@
 from __future__ import unicode_literals, division, print_function, absolute_import
 import os
 import re
+import time
 
 from .compat import *
 
@@ -29,12 +30,13 @@ class HTMLStripper(HTMLParser):
 class Profile(object):
     def __enter__(self):
         self.start = time.time()
+        return self
 
     def __exit__(self, exception_type, exception_val, trace):
         self.stop = time.time()
         multiplier = 1000.00
         rnd = 2
-        self.elapsed = round(abs(stop - start) * float(multiplier), rnd)
+        self.elapsed = round(abs(self.stop - self.start) * float(multiplier), rnd)
         self.total = "{:.1f} ms".format(self.elapsed)
 
     def __unicode__(self):
@@ -91,7 +93,7 @@ class Url(String):
 
     def is_host(self, host):
         """return true if the url's host matches host"""
-        return self.host.lower() == host.lower()
+        return self.host and host and (self.host.lower() == host.lower())
 
     def is_local(self, config):
         """return True if is a local url to the project"""

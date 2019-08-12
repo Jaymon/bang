@@ -67,6 +67,18 @@ class ConfigTest(TestCase):
         with config.context("feed", scheme="https", host="example.com") as conf:
             self.assertEqual("https://example.com", conf.base_url)
 
+        with config.context("no_host_no_scheme", scheme="", host="") as conf:
+            self.assertEqual("", conf.base_url)
+
+        with config.context("no_host_scheme", scheme="http", host="") as conf:
+            self.assertEqual("", conf.base_url)
+
+        with config.context("host_none_scheme", scheme="http", host=None) as conf:
+            self.assertEqual("", conf.base_url)
+
+        with config.context("none_host_and_scheme", scheme=None, host=None) as conf:
+            self.assertEqual("", conf.base_url)
+
     def test_context_hierarchy(self):
         """https://github.com/Jaymon/bang/issues/33"""
         config = self.create_config()

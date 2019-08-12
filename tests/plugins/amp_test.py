@@ -19,8 +19,6 @@ class AmpTest(TestCase):
             bangfile=bangfile
         )
 
-
-
     def test_image(self):
         p = self.get_page([
             "![this is the file](foo.jpg)",

@@ -34,10 +34,18 @@ class RefPositionFixExtension(Extension):
 
     a blank line would be placed between the `[^n]` and `[n]` lines using this extension
     """
-    def extendMarkdown(self, md, md_globals):
+    def extendMarkdown(self, md):
         # it's best we run this before any other extension that messes with references
-        priority = self.find_priority(md.preprocessors, ["magicref", "footnote", "reference"])
-        md.preprocessors.register(RefPositionFixPreprocessor(md), "refpositionfix", priority)
+        md.register(
+            self,
+            RefPositionFixPreprocessor(md),
+            ["<MagicRefPreprocessor", "<footnote", "<reference"]
+        )
+
+
+
+#         priority = self.find_priority(md.preprocessors, ["magicref", "footnote", "reference"])
+#         md.preprocessors.register(RefPositionFixPreprocessor(md), "refpositionfix", priority)
 
         # it's best we run this before any other extension that messes with references
 #         position = '<reference'

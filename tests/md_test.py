@@ -3,6 +3,7 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 import os
 import json
 import re
+import textwrap
 
 import testdata
 
@@ -12,6 +13,10 @@ from . import TestCase
 
 
 class MarkdownTest(TestCase):
+    def test_inline_html(self):
+        p = self.get_page("before <code>```</code>, after")
+        self.assertEqual("<p>before <code>```</code>, after</p>", p.html)
+
     def test_image_full_path(self):
         p = self.get_page('![this is the file](images/che.jpg)')
         self.assertRegexpMatches(p.html, r'//{}/[^/]+/images/che.jpg'.format(p.config.host))
@@ -139,7 +144,7 @@ class MarkdownTest(TestCase):
         self.assertRegex(html, r'\"//{}/che.txt\"'.format(p.config.host))
         self.assertRegex(html, r'\"//bar.com\"')
 
-    def test_codeblocks_2(self):
+    def test_codeblocks_1(self):
         p = self.get_page([
             "```python",
             #"```no-highlight",
@@ -161,6 +166,29 @@ class MarkdownTest(TestCase):
         ])
         r = p.html
         self.assertRegex(r, r'class=\"codeblock python\"')
+
+    def test_codeblocks_footnotes(self):
+        markdown = textwrap.dedent("""
+            before
+
+            ```
+            [I'm a reference-style link with text][reference text]
+
+            [I'm a reference-style link with numbers][1]
+
+            reference style link with [link text itself]
+
+            [reference text]: https://www.mozilla.org "references can have titles also"
+            [1]: http://slashdot.org
+            [link text itself]: http://www.reddit.com
+            ```
+
+            after
+            """)
+        p = self.get_page(markdown)
+
+        pout.v(p.html)
+
 
     def test_easy_links(self):
         p = self.get_page([

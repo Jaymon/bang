@@ -117,18 +117,17 @@ class Config(object):
     @property
     def base_url(self):
         """Return the base url with scheme (scheme) and host and everything, if scheme
-        is unknown this will use // (instead of http://) but that might make things
-        like the rss feed and sitemap fail if they are used so it is recommended you
-        set the scheme in your bangfile, there is a similar problem if host is empty, then
-        it will just return empty string"""
-        base_url = ''
+        is unknown this will use // (instead of http://). If host is empty, then
+        it will just return empty string regardless of the scheme setting"""
+        base_url = ""
         scheme = self.scheme
-        if scheme:
-            base_url = '{}://{}'.format(scheme, self.host)
+        host = self.host
 
-        else:
-            host = self.host
-            if host:
+        if host:
+            if scheme:
+                base_url = '{}://{}'.format(scheme, host)
+
+            else:
                 base_url = '//{}'.format(host)
 
         return base_url
@@ -149,7 +148,7 @@ class Config(object):
 
         # initial settings for the themes
         self.__dict__["themes"] = {}
-        self.add_themes(DataDirectory().themes_dir())
+        self.add_themes(DataDirectory().themes_directory())
         project_themes_d = project.project_dir.child("themes")
         if project_themes_d.exists():
             self.add_themes(project_themes_d)

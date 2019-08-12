@@ -4,7 +4,7 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 import testdata
 
 from bang.compat import *
-from bang.utils import Url
+from bang.utils import Url, Profile
 from . import TestCase
 
 
@@ -17,4 +17,10 @@ class UrlTest(TestCase):
 
         self.assertEqual("/foo/bar.jpg", u.path)
 
+
+class ProfileTest(TestCase):
+    def test_with(self):
+        with Profile() as total:
+            pass
+        self.assertTrue(isinstance(total, Profile))
 

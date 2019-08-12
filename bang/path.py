@@ -48,7 +48,7 @@ class Path(object):
 
     def is_private(self):
         basename = self.basename
-        return basename.startswith('_')
+        return basename.startswith("_") or basename.startswith(".")
 
     def in_private(self):
         """make sure this path isn't an any private directory"""
@@ -123,7 +123,7 @@ class File(Path):
 
     def create(self, contents, encoding=""):
         """create the file with basename in this directory with contents"""
-        logger.debug("create file {}".format(output_file))
+        logger.debug("create file {}".format(self.path))
         encoding = encoding or self.encoding
 
         oldmask = os.umask(0)
@@ -468,8 +468,8 @@ class Directory(Path):
 
     def create_file(self, basename, contents, binary=False):
         """create the file with basename in this directory with contents"""
-        output_file = File(self.path, basename)
-        return output_file.create(contents, binary=binary)
+        output_file = File(self.path, basename, encoding="")
+        return output_file.create(contents)
 
     def copy_file(self, input_file):
         """copy the input_file to this directory"""
@@ -573,14 +573,15 @@ class Directory(Path):
         fs = []
         for root_dir, subdirs, files in os.walk(self.path, topdown=True):
             for basename in files:
-                if not basename.startswith('_'):
+                f = File(root_dir, basename)
+                if not f.is_private():
                     if exclude:
                         if regex and not re.search(regex, basename, re.I):
-                            fs.append(String(os.path.join(root_dir, basename)))
+                            fs.append(f.path)
 
                     else:
                         if not regex or re.search(regex, basename, re.I):
-                            fs.append(String(os.path.join(root_dir, basename)))
+                            fs.append(f.path)
 
 
             fs.sort()
@@ -652,8 +653,11 @@ class DataDirectory(Directory):
         base_dir = os.path.dirname(sys.modules[__name__.split(".")[0]].__file__)
         super(DataDirectory, self).__init__(base_dir, "data")
 
-    def themes_dir(self):
-        return self.child("themes")
+    def themes_directory(self):
+        return self.child_directory("themes")
+
+    def project_directory(self):
+        return self.child_directory("project")
 
 
 class TemplateDirectory(Directory):

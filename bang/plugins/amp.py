@@ -5,8 +5,6 @@ Google amp plugin
 from __future__ import unicode_literals, division, print_function, absolute_import
 import logging
 
-#from markdown.treeprocessors import Treeprocessor
-
 from ..compat import *
 from ..event import event
 from ..md.extensions import Extension, Treeprocessor

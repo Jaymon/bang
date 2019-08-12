@@ -35,7 +35,8 @@ def configure(event_name, config):
 @event("output.finish")
 def compile_root_index_files(event_name, config):
     # this compiles the root index.html
-    p = TypeIterator(config, [Post])
-    for pages in p:
-        pages.output()
+    config.project.get_type(Post.name).output()
+    #p = TypeIterator(config, [Post])
+    #for pages in p:
+    #    pages.output()
 

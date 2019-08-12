@@ -306,6 +306,21 @@ class Type(Directory):
     def match(cls, t):
         raise NotImplementedError()
 
+    @property
+    def uri(self):
+        """the path of the post (eg, /foo/bar/post-slug)"""
+        d = self.input_dir
+        relative = d.relative()
+        relative = relative.replace('\\', '/')
+        v = "/".join(['', relative])
+        return v
+
+    @property
+    def url(self):
+        """the full url of the post with host and everything"""
+        base_url = self.config.base_url
+        return "{}{}".format(base_url, self.uri)
+
     def __init__(self, input_dir, output_dir, config):
         """create an instance
 
@@ -393,21 +408,6 @@ class Page(Type):
         return modified
 
     @property
-    def uri(self):
-        """the path of the post (eg, /foo/bar/post-slug)"""
-        d = self.input_dir
-        relative = d.relative()
-        relative = relative.replace('\\', '/')
-        v = "/".join(['', relative])
-        return v
-
-    @property
-    def url(self):
-        """the full url of the post with host and everything"""
-        base_url = self.config.base_url
-        return "{}{}".format(base_url, self.uri)
-
-    @property
     def title(self):
         body = self.html
         title = ""
@@ -489,7 +489,7 @@ class Page(Type):
                 #md = Markdown.get_instance()
                 md = self.markdown
                 html = md.output(self)
-                self._meta = md.Meta
+                self._meta = getattr(md, "Meta", {})
                 htmls[context_name] = html
                 self._htmls = htmls
 

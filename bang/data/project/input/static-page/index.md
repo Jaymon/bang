@@ -1,0 +1,1 @@
+This is a static page. It will be compiled to `static-page/index.html` when the project is compiled. Any `index.md` in any folder will be compiled similarly.

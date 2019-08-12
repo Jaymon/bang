@@ -12,12 +12,13 @@ Extension api: https://python-markdown.github.io/extensions/api/
 
 extension for the markdown lib I use: https://github.com/waylan/Python-Markdown
 
+# https://github.com/Python-Markdown/markdown/blob/master/markdown/extensions/__init__.py
 https://python-markdown.github.io/extensions/api/#registry
 https://github.com/Python-Markdown/markdown/wiki/Third-Party-Extensions
 https://python-markdown.github.io/extensions/
 """
 
-from markdown.extensions import Extension as BaseExtension
+from markdown.extensions import Extension
 from markdown.treeprocessors import Treeprocessor as BaseTreeprocessor
 
 
@@ -35,31 +36,31 @@ class Treeprocessor(BaseTreeprocessor):
                 yield child
 
 
-class Extension(BaseExtension):
-    """
-    https://github.com/Python-Markdown/markdown/blob/master/markdown/extensions/__init__.py
-    """
-    def find_priority(self, registry, names=None, priority=0):
-        """compensates for Markdown's 3.0 branch deprecation and bug in md.preprocessors.add()
-        method
-
-        https://python-markdown.github.io/extensions/api/#extendmarkdown
-        """
-
-        if names:
-            position = ""
-            for name in names:
-                if name in registry:
-                    index = registry.get_index_for_name(name)
-                    priority = registry._priority[index][1] + 1
-                    break
-
-        else:
-            priority = 0
-            for t in registry._priority:
-                priority = max(t[1], priority)
-
-            priority += 1
-
-        return priority
-
+# class Extension(BaseExtension):
+#     """
+#     https://github.com/Python-Markdown/markdown/blob/master/markdown/extensions/__init__.py
+#     """
+#     def find_priority(self, registry, names=None, priority=0):
+#         """compensates for Markdown's 3.0 branch deprecation and bug in md.preprocessors.add()
+#         method
+# 
+#         https://python-markdown.github.io/extensions/api/#extendmarkdown
+#         """
+# 
+#         if names:
+#             position = ""
+#             for name in names:
+#                 if name in registry:
+#                     index = registry.get_index_for_name(name)
+#                     priority = registry._priority[index][1] + 1
+#                     break
+# 
+#         else:
+#             priority = 0
+#             for t in registry._priority:
+#                 priority = max(t[1], priority)
+# 
+#             priority += 1
+# 
+#         return priority
+# 
