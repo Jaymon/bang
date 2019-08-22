@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
+import re
 
 import testdata
 
@@ -20,7 +21,6 @@ class TestCase(BaseTestCase):
 
 
 class AmpTest(TestCase):
-
     def test_image(self):
         p = self.get_page([
             "![this is the file](foo.jpg)",
@@ -39,15 +39,28 @@ class AmpTest(TestCase):
         self.assertTrue(p.output_dir.has_file("amp", "index.html"))
 
         amp = p.output_dir.child_directory("amp").file_contents("index.html")
-        pout.v(amp)
         self.assertTrue("<amp-img" in amp)
+        ms = re.findall("<amp-img[^>]+>", amp)
+        for m in ms:
+            self.assertTrue("width=" in m)
+            self.assertTrue("height=" in m)
 
-        amp = p.output_dir.file_contents("index.html")
-        self.assertFalse("<amp-img" in amp)
+        html = p.output_dir.file_contents("index.html")
+        self.assertFalse("<amp-img" in html)
+
+    def test_canonical(self):
+        p = self.get_page()
+
+        p.config.project.output()
+
+        r_html = p.output_dir.file_contents("index.html")
+        self.assertTrue('rel="amphtml"' in r_html)
+
+        r_amp = p.output_dir.child_directory("amp").file_contents("index.html")
+        self.assertTrue('rel="canonical"' in r_amp)
 
 
 class AmpEmbedTest(TestCase):
-
     def setUp(self):
         """This makes sure these tests only run when they are run specifically, so
         these will be skipped when all tests are run, we do this because these tests
@@ -62,7 +75,6 @@ class AmpEmbedTest(TestCase):
             pyt.skip_multi_class("These tests only run when specifically invoked")
 
         super(AmpEmbedTest, self).setUp()
-
 
     def test_embed_youtube(self):
         p = self.get_page([

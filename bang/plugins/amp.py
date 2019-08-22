@@ -89,31 +89,6 @@ class TwitterProcessor(BaseTwitterProcessor, AmpProcessor):
         return " ".join(embed_html)
 
 
-#     def get_response(self, url, **params):
-#         self.add_component()
-#         html, body = super(TwitterProcessor, self).get_response(url)
-# 
-# #         self.md.config.amp_components.add(
-# #             '<script async custom-element="{}" src="{}"></script>'.format(
-# #                 self.component_name,
-# #                 self.component_src
-# #             )
-# #         )
-# 
-#         tweetid = self.get_id(url)
-#         width = body["width"]
-#         height = body.get("height", width)
-# 
-#         embed_html = [
-#             '<amp-twitter',
-#             'data-tweetid="{}"'.format(tweetid),
-#             'layout="responsive"',
-#             'width="{}" height="{}"></amp-youtube>'.format(width, height),
-#         ]
-# 
-#         return " ".join(embed_html), body
-
-
 class InstagramProcessor(BaseInstagramProcessor, AmpProcessor):
     """
     https://amp.dev/documentation/components/amp-instagram/
@@ -140,32 +115,6 @@ class InstagramProcessor(BaseInstagramProcessor, AmpProcessor):
         return " ".join(embed_html)
 
 
-#     def get_response(self, url, **params):
-#         self.add_component()
-#         html, body = super(InstagramProcessor, self).get_response(url)
-# 
-# #         self.md.config.amp_components.add(
-# #             '<script async custom-element="{}" src="{}"></script>'.format(
-# #                 self.component_name,
-# #                 self.component_src
-# #             )
-# #         )
-# 
-#         igid = self.get_id(url)
-#         width = body["thumbnail_width"]
-#         height = body.get("thumbnail_height", width)
-# 
-#         embed_html = [
-#             '<amp-instagram',
-#             'data-shortcode="{}"'.format(igid),
-#             'data-captioned',
-#             'layout="responsive"',
-#             'width="{}" height="{}"></amp-youtube>'.format(width, height),
-#         ]
-# 
-#         return " ".join(embed_html), body
-
-
 class VimeoProcessor(BaseImageProcessor, AmpProcessor):
     """
     https://amp.dev/documentation/components/amp-vimeo/?format=websites
@@ -176,13 +125,6 @@ class VimeoProcessor(BaseImageProcessor, AmpProcessor):
 
     def get_embed_code(self, url):
         self.add_component()
-
-#         self.md.config.amp_components.add(
-#             '<script async custom-element="{}" src="{}"></script>'.format(
-#                 self.component_name,
-#                 self.component_src
-#             )
-#         )
 
         vid = self.get_id(url)
         width = 640
@@ -227,19 +169,6 @@ class AmpTreeprocessor(Treeprocessor):
             elem.tag = "amp-video"
             # TODO -- add width and height? Ugh
 
-        #for elem in self.get_tags(doc, "figure"):
-#         for elem in self.get_tags(doc, "iframe"):
-#             pout.v(elem.tag)
-# 
-#         from markdown.util import etree
-# 
-#         for elem in self.get_tags(doc, "figure"):
-#             pout.v(elem.tag, elem.get("class"))
-#             etree.dump(elem)
-# 
-#         pout.v(self.md.htmlStash)
-
-
         # TODO -- support audio? It's a little more complex because it needs a
         # js script included in the head, we might just be able to put that js
         # script in the head for everything though
@@ -264,9 +193,7 @@ class IframePostprocessor(Postprocessor, AmpProcessor):
         text, iframe_count = self.IFRAME_REGEX.subn(self.iframe_callback, text)
         if iframe_count > 0:
             self.add_component()
-
-        logger.debug("Amp found {} iframes in text".format(iframe_count))
-        self.md.config.amp_iframes = iframe_count
+            logger.debug("Amp found {} iframes in text".format(iframe_count))
 
         return text
 
@@ -296,7 +223,6 @@ def configure(event_name, config):
 def configure(event_name, config):
     md = config.markdown
     md.register(AmpExtension())
-    #md.registerExtensions(extensions=[AmpExtension()], configs={})
 
     # amp will first check if current theme has amp support, if it doesn't then it
     # will fallback to the default theme
@@ -321,8 +247,10 @@ def output_amp(event_name, config):
     with config.context("amp") as config:
         theme = config.theme
         for p in config.amp_iter:
+
             # we generate the html so things like config.amp_components will be
-            # populated, I can't figure out any better way to do this right now
+            # populated when we go to template the page I can't figure out any
+            # better way to do this right now
             p.html
 
             p.amp_output_file = p.output_dir.child_file("amp", p.output_basename)
@@ -339,17 +267,5 @@ def output_amp(event_name, config):
 def amp_url(self):
     """returns the amp permalink url for this page"""
     return "{}/amp".format(self.url.rstrip("/"))
-
-
-# @extend.property(Page, "amp_iframes")
-# def amp_iframes(self):
-#     """returns how many iframes were found in the body html"""
-#     html = self.html
-#     return self.config.amp_iframes
-
-
-# @extend.property(Config, "amp_css")
-# def amp_css(self):
-#     return 
 
 

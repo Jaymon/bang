@@ -79,8 +79,12 @@ class Path(object):
         if not ancestor_dir:
             raise ValueError("no ancestor_dir found")
 
-        relative = self.path.replace(String(ancestor_dir), '').strip(os.sep)
+        relative = self.path.replace(String(ancestor_dir), '', 1).strip(os.sep).strip("/")
         return relative
+
+    def relative_parts(self, ancestor_dir=None):
+        relative = self.relative(ancestor_dir)
+        return re.split(r"[\/]", relative)
 
     def clone(self):
         """return a new instance with the same path"""
@@ -475,7 +479,7 @@ class Directory(Path):
         """copy the input_file to this directory"""
         return File(input_file).copy_to(self.path)
 
-    def copy_paths(self, output_dir):
+    def copy_paths(self, output_dir, depth=0):
         """you have current directory self and you want to copy the entire directory
         tree of self into output_dir, this finds all the subdirectories of self and
         creates an equivalent path in output_dir
@@ -489,17 +493,24 @@ class Directory(Path):
         output_dir = Directory(output_dir).clone()
         yield input_dir, output_dir
 
-        for input_subdir in input_dir:
-            output_subdir = output_dir / input_subdir.relative()
-            yield input_subdir, output_subdir
+        for input_subdir in input_dir.directories(depth=depth):
+            parts = input_subdir.relative_parts()
+            is_valid = not depth or len(parts) < depth
 
-    def copy_to(self, output_dir):
-        """Copies the entire tree of self to output_dir
+            if is_valid:
+                output_subdir = output_dir / input_subdir.relative()
+                yield input_subdir, output_subdir
+
+    def copy_to(self, output_dir, depth=0):
+        """Copies to depth of the directory tree of self to output_dir
 
         :param output_dir: Directory, the directory you want to copy the tree of this
             Directory (self) into
+        :param depth: int, if 0 then copies the entire directory tree, if 1 then
+            only copies the files in self.path, if 2 then would copy immediate .path
+            and one more level, etc.
         """
-        for input_subdir, output_subdir in self.copy_paths(output_dir):
+        for input_subdir, output_subdir in self.copy_paths(output_dir, depth=depth):
             #if input_subdir.is_private(): continue
             output_subdir.create()
             for f in input_subdir.files():

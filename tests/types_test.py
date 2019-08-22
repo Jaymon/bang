@@ -9,6 +9,16 @@ from bang.types import Page, Pages
 from . import TestCase
 
 
+class OtherTest(TestCase):
+    def test_md_copy(self):
+        p = self.get_project({
+            "foo/index.md": "# Foo",
+        })
+
+        p.output()
+        self.assertFalse(p.output_dir.has_file("foo", "index.md"))
+
+
 class PageTest(TestCase):
     def test_compile(self):
         p = self.get_page([

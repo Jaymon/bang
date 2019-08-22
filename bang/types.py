@@ -366,7 +366,7 @@ class Other(Type):
 
     def output(self, **kwargs):
         if self.input_dir.is_private(): return
-        self.input_dir.copy_to(self.output_dir)
+        self.input_dir.copy_to(self.output_dir, depth=1)
 
     @classmethod
     def match(cls, directory):

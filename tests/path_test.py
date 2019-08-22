@@ -9,7 +9,15 @@ from . import TestCase
 
 
 class DirectoryTest(TestCase):
-    def test_copy_paths(self):
+    def test_relative_parts(self):
+        d = Directory("/foo/bar/che/bam/boo")
+        p = d.relative_parts("/")
+        self.assertEqual(["foo", "bar", "che", "bam", "boo"], p)
+
+        p = d.relative_parts("/foo/bar/")
+        self.assertEqual(["che", "bam", "boo"], p)
+
+    def test_copy_paths_all(self):
         output_dir = testdata.create_dir()
         input_dir = Directory(testdata.create_files({
             "foo.txt": "",
@@ -25,6 +33,19 @@ class DirectoryTest(TestCase):
             s.discard(isd.basename)
 
         self.assertEqual(0, len(s))
+
+    def test_copy_paths_depth(self):
+        output_dir = testdata.create_dir()
+        input_dir = Directory(testdata.create_files({
+            "foo.txt": "",
+            "bar/che.txt": "",
+            "boo/baz/bah.txt": ""
+        }))
+
+        self.assertEqual(1, len(list(input_dir.copy_paths(output_dir, depth=1))))
+        self.assertEqual(3, len(list(input_dir.copy_paths(output_dir, depth=2))))
+        self.assertEqual(4, len(list(input_dir.copy_paths(output_dir, depth=3))))
+        self.assertEqual(4, len(list(input_dir.copy_paths(output_dir, depth=0))))
 
     def test_copy_to(self):
         output_dir = Directory(testdata.create_dir())
