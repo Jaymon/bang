@@ -122,33 +122,9 @@ class MagicRefExtension(Extension):
         )
 
     def extendMarkdown(self, md, md_globals):
-
         md.register(
             self,
             MagicRefPreprocessor(md, self.getConfigs()),
             ["<footnote", "<reference"]
         )
-
-
-        #priority = self.find_priority(md.preprocessors, ["footnote", "reference"])
-        #md.preprocessors.register(MagicRefPreprocessor(md, self.getConfigs()), "magicref", priority)
-
-
-
-#         position = ""
-#         if "footnote" in md.preprocessors:
-#             position = "footnote"
-#         elif "reference" in md.preprocessors:
-#             position = "reference"
-# 
-#         priority = 100
-#         if position:
-#             priority = md.preprocessors._priority[md.preprocessors.get_index_for_name(position)][1] + 1
-# 
-# #         position = '<reference'
-# #         if "footnote" in md.preprocessors:
-# #             position = '<footnote'
-#         #md.preprocessors.add('magicref', MagicRefPreprocessor(md, self.getConfigs()), position)
-# 
-#         md.preprocessors.register(MagicRefPreprocessor(md, self.getConfigs()), "magicref", priority)
 

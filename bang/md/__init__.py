@@ -12,7 +12,7 @@ from markdown.inlinepatterns import InlineProcessor, Pattern
 from markdown.blockprocessors import BlockProcessor
 from markdown.postprocessors import Postprocessor
 from markdown.preprocessors import Preprocessor
-
+from markdown.util import Registry # https://python-markdown.github.io/extensions/api/#registry
 
 from ..compat import *
 from .extensions.delins import DelInsExtension
@@ -39,7 +39,6 @@ class Markdown(markdown.Markdown):
     """
     @classmethod
     def create_extensions(cls):
-        return [HighlightExtension()]
         return [
             # as of Markdown 3.0+ order can matter
             # https://python-markdown.github.io/extensions/footnotes/
@@ -103,8 +102,10 @@ class Markdown(markdown.Markdown):
 #         pass
 
     def find_priority(self, priority, registry):
+        if isinstance(priority, int):
+            pr = priority
 
-        if not isinstance(priority, int):
+        else:
             if isinstance(priority, basestring):
                 priority = [priority]
 
@@ -113,14 +114,10 @@ class Markdown(markdown.Markdown):
 
             for p in priority:
                 if p == "_begin":
-                    for t in registry._priority:
-                        pr = max(t[1], pr)
-                    pr += 5
+                    pr = max(t[1] for t in registry._priority) + 5
 
                 elif p == "_end":
-                    for t in registry._priority:
-                        pr = min(t[1], pr)
-                    pr -= 5
+                    pr = min(t[1] for t in registry._priority) - 5
 
                 else:
                     k = "="
@@ -130,16 +127,20 @@ class Markdown(markdown.Markdown):
 
                     if p in registry:
                         index = registry.get_index_for_name(p)
-                        if k == ">":
-                            d[k] = min(d[k], registry._priority[index][1])
-                        elif k == "<":
-                            d[k] = max(d[k], registry._priority[index][1])
+                        if k in d:
+                            if k == ">":
+                                d[k] = min(d[k], registry._priority[index][1])
+                            elif k == "<":
+                                d[k] = max(d[k], registry._priority[index][1])
+
+                            else:
+                                d[k] = registry._priority[index][1]
 
                         else:
                             d[k] = registry._priority[index][1]
 
             if ">" in d and "<" in d:
-                pr = d[">"] + int(d["<"] - d[">"] / 2)
+                pr = d["<"] + int((d[">"] - d["<"]) / 2)
 
             elif ">" in d:
                 pr = d[">"] - 5
@@ -150,7 +151,7 @@ class Markdown(markdown.Markdown):
             elif "=" in d:
                 pr = d["="]
 
-            return pr
+        return pr
 
     def registered(self, processor):
         if isinstance(processor, Treeprocessor):
@@ -174,24 +175,7 @@ class Markdown(markdown.Markdown):
         return registry
 
     def register(self, extension, processor=None, priority="", **kwargs):
-
-#         if extension_name not in self.registered_extension_names:
-#             if not processor:
-#                 # I have no idea why this needs to be done but all the
-#                 # extensions do it so we're doing it to
-#                 #self.registerExtension(extension) # 3.0 examples don't do this
-#                 self.registered_extension_names.add(extension_name)
-# 
-#             else:
-#                 # we didn't pass in a processor so we are adding this extension to
-#                 # markdown
-#                 self.registerExtensions(
-#                     extensions=[extension],
-#                     configs=kwargs.get("configs", {})
-#                 )
-
         if processor:
-
             name = kwargs.get("name", String(processor.__class__.__name__))
             registry = self.registered(processor)
 

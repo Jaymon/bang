@@ -3,6 +3,7 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 import os
 import re
 import time
+from collections import defaultdict
 
 from .compat import *
 
@@ -105,4 +106,127 @@ class Url(String):
         elif self.is_host(config.host):
             ret = True
         return ret
+
+
+class ContextCache(object):
+    @property
+    def context_name(self):
+        return self.config.context_name
+
+    @property
+    def context_dict(self):
+        return self.d[self.context_name]
+
+    def __init__(self, config):
+        self.config = config
+        self.d = defaultdict(dict)
+
+    def __getitem__(self, k):
+        cd = self.context_dict
+        return cd[k]
+
+    def __contains__(self, k):
+        cd = self.context_dict
+        return k in cd
+
+    def get(self, k, default_val=None):
+        if k in self:
+            return self[k]
+        else:
+            return default_val
+
+    def pop(self, k, default_val=None):
+        ret = default_val
+        if k in self:
+            ret = self[k]
+            del self[k]
+        return ret
+
+    def __setitem__(self, k, v):
+        cd = self.context_dict
+        cd[k] = v
+
+    def __delitem__(self, k):
+        cd = self.context_dict
+        del cd[k]
+
+    def items(self):
+        cd = self.context_dict
+        for k, v in cd.items():
+            yield k, v
+
+    def keys(self):
+        for k, v in self.items():
+            yield k
+
+
+class Scanner(object):
+    """Python implementation of Obj-c Scanner
+
+    https://github.com/Jaymon/PlusPlus/blob/master/PlusPlus/NSString%2BPlus.m
+    """
+    def __init__(self, text):
+        self.text = text
+        self.offset = 0
+        self.length = len(self.text)
+
+    def to(self, char):
+        """scans and returns string up to char"""
+        partial = ""
+        while (self.offset < self.length) and (self.text[self.offset] != char):
+            partial += self.text[self.offset]
+            self.offset += 1
+
+        return partial
+
+    def until(self, char):
+        """similar to to() but includes the char"""
+        partial = self.to(char)
+        if self.offset < self.length:
+            partial += self.text[self.offset]
+            self.offset += 1
+        return partial
+
+    def __nonzero__(self): return self.__bool__() # py <3
+    def __bool__(self):
+        return self.offset < self.length
+
+
+class UnlinkedTagTokenizer(object):
+    """This will go through an html block of code and return pieces that aren't
+    linked (between <a> and </a>), allowing you to mess with the blocks of plain
+    text that isn't special in some way"""
+
+    def __init__(self, text):
+        self.s = Scanner(text)
+
+    def __iter__(self):
+        """returns plain text blocks that aren't in html tags"""
+        start_set = set(["<a ", "<pre>", "<pre "])
+        stop_set = set(["</a>", "</pre>"])
+
+        s = self.s
+        tag = ""
+        plain = s.to("<")
+        while s:
+            yield tag, plain
+
+            tag = s.until(">")
+            plain = s.to("<")
+            if [st for st in start_set if tag.startswith(st)]:
+            #if tag.startswith("<a"):
+                # get rid of </a>, we can't do anything with the plain because it
+                # is linked in an <a> already
+                #while not tag.endswith("</a>"):
+                while len([st for st in stop_set if tag.endswith(st)]) == 0:
+                    tag += plain
+                    tag += s.until(">")
+                    plain = s.to("<")
+
+        # pick up any stragglers
+        yield tag, plain
+
+
+
+
 

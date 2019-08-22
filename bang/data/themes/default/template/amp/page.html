@@ -1,0 +1,28 @@
+{% extends "master.html" %}
+{% from 'macros.html' import opengraph, article %}
+
+{% block title %}{{ instance.title }}{% endblock %}
+
+{% block components %}
+    {% if config.amp_components %}
+        {% for component in config.amp_components %}
+            {{ component }}
+        {% endfor %}
+    {% endif %}
+{% endblock %}
+
+{% block amp %}
+<link rel="canonical" href="{{ instance.url }}">
+<style amp-custom>
+{{ config.theme.template_dir.file_contents("amp.css") }}
+</style>
+{% endblock %}
+
+{% block description %}
+  {{ opengraph(instance) }}
+{% endblock %}
+
+{% block content %}
+  {{ article(instance) }}
+{% endblock %}
+

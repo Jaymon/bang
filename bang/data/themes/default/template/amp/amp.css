@@ -127,7 +127,7 @@ blockquote {
   background-color: #fbfbfb;
 }
 
-img {
+amp-img {
   height: auto;
   max-width: 100%;
   /*  border: 1px solid #e8e4df;*/
@@ -147,50 +147,6 @@ figcaption {
   /*  color: #c6bdb9;*/
   /*  color: #b0b0b0;*/
   color: #b8babf;
-}
-
-
-/* ************************************************************************** */
-/* Header specific
-/* ************************************************************************** */
-#header {
-  /*  margin: 0 0 20px 0;*/
-  /*  border-bottom:1px solid #eee;*/
-  /*  color: #c6bdb9;*/
-  padding-top: 10px;
-}
-
-#header h1 {
-  border: 0;
-  padding: 5px 0 5px 0;
-  margin: 0;
-  text-align: center;
-  font-size: 1.5em;
-  font-weight: bold;
-}
-
-#header a {
-  /*  color: #006ca3;*/
-  /*  color: #333;*/
-  /*  color: #c6bdb9;*/
-  /*  color: #ddd;*/
-  color: #b8babf;
-  text-decoration: none;
-}
-
-#header a:focus, #header a:hover {
-  color: #333;
-}
-
-#header p {
-  margin: 0;
-}
-
-#go-back {
-  text-align: right;
-}
-#go-forward {
-  text-align: left;
 }
 
 
@@ -234,7 +190,7 @@ twitterwidget {
 
 /* handles centering Instagram js widget */
 .instagram-media {
-  margin: 0 auto !important; 
+  margin: 0 auto; 
 }
 
 .hljs {
@@ -331,45 +287,3 @@ time {
 }
 
 
-/* ************************************************************************** */
-/* Footer specific
-/* ************************************************************************** */
-#footer {
-  font-family: "Arial", "Helvetica";
-  font-size: 0.85em;
-  /*  border-top: 1px solid #e8e4df;*/
-  border-top: 1px solid #f1f1f1;
-  padding: 5px 0 5px 0;
-  margin: 75px 0 0 0;
-  /*  color: #a6a6a6;*/
-  /*  background-color: #fcfcfb;*/
-  background-color: #fbfbfb;
-  color: #181818;
-}
-
-#footer ul, #footer li {
-  list-style-type: none;
-  padding: 0;
-  margin: 0;
-}
-
-#footer img {
-  width: 100%;
-  padding: 10px 0 0 0;
-  border: 0;
-}
-
-.tout p {
-  text-align: center;
-  font-size: 0.8em;
-  padding: 50px 0 0 0;
-}
-
-/*#footer li > div {
-  vertical-align: middle;
-}*/
-
-#footer .icon {
-  fill: #333;
-  vertical-align: middle;
-}

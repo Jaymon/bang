@@ -53,8 +53,3 @@ class AbsoluteLinkExtension(Extension):
     def extendMarkdown(self, md):
         md.register(self, AbsoluteLinkTreeprocessor(md), "_end")
 
-#         md.registerExtension(self)
-#         self.processor = AbsoluteLinkTreeprocessor(md)
-#         md.treeprocessors.add('absolute_link', self.processor, "_end")
-
-

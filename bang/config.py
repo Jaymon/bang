@@ -251,11 +251,13 @@ class Config(object):
 
 
 class Theme(object):
-    def __init__(self, theme_dir, config):
+    def __init__(self, theme_dir, config, **kwargs):
         self.theme_dir = theme_dir
         self.name = self.theme_dir.basename
         self.config = config
-        self.template_dir = TemplateDirectory(self.theme_dir.child("template"))
+        self.template_dir = TemplateDirectory(
+            self.theme_dir.child(kwargs.get("template_dir", "template"))
+        )
         self.input_dir = self.theme_dir.child("input")
 
     def output(self):

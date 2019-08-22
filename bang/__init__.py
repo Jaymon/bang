@@ -52,7 +52,17 @@ class Project(object):
 
     def get_type(self, type_name):
         """return the instances of type_name found during project compile"""
-        return self.types.get(type_name, [])
+        ret = self.types.get(type_name, None)
+        if ret is None:
+            for dt_class in self.config.types:
+                if type_name == dt_class.name:
+                    ret = dt_class.pages_class(self.config)
+                    self.types[type_name] = ret
+
+            if ret is None:
+                raise ValueError("No defined pages class for type [{}]".format(type_name))
+
+        return ret
 
     def compile(self):
         """go through project's input/ directory and find all the different types
@@ -65,12 +75,7 @@ class Project(object):
         for input_dir, output_dir in self:
             for dt_class in self.config.types:
                 if dt_class.match(input_dir):
-                    if dt_class.name not in self.types:
-                        instances = dt_class.pages_class(self.config)
-                        self.types[dt_class.name] = instances
-                    else:
-                        instances = self.types[dt_class.name]
-
+                    instances = self.get_type(dt_class.name)
                     logger.debug("{}: /{}".format(dt_class.name, input_dir.relative()))
                     instance = dt_class(input_dir, output_dir, self.config)
                     instances.append(instance)

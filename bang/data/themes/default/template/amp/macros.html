@@ -1,0 +1,22 @@
+{% macro article(instance) %}
+  <article class="body">
+    <h1><a href="{{instance.url}}">{{ instance.title }}</a></h1>
+
+    {{ instance.html }}
+
+    <time datetime="{{ instance.modified.strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}" class="metadata">
+        {{ instance.modified.strftime('%b %d %Y') }}
+    </time>
+  </article>
+{% endmacro %}
+
+{% macro opengraph(instance) %}
+  {# <!-- http://ogp.me/ --> #}
+  <meta name="description" content="{{ instance.description }}">
+  <meta property="og:url" content="{{ instance.url }}" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="{{ instance.title }}" />
+  <meta property="og:description" content="{{ instance.description }}" />
+  <meta property="og:image" content="{{ instance.image }}" />
+{% endmacro %}
+

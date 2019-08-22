@@ -7,82 +7,14 @@ import os
 import logging
 
 from markdown import util
-from markdown.postprocessors import Postprocessor
-from markdown.blockprocessors import BlockProcessor as BaseBlockProcessor
 import requests
 
 from ...path import Directory
-from . import Extension
+from . import Extension, Postprocessor, Blockprocessor as BaseBlockprocessor
+from ...utils import UnlinkedTagTokenizer
 
 
 logger = logging.getLogger(__name__)
-
-
-class Scanner(object):
-    """Python implementation of Obj-c Scanner
-
-    https://github.com/Jaymon/PlusPlus/blob/master/PlusPlus/NSString%2BPlus.m
-    """
-    def __init__(self, text):
-        self.text = text
-        self.offset = 0
-        self.length = len(self.text)
-
-    def to(self, char):
-        """scans and returns string up to char"""
-        partial = ""
-        while (self.offset < self.length) and (self.text[self.offset] != char):
-            partial += self.text[self.offset]
-            self.offset += 1
-
-        return partial
-
-    def until(self, char):
-        """similar to to() but includes the char"""
-        partial = self.to(char)
-        if self.offset < self.length:
-            partial += self.text[self.offset]
-            self.offset += 1
-        return partial
-
-    def __nonzero__(self): return self.__bool__() # py <3
-    def __bool__(self):
-        return self.offset < self.length
-
-
-class UnlinkedTagTokenizer(object):
-    """This will go through an html block of code and return pieces that aren't
-    linked (between <a> and </a>), allowing you to mess with the blocks of plain
-    text that isn't special in some way"""
-
-    def __init__(self, text):
-        self.s = Scanner(text)
-
-    def __iter__(self):
-        """returns plain text blocks that aren't in html tags"""
-        start_set = set(["<a ", "<pre>", "<pre "])
-        stop_set = set(["</a>", "</pre>"])
-
-        s = self.s
-        tag = ""
-        plain = s.to("<")
-        while s:
-            yield tag, plain
-
-            tag = s.until(">")
-            plain = s.to("<")
-            if [st for st in start_set if tag.startswith(st)]:
-            #if tag.startswith("<a"):
-                # get rid of </a>, we can't do anything with the plain because it
-                # is linked in an <a> already
-                #while not tag.endswith("</a>"):
-                while len([st for st in stop_set if tag.endswith(st)]) == 0:
-                    tag += plain
-                    tag += s.until(">")
-                    plain = s.to("<")
-
-        # pick up any stragglers
-        yield tag, plain
 
 
 class LinkifyPostprocessor(Postprocessor):
@@ -137,10 +69,17 @@ class LinkifyPostprocessor(Postprocessor):
         return text_linked
 
 
-class BlockProcessor(BaseBlockProcessor):
+class Blockprocessor(BaseBlockprocessor):
     """
     https://github.com/waylan/Python-Markdown/blob/master/markdown/blockparser.py
     """
+    def get_id(self, url):
+        m = self.id_regex.search(url)
+        return m.group(1) if m else None
+
+    def test(self, parent, block):
+        return self.test_regex.match(block.strip()) and self.get_id(block)
+
     def get_figure(self, parent, name):
         if self.parser.markdown.output_format in ["html"]:
             figure = util.etree.SubElement(parent, 'figure')
@@ -153,32 +92,32 @@ class BlockProcessor(BaseBlockProcessor):
         return figure
 
 
-class YoutubeProcessor(BlockProcessor):
+class YoutubeProcessor(Blockprocessor):
     """This will convert a plain youtube link to an embedded youtube video
 
     fun fact, this is based on some super old php code I wrote for noopsi.com 11
     years ago
     """
-    def get_ytid(self, block):
-        m = re.search(r"v=([^&]*)", block)
-        return m.group(1) if m else None
+    test_regex = re.compile(r"^https?:\/\/(?:www\.)?youtube\.", re.I)
 
-    def test(self, parent, block):
-        return re.match(r"^https?:\/\/(?:www\.)?youtube\.", block, flags=re.I) and self.get_ytid(block)
+    id_regex = re.compile(r"v=([^&]*)")
+
+    def get_embed_code(self, url):
+        ytid = self.get_id(url)
+        attrs = 'width="{}" height="{}" frameborder="0" allowfullscreen'.format(560, 315)
+        embed_html = '<iframe {} src="https://www.youtube.com/embed/{}"></iframe>'.format(attrs, ytid)
+        return embed_html
 
     def run(self, parent, blocks):
         block = blocks.pop(0)
-        ytid = self.get_ytid(block)
-        if ytid:
-            attrs = 'width="{}" height="{}" frameborder="0" allowfullscreen'.format(560, 315)
-            embed_html = '<iframe {} src="https://www.youtube.com/embed/{}"></iframe>'.format(attrs, ytid)
-
-        figure = self.get_figure(parent, "youtube")
-        placeholder = self.parser.markdown.htmlStash.store(embed_html)
-        figure.text = placeholder
+        embed_html = self.get_embed_code(block)
+        if embed_html:
+            figure = self.get_figure(parent, "youtube")
+            placeholder = self.parser.markdown.htmlStash.store(embed_html)
+            figure.text = placeholder
 
 
-class TwitterProcessor(BlockProcessor):
+class TwitterProcessor(Blockprocessor):
     """
     https://dev.twitter.com/rest/reference/get/statuses/oembed
     https://dev.twitter.com/web/embedded-tweets
@@ -187,7 +126,9 @@ class TwitterProcessor(BlockProcessor):
 
     base_url = "https://publish.twitter.com/oembed"
 
-    regex = re.compile(r"^https?:\/\/(?:[^\.]+\.)?twitter\.[^\/]+\/.+$", flags=re.I)
+    test_regex = re.compile(r"^https?:\/\/(?:[^\.]+\.)?twitter\.[^\/]+\/.+$", flags=re.I)
+
+    id_regex = re.compile(r"/(\d+)/?$")
 
     name = "twitter"
 
@@ -208,6 +149,24 @@ class TwitterProcessor(BlockProcessor):
         contents = json.dumps(cache)
         d.create_file(self.filename, contents)
 
+    def get_html(self, url, body):
+        return body["html"]
+
+    def get_embed_code(self, url):
+        cache = self.read_cache()
+
+        # first we check cache, if it isn't in cache then we query twitter
+        if url in cache:
+            body = cache[url]
+            html = self.get_html(url, body)
+
+        else:
+            html, body = self.get_response(url)
+            cache[url] = body
+            self.write_cache(cache)
+
+        return html
+
     def get_response(self, url, **params):
         html = ""
         body = {}
@@ -217,32 +176,21 @@ class TwitterProcessor(BlockProcessor):
 
         if res.status_code >= 200 and res.status_code < 400:
             body = res.json()
-            html = body["html"]
+            html = self.get_html(url, body)
 
         else:
             logger.error("Embed for {} failed with code {}".format(url, res.status_code))
 
         return html, body
 
-    def test(self, parent, block):
-        return self.regex.match(block.strip())
-
     def run(self, parent, blocks):
         url = blocks.pop(0).strip()
-        cache = self.read_cache()
-
-        # first we check cache, if it isn't in cache then we query twitter
-        if url not in cache:
-            logger.warning("Embed for {} was not in cache".format(url))
-            html, body = self.get_response(url)
-            if html:
-                cache[url] = body
-                self.write_cache(cache)
+        html = self.get_embed_code(url)
 
         # if we have the contents then we can load them up
-        if url in cache:
+        if html:
             figure = self.get_figure(parent, self.name)
-            placeholder = self.parser.markdown.htmlStash.store(cache[url]["html"])
+            placeholder = self.parser.markdown.htmlStash.store(html)
             figure.text = placeholder
 
 
@@ -260,7 +208,7 @@ class InstagramProcessor(TwitterProcessor):
 
     name = "instagram"
 
-    regex = re.compile(r"""
+    test_regex = re.compile(r"""
         ^https?:\/\/
             (?:
                 (?:[^\.]+\.)?instagram\.[^\/]+
@@ -273,15 +221,16 @@ class InstagramProcessor(TwitterProcessor):
         re.I | re.X
     )
 
+    id_regex = re.compile(r"\/p\/([^\/\?]+)")
+
     def get_response(self, url, **params):
         params.setdefault("hidecaption", "true")
         html, body = super(InstagramProcessor, self).get_response(url, **params)
 
         if html:
             # let's grab the raw image and cache that also
-            m = re.search(r"\/p\/([^\/\?]+)", url)
-            if m:
-                igid = m.group(1)
+            igid = self.get_id(url)
+            if igid:
                 d = self.get_directory()
 
                 cached_image = d.files(r"^{}".format(igid))
@@ -309,55 +258,53 @@ class InstagramProcessor(TwitterProcessor):
         return html, body
 
 
-class VimeoProcessor(BlockProcessor):
+class VimeoProcessor(Blockprocessor):
     """This will convert a plain vimeo link to an embedded vimeo video
 
     fun fact, this is based on some super old php code I wrote for noopsi.com 11
     years ago
     """
-    def get_vid(self, block):
-        m = re.search(r"\.com/(\d+)/?$", block)
-        return m.group(1) if m else None
+    test_regex = re.compile(r"^https?:\/\/([a-z0-9._-]+\.)?vimeo\.", re.I)
 
-    def test(self, parent, block):
-        block = block.strip()
-        return ("vimeo" in block.lower()) and self.get_vid(block)
+    id_regex = re.compile(r"\.com/(\d+)/?$")
+
+    def get_embed_code(self, url):
+        vid = self.get_id(url)
+        attrs = [
+            'class="vimeo-media"',
+            'width="{}"'.format(640),
+            'height="{}"'.format(360),
+            'frameborder="0"',
+            'webkitallowfullscreen',
+            'mozallowfullscreen',
+            'allowfullscreen',
+        ]
+
+        embed_html = "\n".join([
+            '<iframe src="https://player.vimeo.com/video/{}" {}>'.format(vid, " ".join(attrs)),
+            '</iframe>'
+        ])
+
+        return embed_html
 
     def run(self, parent, blocks):
         block = blocks.pop(0).strip()
-        vid = self.get_vid(block)
-        if vid:
-            attrs = [
-                'class="vimeo-media"',
-                'width="{}"'.format(640),
-                'height="{}"'.format(360),
-                'frameborder="0"',
-                'webkitallowfullscreen',
-                'mozallowfullscreen',
-                'allowfullscreen',
-            ]
-
-
-            embed_html = "\n".join([
-                '<iframe src="https://player.vimeo.com/video/{}" {}>'.format(vid, " ".join(attrs)),
-                '</iframe>'
-            ])
-
+        embed_html = self.get_embed_code(block)
+        if embed_html:
             figure = self.get_figure(parent, "vimeo")
             placeholder = self.parser.markdown.htmlStash.store(embed_html)
             figure.text = placeholder
 
 
-class ImageProcessor(BlockProcessor):
+class ImageProcessor(Blockprocessor):
     """This will take a plain link to an image and convert it into an <img> tag
 
     it only works on links that end with an image extension like .jpg
     """
-    regex = re.compile(r"^(?:[^\s\]\[\:<>]+|\https?\:\/\/\S+?)\.(?:jpe?g|gif|bmp|png|ico|tiff)$", re.I)
+    test_regex = re.compile(r"^(?:[^\s\]\[\:<>]+|\https?\:\/\/\S+?)\.(?:jpe?g|gif|bmp|png|ico|tiff)$", re.I)
 
-    def test(self, parent, block):
-        block = block.strip()
-        return self.regex.match(block)
+    def get_id(self, url):
+        return True
 
     def run(self, parent, blocks):
         block = blocks.pop(0).strip()
@@ -381,49 +328,16 @@ class EmbedExtension(Extension):
     automatically
     """
     def extendMarkdown(self, md):
-
         md.register(self, LinkifyPostprocessor(md))
 
         plugins = [
-            YoutubeProcessor(md.parser),
-            TwitterProcessor(md.parser),
-            InstagramProcessor(md.parser),
-            VimeoProcessor(md.parser),
-            ImageProcessor(md.parser),
+            YoutubeProcessor(md),
+            TwitterProcessor(md),
+            InstagramProcessor(md),
+            VimeoProcessor(md),
+            ImageProcessor(md),
         ]
 
         for instance in plugins:
             md.register(self, instance, "<paragraph")
-
-#         md.postprocessors.register(
-#             LinkifyPostprocessor(md),
-#             "embed",
-#             self.find_priority(md.postprocessors)
-#         )
-# 
-#         plugins = {
-#             "embed_youtube": YoutubeProcessor(md.parser),
-#             "embed_twitter": TwitterProcessor(md.parser),
-#             "embed_instagram": InstagramProcessor(md.parser),
-#             "embed_vimeo": VimeoProcessor(md.parser),
-#             "embed_image": ImageProcessor(md.parser),
-#         }
-# 
-#         for name, instance in plugins.items():
-#             md.parser.blockprocessors.register(
-#                 instance,
-#                 name,
-#                 self.find_priority(md.parser.blockprocessors, ["paragraph"])
-#             )
-
-#         md.postprocessors.add("embed", LinkifyPostprocessor(md), "_end")
-#         md.parser.blockprocessors.add("embed_youtube", YoutubeProcessor(md.parser), "<paragraph")
-#         md.parser.blockprocessors.add("embed_twitter", TwitterProcessor(md.parser), "<paragraph")
-#         md.parser.blockprocessors.add("embed_instagram", InstagramProcessor(md.parser), "<paragraph")
-#         md.parser.blockprocessors.add("embed_vimeo", VimeoProcessor(md.parser), "<paragraph")
-#         md.parser.blockprocessors.add("embed_image", ImageProcessor(md.parser), "<paragraph")
-
-
-#def makeExtension(*args, **kwargs):
-#    return EmbedExtension(*args, **kwargs)
 

@@ -77,6 +77,11 @@ def console_serve(args, project_dir, output_dir):
     return ret_code
 
 
+def console_test(args, project_dir, output_dir):
+    console_compile(args, project_dir, output_dir)
+    console_serve(args, project_dir, output_dir)
+
+
 def console_watch(args, project_dir, output_dir):
     ret_code = 0
     logger.info("running watch")
@@ -290,6 +295,17 @@ def console():
         add_help=False
     )
     generate_parser.set_defaults(func=console_generate)
+
+    test_parser = subparsers.add_parser(
+        "test",
+        parents=[serve_parser],
+        #parents=[compile_parser, serve_parser], # this didn't work, it made project and output dirs positional args
+        help="Compile and serve a project",
+        add_help=False,
+        conflict_handler="resolve",
+    )
+    test_parser.set_defaults(regex=None)
+    test_parser.set_defaults(func=console_test)
 
     args = parser.parse_args()
 

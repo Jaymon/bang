@@ -13,14 +13,18 @@ class Post(Page):
 
     regex = r'\.(md|markdown)$'
 
-    @property
-    def title(self):
-        title = File(self.content_file).fileroot
-        return title
+#     @property
+#     def title(self):
+#         title = File(self.content_file).fileroot
+#         return title
 
     @classmethod
     def match(cls, directory):
         return True if directory.files(cls.regex) else False
+
+    def find_title(self, html):
+        title = File(self.content_file).fileroot
+        return title
 
 
 @event("configure.plugins")

@@ -161,30 +161,3 @@ class ImageExtension(Extension):
 
         md.register(self, ImageProcessor(md.parser), "<paragraph")
 
-
-
-#         md.registerExtension(self)
-#         self.processor = ImageTreeprocessor()
-#         #md.treeprocessors.add('href', self.processor, ">")
-#         md.treeprocessors['image'] = self.processor
-# 
-#         md.inlinePatterns["image_link"] = ImagePattern(
-#             md.inlinePatterns["image_link"].pattern,
-#             md
-#         )
-#         md.inlinePatterns["image_reference"] = ImageReferencePattern(
-#             md.inlinePatterns["image_reference"].pattern,
-#             md
-#         )
-# 
-#         md.parser.blockprocessors.register(
-#             ImageProcessor(md.parser),
-#             "image",
-#             self.find_priority(md.parser.blockprocessors, ["paragraph"])
-#         )
-# 
-# #         md.parser.blockprocessors.add(
-# #             "image", ImageProcessor(md.parser), "<paragraph"
-# #         )
-
-

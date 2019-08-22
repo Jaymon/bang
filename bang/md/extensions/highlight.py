@@ -56,13 +56,3 @@ class HighlightExtension(fenced_code.FencedCodeExtension):
             ">normalize_whitespace"
         )
 
-        pout.v(md.registered(processor))
-
-#         md.registerExtension(self)
-#         md.preprocessors.add(
-#             'code_block',
-#             CodeBlockPreprocessor(md),
-#             ">normalize_whitespace"
-#         )
-
-

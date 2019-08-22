@@ -9,10 +9,43 @@ import testdata
 
 from bang.compat import *
 from bang.path import Directory
+from bang.md import Registry, Markdown
 from . import TestCase
 
 
 class MarkdownTest(TestCase):
+    def test_find_priority(self):
+        # https://python-markdown.github.io/extensions/api/#registry
+        class Processor(object): pass
+
+        reg = Registry()
+        reg.register(Processor(), "foo", 10)
+        reg.register(Processor(), "bar", 30)
+        reg.register(Processor(), "che", 40)
+
+        md = Markdown()
+
+        pr = md.find_priority("<che", reg)
+        self.assertEqual(45, pr)
+
+        pr = md.find_priority(0, reg)
+        self.assertEqual(0, pr)
+
+        pr = md.find_priority(5, reg)
+        self.assertEqual(5, pr)
+
+        pr = md.find_priority(">bar", reg)
+        self.assertEqual(25, pr)
+
+        pr = md.find_priority(["<bar", ">che"], reg)
+        self.assertEqual(35, pr)
+
+        pr = md.find_priority("_end", reg)
+        self.assertEqual(5, pr)
+
+        pr = md.find_priority("_begin", reg)
+        self.assertEqual(45, pr)
+
     def test_inline_html(self):
         p = self.get_page("before <code>```</code>, after")
         self.assertEqual("<p>before <code>```</code>, after</p>", p.html)
@@ -187,8 +220,9 @@ class MarkdownTest(TestCase):
             """)
         p = self.get_page(markdown)
 
-        pout.v(p.html)
-
+        html = p.html
+        for s in ["[reference text]: ", "[1]: ", "[link text itself]: "]:
+            self.assertTrue(s in html)
 
     def test_easy_links(self):
         p = self.get_page([

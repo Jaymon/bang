@@ -10,7 +10,7 @@ import inspect
 from .compat import *
 from .decorators import classproperty, once
 from .path import Directory
-from .utils import HTMLStripper, Url
+from .utils import HTMLStripper, Url, ContextCache
 
 
 logger = logging.getLogger(__name__)
@@ -353,6 +353,10 @@ class Type(Directory):
 
         return url
 
+    #def __getattr__(self, k):
+    #    """We want any properties that don't exist to not raise an error"""
+    #    return None
+
 
 class Other(Type):
     """The fallback Type, it's not really a page but is here to provide a 
@@ -408,23 +412,6 @@ class Page(Type):
         return modified
 
     @property
-    def title(self):
-        body = self.html
-        title = ""
-
-        # first try and get the title from a header tag in the body
-        m = re.match(r"^\s*<h1[^>]*>([^<]*)</h1>", body, flags=re.I)
-        if m:
-            title = m.group(1).strip()
-
-        if not title:
-            # default to just the name of the directory this aux file lives in
-            basename = os.path.basename(String(self.input_dir))
-            title = basename.capitalize()
-
-        return title
-
-    @property
     def body(self):
         return self.input_dir.file_contents(os.path.basename(self.content_file))
 
@@ -459,17 +446,13 @@ class Page(Type):
         return ret
 
     @property
-    def meta(self):
-        """return any meta-data this post has"""
-
-        # this is kind of a crap way to do it but we need to parse the body to
-        # make sure meta is parsed and available
-        self.html 
-        return getattr(self, "_meta", {})
-
-    @property
     def markdown(self):
         return self.config.markdown
+
+    @property
+    def title(self):
+        title, html, meta = self.compile()
+        return title
 
     @property
     def html(self):
@@ -480,18 +463,48 @@ class Page(Type):
 
         return -- string -- rendered html
         """
-        context_name = self.config.context_name
-        htmls = getattr(self, "_htmls", {})
-        html = htmls.get(context_name, "")
-        if not html:
-            logger.debug("Rendering html[{}]: {}".format(context_name, self.input_dir.basename))
+        title, html, meta = self.compile()
+        return html
+
+    @property
+    def meta(self):
+        """return any meta-data this post has"""
+
+        # this is kind of a crap way to do it but we need to parse the body to
+        # make sure meta is parsed and available
+        title, html, meta = self.compile()
+        return meta
+
+    def compile(self):
+        cache = getattr(self, "_cache", ContextCache(self.config))
+
+        if "html" not in cache:
+            context_name = self.config.context_name
+            logger.debug("Rendering html[{}]: {}".format(context_name, self.uri))
+
             try:
                 #md = Markdown.get_instance()
                 md = self.markdown
                 html = md.output(self)
-                self._meta = getattr(md, "Meta", {})
-                htmls[context_name] = html
-                self._htmls = htmls
+                meta = getattr(md, "Meta", {})
+
+                title = meta.get("title", "")
+                if not title:
+                    m = re.match(r"^\s*<h1[^>]*>([^<]*)</h1>\s*", html, flags=re.I | re.M)
+                    if m:
+                        title = m.group(1).strip()
+
+                        # we actually remove the title from the html since it will
+                        # be available in .title
+                        html = html[:m.start()] + html[m.end():]
+
+                    else:
+                        title = self.find_title(html)
+
+                cache["html"] = html
+                cache["meta"] = meta
+                cache["title"] = title
+                self._cache = cache
 
             except AttributeError as e:
                 # there might be attribute errors deep into Markdown that would
@@ -499,7 +512,13 @@ class Page(Type):
                 logger.exception(e)
                 raise ValueError(e)
 
-        return html
+        return cache["title"], cache["html"], cache["meta"]
+
+    def find_title(self, html):
+        # default to just the name of the directory this aux file lives in
+        basename = os.path.basename(String(self.input_dir))
+        title = basename.capitalize()
+        return title
 
     def __str__(self):
         return self.input_dir.path

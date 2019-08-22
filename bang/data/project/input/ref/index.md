@@ -1,6 +1,6 @@
-[TOC]
-
 # Markdown reference
+
+[TOC]
 
 What does each thing look like with my stylesheet.
 
@@ -157,6 +157,9 @@ Some text to show that the reference links can follow later.
 -------------------------------------------------------------------------------
 
 ## Images
+
+The example images was [generated](https://dummyimage.com/750x600/7c68ee/fff.png&text=Example+Image) using [this dummy image generator](https://dummyimage.com/).
+
 
 ```no-highlight
 Inline-style: 
@@ -366,9 +369,7 @@ Underscores
 
 ## Line Breaks
 
-My basic recommendation for learning how line breaks work is to experiment and discover -- hit `Enter` once (i.e., insert one newline), then hit it twice (i.e., insert two newlines), see what happens. You'll soon learn to get what you want. "Markdown Toggle" is your friend. 
-
-Here are some things to try out:
+Line breaks are interpreted literally.
 
 ```
 Here's a line for us to start with.
@@ -385,8 +386,6 @@ This line is separated from the one above by two newlines, so it will be a *sepa
 
 This line is also begins a separate paragraph, but...  
 This line is only separated by a single newline, so it's a separate line in the *same paragraph*.
-
-(Technical note: *Markdown Here* uses GFM line breaks, so there's no need to use MD's two-space line breaks.)
 
 
 -------------------------------------------------------------------------------

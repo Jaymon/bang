@@ -10,6 +10,17 @@ from . import TestCase
 
 
 class PageTest(TestCase):
+    def test_compile(self):
+        p = self.get_page([
+            "# this is the title",
+            "",
+            "body text",
+        ])
+
+        p.compile()
+        self.assertEqual("this is the title", p.title)
+        self.assertTrue(">body text</" in p.html)
+
     def test_template_name(self):
 
         class Foo(Page): pass

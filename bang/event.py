@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
 import logging
+import inspect
+import types
 
 from collections import defaultdict
 
@@ -145,5 +147,86 @@ class Events(object):
         return wrap
 
 
+class Extend(object):
+    """you can use this decorator to extend instances in the bangfile with custom
+    functionality
+
+    :Example:
+        from event import extend
+
+        class Foo(object): pass
+
+        @extend(Foo, "bar")
+        def bar(self, n1, n2):
+            return n1 + n2
+
+        f = Foo()
+        f.bar(1, 2) # 3
+
+        @extend(f, "che")
+        @property
+        def che(self):
+            return 42
+
+        f.che # 42
+    """
+    def property(self, o, name):
+        """decorator to extend o with a property at name
+
+        Using this property method is equivalent to:
+            @extend(o, "NAME")
+            @property
+            def name(self):
+                return 42
+
+        :param o: instance|class, the object being extended
+        :param name: string, the name of the property
+        :returns: callable wrapper
+        """
+        def wrap(callback):
+            if inspect.isclass(o):
+                self.patch_class(o, name, property(callback))
+
+            else:
+                #self.patch_class(o.__class__, name, property(callback))
+                self.patch_instance(o, name, property(callback))
+
+            return callback
+        return wrap
+
+    def method(self, o, name):
+        """decorator to extend o with method name
+
+        :param o: instance|class, the object being extended
+        :param name: string, the name of the method
+        :returns: callable wrapper
+        """
+        return self(o, name)
+
+    def __call__(self, o, name):
+        """shortcut to using .property() or .method() decorators"""
+        def wrap(callback):
+            if inspect.isclass(o):
+                self.patch_class(o, name, callback)
+
+            else:
+                self.patch_instance(o, name, callback)
+
+            return callback
+        return wrap
+
+    def patch_class(self, o, name, callback):
+        """internal method that patches a class o with a callback at name"""
+        setattr(o, name, callback)
+
+    def patch_instance(self, o, name, callback):
+        """internal method that patches an instance o with a callback at name"""
+        if isinstance(callback, property):
+            setattr(o.__class__, name, callback)
+        else:
+            setattr(o, name, types.MethodType(callback, o))
+
+
 event = Events()
+extend = Extend()
 

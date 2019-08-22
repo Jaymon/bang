@@ -460,10 +460,10 @@ class Directory(Path):
     def exists(self):
         return os.path.isdir(self.path)
 
-    def file_contents(self, basename):
+    def file_contents(self, *bits):
         """return the contents of the basename file in this directory"""
         contents = ""
-        output_file = File(self.path, basename)
+        output_file = File(self.path, *bits)
         return output_file.contents()
 
     def create_file(self, basename, contents, binary=False):
@@ -667,9 +667,12 @@ class TemplateDirectory(Directory):
     """
     def __init__(self, template_dir):
         self.path = template_dir
+        # https://jinja.palletsprojects.com/en/master/api/#jinja2.Environment
         self.env = Environment(
             loader=FileSystemLoader(String(template_dir)),
             #extensions=['jinja2.ext.with_'] # http://jinja.pocoo.org/docs/dev/templates/#with-statement
+            lstrip_blocks=True,
+            trim_blocks=True,
         )
 
         self.templates = {}
