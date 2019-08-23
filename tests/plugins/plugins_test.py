@@ -9,13 +9,22 @@ from .. import TestCase
 
 
 class FeedTest(TestCase):
+    @classmethod
+    def get_project(cls, input_files=None, project_files=None, bangfile=None):
+        bangfile = bangfile or []
+        bangfile.insert(0, "from bang.plugins import blog")
+        return super(FeedTest, cls).get_project(
+            input_files,
+            project_files,
+            bangfile=bangfile
+        )
+
     def test_feed(self):
-        #from bang.plugins import feed
         s = self.get_project({
             '1/one.md': '1. {}'.format(testdata.get_unicode_words()),
             '2/two.md': '2. {}'.format(testdata.get_unicode_words()),
             '3/three.md': '3. {}'.format(testdata.get_unicode_words()),
-        }, blog=True)
+        })
         s.output()
 
         p = os.path.join(String(s.output_dir), 'feed.rss')

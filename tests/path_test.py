@@ -140,10 +140,6 @@ class FileTest(TestCase):
 
 class ImageTest(TestCase):
     def test_dimensions(self):
-#         im = Image(testdata.get_content_file("favicon.ico"))
-#         pout.v(im.dimensions)
-#         return
-
         ts = [
             ("agif", (11, 29)),
             ("gif", (190, 190)),
@@ -154,9 +150,7 @@ class ImageTest(TestCase):
 
         for t in ts:
             im = Image(testdata.create_image(t[0]))
-            #pout.v(im.dimensions)
             self.assertEqual(t[1], im.dimensions)
-
 
     def test_is_animated(self):
         im = Image(testdata.create_animated_gif())
@@ -167,12 +161,4 @@ class ImageTest(TestCase):
 
         im = Image(testdata.create_jpg())
         self.assertFalse(im.is_animated())
-
-        #im = Image("/Users/jaymon/Projects/Testdata/images/favicon-no-alpha.ico")
-        #pout.v(im.get_info())
-        #im = Image("./sample_1.gif")
-        #r = im.is_animated()
-        #pout.v(r)
-
-
 

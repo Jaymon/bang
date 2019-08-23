@@ -2,6 +2,8 @@
 """
 Google amp plugin
 
+This creates amp/index.html files in each of the Page directories and adds an amp
+url to the header of the regular pages
 
 You can test amp validation in Chrome by appending #development=1 to an amp url
 and opening a DevTools window on the Console tab

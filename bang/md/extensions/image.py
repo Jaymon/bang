@@ -4,8 +4,6 @@ import os
 import re
 
 from markdown import util
-#from markdown.extensions import Extension
-from markdown.blockprocessors import BlockProcessor
 # https://github.com/Python-Markdown/markdown/blob/master/markdown/inlinepatterns.py
 from markdown.inlinepatterns import (
     ImageInlineProcessor as BaseImagePattern,
@@ -17,7 +15,7 @@ from markdown.inlinepatterns import (
 #     REFERENCE_RE, IMAGE_REFERENCE_RE
 
 from .absolutelink import AbsoluteLinkTreeprocessor
-from . import Extension
+from . import Extension, Blockprocessor
 
 
 class ImageTreeprocessor(AbsoluteLinkTreeprocessor):
@@ -65,7 +63,7 @@ class ImageReferencePattern(BaseImageReferencePattern):
         return super(ImageReferencePattern, self).makeTag(href, title, text)
 
 
-class ImageProcessor(BlockProcessor):
+class ImageProcessor(Blockprocessor):
 
     # these are ripped from the 2.6 branch because they've updated the regexes
     # in the 3.0+ branch and this was no longer working, there probably is a
@@ -88,14 +86,12 @@ class ImageProcessor(BlockProcessor):
 
     IMAGE_LINK_REGEX = r'\!' + BRK + r'\s*\(\s*(<.*?>|([^"\)\s]+\s*"[^"]*"|[^\)\s]*))\s*\)'
 
-
     IMAGE_REFERENCE_REGEX = r'\!' + BRK + r'\s?\[([^\]]*)\]'
-
 
     def test(self, parent, block):
         # figure tag isn't part of xhtml 1.0
         # https://www.w3.org/2010/04/xhtml10-strict.html
-        if self.parser.markdown.output_format not in ["html"]:
+        if self.md.output_format not in ["html"]:
             return False
 
         is_link = False
@@ -140,8 +136,10 @@ class ImageExtension(Extension):
     """
     def extendMarkdown(self, md):
 
+        md.register(self, ImageTreeprocessor(md))
+        md.register(self, ImageProcessor(md), "<paragraph")
+
         # we are actually going to be replacing some builtin markdown things
-        md.register(self, ImageTreeprocessor())
         md.register(
             self,
             ImagePattern(
@@ -158,6 +156,4 @@ class ImageExtension(Extension):
             ),
             name="image_reference",
         )
-
-        md.register(self, ImageProcessor(md.parser), "<paragraph")
 

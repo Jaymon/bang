@@ -54,7 +54,14 @@ class MarkdownTest(TestCase):
         p = self.get_page('![this is the file](images/che.jpg)')
         self.assertRegexpMatches(p.html, r'//{}/[^/]+/images/che.jpg'.format(p.config.host))
 
-    def test_image_figure(self):
+    def test_image_figure_only(self):
+        p = self.get_page([
+            "![this is the caption](foo.jpg)",
+        ])
+        r = p.html
+        self.assertTrue('<figure><img alt="foo.jpg" src=' in r)
+
+    def test_image_figure_mixed(self):
         p = self.get_page([
             "this is some text before the image",
             "",

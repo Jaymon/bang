@@ -296,7 +296,7 @@ class VimeoProcessor(Blockprocessor):
             figure.text = placeholder
 
 
-class ImageProcessor(Blockprocessor):
+class EmbedImageProcessor(Blockprocessor):
     """This will take a plain link to an image and convert it into an <img> tag
 
     it only works on links that end with an image extension like .jpg
@@ -335,7 +335,7 @@ class EmbedExtension(Extension):
             TwitterProcessor(md),
             InstagramProcessor(md),
             VimeoProcessor(md),
-            ImageProcessor(md),
+            EmbedImageProcessor(md),
         ]
 
         for instance in plugins:

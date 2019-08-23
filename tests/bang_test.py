@@ -77,7 +77,7 @@ class ProjectTest(TestCase):
         })
         s.output()
 
-        self.assertEqual([], s.get_type("page"))
+        self.assertEqual(0, len(s.get_type("page")))
         self.assertEqual(1, len(s.get_type("other")))
 
     def test_regex(self):
