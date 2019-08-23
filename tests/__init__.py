@@ -13,7 +13,6 @@ from bang.compat import *
 from bang.decorators import deprecated
 from bang import Project
 from bang.path import Directory
-from bang import skeleton
 from bang.__main__ import configure_logging
 from bang.event import event
 

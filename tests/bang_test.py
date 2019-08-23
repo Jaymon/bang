@@ -8,7 +8,6 @@ import testdata
 
 from bang.compat import *
 from bang.path import Directory, File
-from bang import skeleton
 from bang import config
 from . import TestCase
 
@@ -108,8 +107,23 @@ class ProjectTest(TestCase):
         self.assertEqual(3, len(ps))
 
 
-class SkeletonTest(TestCase):
+class GenerateTest(TestCase):
     def test_generate(self):
+        project_dir = Directory(testdata.create_dir())
+
+        r = testdata.run(
+            'python -m bang generate --project-dir=.'.format(project_dir),
+            cwd=String(project_dir)
+        )
+
+        self.assertTrue(project_dir.has_file("bangfile.py"))
+        self.assertTrue(project_dir.has_directory("input"))
+
+        return
+
+
+
+
         project_dir = Directory(testdata.create_dir())
         s = skeleton.Skeleton(project_dir)
         s.output()

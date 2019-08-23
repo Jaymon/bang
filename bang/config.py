@@ -105,7 +105,8 @@ class Config(object):
         md = self._markdown_instances.get(context_name, None)
         if not md:
             logger.debug("Creating Markdown instance for context [{}]".format(context_name))
-            md = Markdown.create_instance(self)
+            extensions = self.get("markdown_extensions", None)
+            md = Markdown.create_instance(self, extensions=extensions)
             self._markdown_instances[context_name] = md
         return md
 

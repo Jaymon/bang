@@ -25,6 +25,7 @@ setup(
     author_email='jay@marcyes.com',
     url='http://github.com/jaymon/{}'.format(name),
     packages=find_packages(),
+    package_data={name: ['data/*']},
     license="MIT",
     install_requires=['Jinja2', 'Markdown'],
     classifiers=[ # https://pypi.python.org/pypi?:action=list_classifiers

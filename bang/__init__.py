@@ -8,7 +8,6 @@ from .event import event
 from .server import Server
 from .path import Directory
 from .event import event
-from .skeleton import Skeleton
 from .decorators import once
 
 

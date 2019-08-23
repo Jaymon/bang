@@ -13,7 +13,6 @@ import time
 from bang import __version__, Project
 from bang.server import Server
 from bang.path import Directory, DataDirectory
-from bang.skeleton import Skeleton
 from bang.utils import Profile
 
 
