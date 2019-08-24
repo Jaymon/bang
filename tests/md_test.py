@@ -646,7 +646,6 @@ class EmbedPluginTest(TestCase):
 
         super(EmbedPluginTest, self).setUp()
 
-
     def test_embed_link(self):
         p = self.get_page([
             "This is some [text](http://bar.com) < and then there > is just a url",
@@ -713,7 +712,7 @@ class EmbedPluginTest(TestCase):
         r = p.html
         self.assertEqual(2, r.count("<figure"))
 
-        contents = json.loads(p.input_dir.file_contents("twitter.json"))
+        contents = json.loads(p.input_dir.child_directory("_embed").file_contents("twitter.json"))
         self.assertEqual(2, len(contents))
 
     def test_no_embed_twitter_links(self):
@@ -736,9 +735,9 @@ class EmbedPluginTest(TestCase):
         r = p.html
         self.assertEqual(1, r.count("<figure"))
 
-        contents = json.loads(p.input_dir.file_contents("instagram.json"))
+        contents = json.loads(p.input_dir.child_directory("_embed").file_contents("instagram.json"))
         self.assertEqual(1, len(contents))
-        self.assertTrue(p.input_dir.has_file("BNEweVYFVxq.jpg"))
+        self.assertTrue(p.input_dir.child_directory("_embed").has_file("BNEweVYFVxq.jpg"))
 
     def test_embed_vimeo(self):
         p = self.get_page([

@@ -106,6 +106,11 @@ class File(Path):
         """return the basename without the extension"""
         return os.path.splitext(self.basename)[0]
 
+    @property
+    def directory(self):
+        """return the directory portion of a directory/fileroot.ext path"""
+        return Directory(os.path.dirname(self.path))
+
     def __init__(self, *bits, **kwargs):
         self.encoding = kwargs.pop("encoding", "UTF-8")
         super(File, self).__init__(*bits)
@@ -129,6 +134,10 @@ class File(Path):
         """create the file with basename in this directory with contents"""
         logger.debug("create file {}".format(self.path))
         encoding = encoding or self.encoding
+
+        # make sure directory exists
+        d = self.directory
+        d.create()
 
         oldmask = os.umask(0)
         if encoding:
@@ -470,9 +479,9 @@ class Directory(Path):
         output_file = File(self.path, *bits)
         return output_file.contents()
 
-    def create_file(self, basename, contents, binary=False):
+    def create_file(self, basename, contents, encoding=""):
         """create the file with basename in this directory with contents"""
-        output_file = File(self.path, basename, encoding="")
+        output_file = File(self.path, basename, encoding=encoding)
         return output_file.create(contents)
 
     def copy_file(self, input_file):

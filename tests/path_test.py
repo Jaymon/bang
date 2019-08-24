@@ -132,10 +132,20 @@ class DirectoryTest(TestCase):
 
 
 class FileTest(TestCase):
-    def test_create(self):
+    def test___init__(self):
         path = testdata.create_file("/foo/bar/che/index.html")
         f = File(path.basedir, "foo", "bar", "che", "index.html")
         self.assertTrue(path, f.path)
+
+    def test_create(self):
+        contents = "contents"
+        d = Directory(testdata.create_dir())
+        d.create_file("foo/test.txt", contents)
+        f = File(d.path, "foo", "test.txt")
+        self.assertTrue(f.exists())
+
+        s = f.contents()
+        self.assertEqual(contents, s)
 
 
 class ImageTest(TestCase):

@@ -132,20 +132,20 @@ class TwitterProcessor(Blockprocessor):
 
     name = "twitter"
 
-    def get_directory(self):
-        cache_dir = self.parser.markdown.dirtype.input_dir
+    def get_cache_directory(self):
+        cache_dir = self.md.dirtype.input_dir.child_directory("_embed")
         return Directory(cache_dir)
 
     def read_cache(self):
-        d = self.get_directory()
-        contents = d.file_contents(self.filename)
         cache = {}
+        d = self.get_cache_directory()
+        contents = d.file_contents(self.filename)
         if contents:
             cache = json.loads(contents)
         return cache
 
     def write_cache(self, cache):
-        d = self.get_directory()
+        d = self.get_cache_directory()
         contents = json.dumps(cache)
         d.create_file(self.filename, contents)
 
@@ -231,7 +231,7 @@ class InstagramProcessor(TwitterProcessor):
             # let's grab the raw image and cache that also
             igid = self.get_id(url)
             if igid:
-                d = self.get_directory()
+                d = self.get_cache_directory()
 
                 cached_image = d.files(r"^{}".format(igid))
                 if cached_image:
@@ -250,7 +250,7 @@ class InstagramProcessor(TwitterProcessor):
                             if ext == "jpeg":
                                 ext = "jpg"
 
-                        d.create_file("{}.{}".format(igid, ext), res.content, binary=True)
+                        d.create_file("{}.{}".format(igid, ext), res.content, encoding="")
 
                     else:
                         logger.error("Raw cache for {} failed with code {}".format(url, res.status_code))
