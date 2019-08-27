@@ -1,45 +1,40 @@
-# stdlib
+# -*- coding: utf-8 -*-
+from __future__ import unicode_literals, division, print_function, absolute_import
 import os
 import time
 import posixpath
 import urllib
-import SocketServer
-from SimpleHTTPServer import SimpleHTTPRequestHandler
 import logging
+
+from .compat import *
 
 
 logger = logging.getLogger(__name__)
 
 
-class DirTCPServer(SocketServer.TCPServer, object):
+class Server(HTTPServer):
     """
-    Subclass of TCPServer that sets serv_dir
-    """
-    def __init__(self, server_address, RequestHandlerClass, bind_and_activate=True, serv_dir=os.getcwd()):
-        SocketServer.TCPServer.__init__(self, server_address, RequestHandlerClass, bind_and_activate)
-        self.serv_dir = serv_dir
-
-
-class Server(DirTCPServer):
-    """
-    Serve files in a specified directory on a specified port
+    Serve files in a specified directory on a specified port to localhost
     """
     def __init__(self, serv_dir, port):
-        # Change cwd and setup http server
-        super(Server, self).__init__(
-            ("", port),
-            RequestHandler,
-            bind_and_activate=False,
-            serv_dir=serv_dir
-        )
+        if not serv_dir:
+            serv_dir = os.getcwd()
+        self.serv_dir = serv_dir
+
+        if is_py2:
+            HTTPServer.__init__(
+                self,
+                ("", port),
+                RequestHandlerClass=RequestHandler,
+            )
+
+        else:
+            super(Server, self).__init__(
+                ("", port),
+                RequestHandlerClass=RequestHandler,
+            )
 
         logger.debug("server started on port {} and dir {}".format(port, serv_dir))
-
-        # Prevent 'cannot bind to address' errors on restart
-        # Manually bind, to support allow_reuse_address
-        self.allow_reuse_address = True
-        self.server_bind()
-        self.server_activate()
 
 
 class RequestHandler(SimpleHTTPRequestHandler):
@@ -52,6 +47,8 @@ class RequestHandler(SimpleHTTPRequestHandler):
         Translate a /-separated PATH to the local filename syntax.
         """
 
+        # TODO This feels like it could be absorbed into utils.Url and
+        # path.Directory
         # abandon query parameters
         path = url_path.split('?',1)[0]
         path = path.split('#',1)[0]

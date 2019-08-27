@@ -20,6 +20,7 @@ import logging
 
 from ..compat import *
 from ..event import event
+from ..utils import Url
 
 
 logger = logging.getLogger(__name__)
@@ -41,8 +42,14 @@ def get_datestr(dt):
     return dt.strftime("%a, %d %b %Y %H:%M:%S +0000")
 
 
+@event("configure.plugins")
+def configure_feed(event, config):
+    config.feed_filename = "feed.rss"
+    config.feed_url = Url("/", config.feed_filename)
+
+
 @event('output.finish')
-def output_rss(event_name, config):
+def output_rss(event, config):
     with config.context("feed") as config:
         if "feed_iter" not in config:
             logger.error("feed plugin not running because no config.feed_iter found")
@@ -53,7 +60,7 @@ def output_rss(event_name, config):
             logger.error("RSS feed not generated because no config host set")
             return
 
-        feedpath = os.path.join(String(config.output_dir), 'feed.rss')
+        feedpath = os.path.join(String(config.output_dir), config.feed_filename)
         logger.info("writing feed to {}".format(feedpath))
 
         main_url = config.base_url
@@ -98,4 +105,13 @@ def output_rss(event_name, config):
 
             fp.write("  </channel>\n")
             fp.write("</rss>\n")
+
+
+@event("output.template")
+def template_output_favicon(event, config):
+    s = '<link rel="alternate" type="application/rss+xml" title="RSS feed" href="{}" />'.format(
+        config.feed_url
+    )
+
+    event.html = event.html.inject_into_head(s)
 

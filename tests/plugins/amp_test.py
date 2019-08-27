@@ -21,7 +21,7 @@ class TestCase(BaseTestCase):
 
 
 class AmpTest(TestCase):
-    def test_image(self):
+    def test_image_1(self):
         p = self.get_page([
             "![this is the file](foo.jpg)",
             "",
@@ -47,6 +47,41 @@ class AmpTest(TestCase):
 
         html = p.output_dir.file_contents("index.html")
         self.assertFalse("<amp-img" in html)
+
+    def test_image_2(self):
+        pr = self.get_project(
+            input_files={
+                "some-page/index.md": [
+                    "![this is the file](foo.jpg)",
+                    "",
+                    "bar.png",
+                    ""
+                ],
+                "some-page/foo.jpg": "",
+                "some-page/bar.png": "",
+            },
+            project_files={
+                "bangfile.py": [
+                    "from bang import event",
+                    "from bang.plugins import amp",
+                    "",
+                    "@event('configure.project')",
+                    "def configure_project(event, config):",
+                    "    config.host = 'localhost:8000'",
+                    "    config.scheme = 'http'",
+                    "    config.name = 'example site'",
+                    ""
+                ],
+            }
+        )
+
+        pr.config.project.output()
+
+        html = pr.output_dir.child_directory("some-page/amp").file_contents("index.html")
+        pout.v(html)
+
+
+
 
     def test_canonical(self):
         p = self.get_page()

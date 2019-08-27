@@ -5,6 +5,9 @@ import os
 import testdata
 
 from bang.compat import *
+from bang.path import Directory
+from bang.plugins.favicon import Favicons
+from bang.plugins import favicon
 from .. import TestCase
 
 
@@ -68,7 +71,7 @@ class FeedTest(TestCase):
         self.assertTrue('src="//example.com' in r)
 
 
-class PluginTest(TestCase):
+class SitemapTest(TestCase):
     def test_sitemap(self):
         s = self.get_project({
             '1/index.md': '1. {}'.format(testdata.get_unicode_words()),
@@ -84,4 +87,54 @@ class PluginTest(TestCase):
         self.assertTrue('example.com/2' in body)
         self.assertTrue('example.com/3' in body)
 
+
+class FaviconTest(TestCase):
+    @classmethod
+    def get_dirs(cls, project_files=None):
+        project_dir, output_dir = super(FaviconTest, cls).get_dirs(project_files)
+
+        d = String(project_dir.child_directory("input"))
+        testdata.create_ico("favicon.ico", tmpdir=d),
+        testdata.create_png("favicon-32.png", tmpdir=d, width=32, height=32),
+        testdata.create_png("favicon-192.png", tmpdir=d, width=192, height=192),
+        testdata.create_png("favicon-228.png", tmpdir=d, width=228, height=228),
+        testdata.create_png("favicon-196.png", tmpdir=d, width=196, height=196),
+        testdata.create_png("favicon-180.png", tmpdir=d, width=180, height=180),
+
+        return project_dir, output_dir
+
+    @classmethod
+    def get_project(cls, input_files=None, project_files=None, bangfile=None):
+        bangfile = bangfile or []
+        bangfile.insert(0, "from bang.plugins import favicon")
+        return super(FaviconTest, cls).get_project(
+            input_files,
+            project_files,
+            bangfile=bangfile
+        )
+
+    def get_favicons(self):
+        p = self.get_project()
+        f = favicon.Favicons(p.input_dir)
+        return f
+
+    def test_get_info(self):
+        f = self.get_favicons()
+        info = f.get_info()
+        self.assertEqual(6, len(info))
+
+    def test_html(self):
+        f = self.get_favicons()
+        html = f.html()
+        self.assertTrue('rel="icon"' in html)
+        self.assertTrue('rel="shortcut-icon"' in html)
+        self.assertTrue('rel="apple-touch-icon"' in html)
+
+    def test_inject(self):
+        p = self.get_page()
+        p.output()
+        html = p.output_dir.file_contents("index.html")
+        self.assertTrue('rel="icon"' in html)
+        self.assertTrue('rel="shortcut-icon"' in html)
+        self.assertTrue('rel="apple-touch-icon"' in html)
 

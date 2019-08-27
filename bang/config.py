@@ -250,6 +250,9 @@ class Config(object):
             if k.startswith(prefix):
                 self.set(k[5:].lower(), v)
 
+    def is_context(self, context_name):
+        return self.context_name == context_name
+
 
 class Theme(object):
     def __init__(self, theme_dir, config, **kwargs):
@@ -268,6 +271,14 @@ class Theme(object):
                 self.config.output_dir
             ))
             self.input_dir.copy_to(self.config.output_dir)
+
+    def render_template(self, template_name, filepath, **kwargs):
+        return self.template_dir.render(
+            template_name,
+            filepath,
+            self.config,
+            **kwargs
+        )
 
     def output_template(self, template_name, filepath, **kwargs):
         return self.template_dir.output(

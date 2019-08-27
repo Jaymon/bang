@@ -61,7 +61,7 @@ class Url(String):
 
     @property
     def host(self):
-        return self.parts.hostname
+        return self.parts.netloc
 
     @property
     def path(self):
@@ -227,6 +227,12 @@ class UnlinkedTagTokenizer(object):
         yield tag, plain
 
 
+class HTML(String):
+    def inject_into_head(self, html):
+        def callback(m):
+            return "{}{}{}".format(m.group(1), html, m.group(0))
 
-
+        regex = r"(\s*)(</head>)"
+        ret = re.sub(regex, callback, self, flags=re.I|re.M)
+        return type(self)(ret)
 

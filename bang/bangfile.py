@@ -3,5 +3,5 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 
 from .event import event
 from .types import Page, TypeIterator
-from .plugins import sitemap
+from .plugins import sitemap, favicon
 

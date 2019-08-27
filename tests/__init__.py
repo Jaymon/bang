@@ -25,21 +25,34 @@ configure_logging("")
 class TestCase(testdata.TestCase):
 
     @classmethod
-    def create_config(cls, input_files=None):
+    def create_config(cls, input_files=None, **kwargs):
         p = cls.get_project(input_files)
+        if kwargs:
+            for k, v in kwargs.items():
+                p.config.set(k, v)
         return p.config
+    get_config = create_config
 
     @classmethod
     def get_dirs(cls, project_files=None):
-        output_dir = Directory(testdata.create_dir())
+        #output_dir = Directory(testdata.create_dir())
         project_dir = Directory(testdata.create_dir())
+        output_dir = Directory(testdata.create_dir("output", tmpdir=project_dir))
 
         if project_files:
-            testdata.create_files(project_files, tmpdir=String(project_dir))
+            tmpdir = String(project_dir)
+            for fp, contents in project_files.items():
+                m = re.search(r"\.(jpg|gif|png)$", fp, re.I)
+                if m:
+                    testdata.create_image(m.group(1), path=fp, tmpdir=tmpdir)
+
+                else:
+                    testdata.create_file(fp, contents, tmpdir=tmpdir)
+
         return project_dir, output_dir
 
     @classmethod
-    def get_project(cls, input_files=None, project_files=None, bangfile=None):
+    def get_project_files(cls, input_files=None, project_files=None, bangfile=None):
         input_files = input_files or {}
         project_files = project_files or {}
 
@@ -57,8 +70,8 @@ class TestCase(testdata.TestCase):
 
         bangfile_lines.extend([
             "",
-            "@event('configure')",
-            "def global_config(event_name, config):",
+            "@event('configure.project')",
+            "def configure_project(event, config):",
             "    config.host = 'example.com'",
             "    config.name = 'example site'",
             ""
@@ -88,6 +101,11 @@ class TestCase(testdata.TestCase):
 #                 fp = os.path.join('input', name, basename)
             project_files[fp] = file_contents
 
+        return project_files
+
+    @classmethod
+    def get_project(cls, input_files=None, project_files=None, bangfile=None):
+        project_files = cls.get_project_files(input_files, project_files, bangfile)
         project_dir, output_dir = cls.get_dirs(project_files)
         p = Project(project_dir, output_dir)
         return p

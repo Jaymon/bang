@@ -217,12 +217,12 @@ class AmpExtension(Extension):
 
 
 @event("configure.plugins")
-def configure(event_name, config):
+def configure(event, config):
     config.setdefault("amp_iter", PageIterator(config))
 
 
 @event('context.amp')
-def configure(event_name, config):
+def configure(event, config):
     md = config.markdown
     md.register(AmpExtension())
 
@@ -245,7 +245,7 @@ def configure(event_name, config):
 
 
 @event('output.finish')
-def output_amp(event_name, config):
+def output_amp(event, config):
     with config.context("amp") as config:
         theme = config.theme
         for p in config.amp_iter:
@@ -253,7 +253,7 @@ def output_amp(event_name, config):
             # we generate the html so things like config.amp_components will be
             # populated when we go to template the page I can't figure out any
             # better way to do this right now
-            p.html
+            #p.html
 
             p.amp_output_file = p.output_dir.child_file("amp", p.output_basename)
 
@@ -270,4 +270,20 @@ def amp_url(self):
     """returns the amp permalink url for this page"""
     return "{}/amp".format(self.url.rstrip("/"))
 
+
+@event("output.template.page")
+def template_amp(event, config):
+
+    instance = event.instance
+
+    if config.is_context("amp"):
+        s = '<link rel="canonical" href="{}">'.format(instance.url)
+
+        if config.amp_components:
+            event.html = event.html.inject_into_head("\n".join(config.amp_components))
+
+    else:
+        s = '<link rel="amphtml" href="{}">'.format(instance.amp_url)
+
+    event.html = event.html.inject_into_head(s)
 

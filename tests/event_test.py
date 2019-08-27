@@ -2,86 +2,53 @@
 from __future__ import unicode_literals, division, print_function, absolute_import
 
 from bang.compat import *
-from bang.event import Events, Receipt, Extend
+from bang.event import Events, Extend
 from bang.types import Page
 from . import TestCase
 
 
-class ReceiptTest(TestCase):
-    def test_callback_uniqueness(self):
-        def cb1(*args, **kwargs): pass
-        def cb2(*args, **kwargs): pass
-
-        r = Receipt("foo", [1], {"key": "val"})
-
-        r.add(cb1)
-        self.assertEqual(1, len(r))
-
-        r.add(cb2)
-        self.assertEqual(2, len(r))
-
-        r.add(cb2)
-        self.assertEqual(2, len(r))
-
-    def test_run(self):
-        count = {"": 0}
-        def cb1(*args, **kwargs): count[""] += 1
-        def cb2(*args, **kwargs): count[""] += 1
-
-        r = Receipt("foo")
-        r.run(cb1)
-        self.assertEqual(1, count[""])
-
-        r.run(cb1)
-        self.assertEqual(1, count[""])
-
-        r.run(cb2)
-        self.assertEqual(2, count[""])
-
-    def test_event(self):
-        def cb1(*args, **kwargs): return 1
-        def cb2(event_name):
-            for ret in event_name.receipt.returns:
-                if ret == 1:
-                    return ret
-            return 2
-
-        r = Receipt("foo")
-        r.run(cb1)
-        ret = r.run(cb2)
-        self.assertEqual(1, ret)
-
-
 class EventsTest(TestCase):
+    def test_push_and_bind(self):
+        ev = Events()
+        c = self.get_config()
+
+        @ev("push_and_bind")
+        def push1(event, config):
+            event.text += "1"
+
+        r1 = ev.push("push_and_bind", c, text="1")
+
+        @ev("push_and_bind")
+        def push2(event, config):
+            event.text += "2"
+
+        r2 = ev.push("push_and_bind", c, text="2")
+
+        @ev("push_and_bind")
+        def push3(event, config):
+            event.text += "3"
+
+        #pout.v(r1.text, r2.text, r1.event_callbacks, r2.event_callbacks)
+
+        self.assertEqual("1123", r1.text)
+        self.assertEqual("2123", r2.text)
+
     def test_broadcast(self):
         ev = Events()
-        count = {"": 0}
-        def cb1(ev, count): count[""] += 1
+        config = self.get_config()
 
-        ev.broadcast("foo", count)
-        self.assertEqual(0, count[""])
+        r = ev.broadcast("foo", config, count=0)
+        self.assertEqual(0, r.count)
 
+        def cb1(event, config):
+            event.count += 1
         ev.bind("foo", cb1)
-        ev.broadcast("foo", count)
-        self.assertEqual(1, count[""])
 
-        ev.broadcast("foo", count)
-        self.assertEqual(2, count[""])
+        r = ev.broadcast("foo", config, count=0)
+        self.assertEqual(1, r.count)
 
-    def test_push(self):
-        ev = Events()
-        count = {"": 0}
-        def cb1(ev, count): count[""] += 1
-
-        ev.push("foo", count)
-        self.assertEqual(0, count[""])
-
-        ev.bind("foo", cb1)
-        self.assertEqual(1, count[""])
-
-        ev.push("foo", count)
-        self.assertEqual(2, count[""])
-
+        r = ev.broadcast("foo", config, count=r.count)
+        self.assertEqual(2, r.count)
 
 
 class ExtendTest(TestCase):

@@ -19,12 +19,12 @@ logger = logging.getLogger(__name__)
 
 
 @event("configure.plugins")
-def configure(event_name, config):
+def configure_sitemap(event, config):
     config.setdefault("sitemap_iter", PageIterator(config))
 
 
 @event('output.finish')
-def output_sitemap(event_name, config):
+def output_sitemap(event, config):
     if not config.sitemap_iter.has(): return
 
     with config.context("sitemap") as config:

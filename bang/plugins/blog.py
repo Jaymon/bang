@@ -28,7 +28,7 @@ class Post(Page):
 
 
 @event("configure.plugins")
-def configure(event_name, config):
+def configure(event, config):
     config.feed_iter = TypeIterator(config, [Post])
     config.sitemap_iter = TypeIterator(config, [Post])
 
@@ -37,7 +37,7 @@ def configure(event_name, config):
 
 
 @event("output.finish")
-def compile_root_index_files(event_name, config):
+def compile_root_index_files(event, config):
     # this compiles the root index.html
     config.project.get_type(Post.name).output()
     #p = TypeIterator(config, [Post])

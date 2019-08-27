@@ -172,3 +172,4 @@ class ImageTest(TestCase):
         im = Image(testdata.create_jpg())
         self.assertFalse(im.is_animated())
 
+

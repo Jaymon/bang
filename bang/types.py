@@ -9,8 +9,9 @@ import inspect
 
 from .compat import *
 from .decorators import classproperty, once
-from .path import Directory
-from .utils import HTMLStripper, Url, ContextCache
+from .path import Directory, File
+from .utils import HTMLStripper, Url, ContextCache, HTML
+from .event import event
 
 
 logger = logging.getLogger(__name__)
@@ -103,10 +104,6 @@ class Pages(object):
     @property
     def tail(self):
         return self.last_page
-
-    @property
-    def template(self):
-        return Template(self.template_name, self.config.template_dir)
 
     def __init__(self, config):
         self.config = config
@@ -390,10 +387,6 @@ class Page(Type):
         return self.input_dir.files(regex=self.regex, exclude=True)
 
     @property
-    def template(self):
-        return Template(self.template_name, self.config.template_dir)
-
-    @property
     def next_url(self):
         """returns the url of the next post"""
         p = self.next_page
@@ -573,11 +566,19 @@ class Page(Type):
             )
         )
 
-        theme.output_template(
+        html = theme.render_template(
             self.template_name,
             output_file,
             **kwargs
         )
+
+        # NOTE -- the .page is hardcoded instead of using something like
+        # .template_name so plugins can rely on this event name always being
+        # broadcast even if the templates can change (like a specific post
+        # template)
+        r = event.broadcast('output.template.page', self.config, html=HTML(html), instance=self)
+        f = File(output_file, encoding=self.config.encoding)
+        f.create(r.html)
 
     @classmethod
     def match(cls, directory):

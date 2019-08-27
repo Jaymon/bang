@@ -1,12 +1,6 @@
 {% extends "master.html" %}
 {% from 'macros.html' import opengraph, article %}
 
-{% block amp %}
-  {% if instance.amp_url is defined %}
-    <link rel="amphtml" href="{{ instance.amp_url }}">
-  {% endif %}
-{% endblock %}
-
 {% block title %}{{ instance.title }}{% endblock %}
 
 {% block description %}

@@ -18,6 +18,15 @@ class OtherTest(TestCase):
         p.output()
         self.assertFalse(p.output_dir.has_file("foo", "index.md"))
 
+    def test_file_copy(self):
+        p = self.get_project({
+            "random.txt": "some random text",
+        })
+
+        p.output()
+
+        self.assertTrue(p.input_dir.has_file("random.txt"))
+        self.assertTrue(p.output_dir.has_file("random.txt"))
 
 class PageTest(TestCase):
     def test_compile(self):
@@ -42,11 +51,7 @@ class PageTest(TestCase):
             p2.output()
 
         r = "\n".join(c[1])
-        # !!! There is some weirdness with this test where foo and bar aren't in
-        # the logs when all tests are run, but are when only this test is run, I
-        # can't figure out why it's different though
-        #for k in ["default.templatenamebar", "default.templatenamefoo", "default.page"]:
-        for k in ["default.page"]:
+        for k in ["default.templatenamebar", "default.templatenamefoo", "default.page"]:
             self.assertTrue(k in r)
 
     def test_page(self):

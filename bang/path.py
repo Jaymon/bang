@@ -13,6 +13,8 @@ import struct
 import imghdr
 
 from .compat import *
+from .event import event
+from .utils import HTML
 
 
 logger = logging.getLogger(__name__)
@@ -81,10 +83,12 @@ class Path(object):
 
         relative = self.path.replace(String(ancestor_dir), '', 1).strip(os.sep).strip("/")
         return relative
+    relative_to=relative
 
     def relative_parts(self, ancestor_dir=None):
         relative = self.relative(ancestor_dir)
         return re.split(r"[\/]", relative)
+    parts_relative_to=relative_parts
 
     def clone(self):
         """return a new instance with the same path"""
@@ -186,75 +190,15 @@ class Image(File):
     def dimensions(self):
         return self.get_info()["dimensions"][-1]
 
-        dimensions = getattr(self, "_dimensions", None)
-        if dimensions:
-            return dimensions
-
-        # this makes heavy use of struct: https://docs.python.org/3/library/struct.html
-        # based on this great answer on SO: https://stackoverflow.com/a/39778771/5006
-        # read/write ico files: https://github.com/grigoryvp/pyico
-
-        with self.open() as fp:
-            head = fp.read(24)
-            if len(head) != 24:
-                return 0, 0
-
-            # https://docs.python.org/2.7/library/imghdr.html
-            what = imghdr.what(None, head)
-            if what is None:
-                what = self.extension
-
-            if what == 'png':
-                check = struct.unpack('>i', head[4:8])[0]
-                if check != 0x0d0a1a0a:
-                    return 0, 0
-
-                width, height = struct.unpack('>ii', head[16:24])
-
-            elif what == 'gif':
-                width, height = struct.unpack('<HH', head[6:10])
-
-            elif what == 'jpeg':
-                try:
-                    fp.seek(0) # Read 0xff next
-                    size = 2
-                    ftype = 0
-                    while not 0xc0 <= ftype <= 0xcf or ftype in (0xc4, 0xc8, 0xcc):
-                        fp.seek(size, 1)
-                        byte = fp.read(1)
-                        while ord(byte) == 0xff:
-                            byte = fp.read(1)
-                        ftype = ord(byte)
-                        size = struct.unpack('>H', fp.read(2))[0] - 2
-                    # We are at a SOFn block
-                    fp.seek(1, 1)  # Skip `precision' byte.
-                    height, width = struct.unpack('>HH', fp.read(4))
-                except Exception: #IGNORE:W0703
-                    return
-
-            elif what == "ico":
-                # https://en.wikipedia.org/wiki/ICO_(file_format)#Outline
-                fp.seek(0)
-                reserved, image_type, image_count = struct.unpack('<HHH', fp.read(6))
-#                 reserved = struct.unpack('<H', fp.read(2))
-#                 image_type = struct.unpack('<H', fp.read(2))[0]
-#                 image_count = struct.unpack('<H', fp.read(2))[0]
-
-                for x in range(image_count):
-                    width = struct.unpack('<B', fp.read(1))[0] or 256
-                    height = struct.unpack('<B', fp.read(1))[0] or 256
-                    fp.read(6) # we don't care about color or density info
-                    size = struct.unpack('<I', fp.read(4))[0]
-                    offset = struct.unpack('<I', fp.read(4))[0]
-
-            else:
-                raise ValueError("Unsupported image type {}".format(self.extension))
-
-            self._dimensions = (width, height)
-            return width, height
-
     def __init__(self, *bits):
         super(Image, self).__init__(*bits, encoding="")
+
+    def sizes(self):
+        sizes = []
+        info = self.get_info()
+        for width, height in info["dimensions"]:
+            sizes.append("{}x{}".format(width, height))
+        return " ".join(sizes)
 
     def get_info(self):
         info = getattr(self, "_info", None)
@@ -270,7 +214,7 @@ class Image(File):
         with self.open() as fp:
             head = fp.read(24)
             if len(head) != 24:
-                return 0, 0
+                raise ValueError("Could not understand image")
 
             # https://docs.python.org/2.7/library/imghdr.html
             what = imghdr.what(None, head)
@@ -280,7 +224,7 @@ class Image(File):
             if what == 'png':
                 check = struct.unpack('>i', head[4:8])[0]
                 if check != 0x0d0a1a0a:
-                    return 0, 0
+                    raise ValueError("Could not understand PNG image")
 
                 width, height = struct.unpack('>ii', head[16:24])
                 info["dimensions"].append((width, height))
@@ -306,8 +250,8 @@ class Image(File):
                     height, width = struct.unpack('>HH', fp.read(4))
                     info["dimensions"].append((width, height))
 
-                except Exception: #IGNORE:W0703
-                    return
+                except Exception: #W0703
+                    raise
 
             elif what == "ico":
                 # https://en.wikipedia.org/wiki/ICO_(file_format)#Outline
@@ -334,10 +278,12 @@ class Image(File):
             return info
             #return width, height
 
+    def is_favicon(self):
+        info = self.get_info()
+        return info["what"] == "ico"
+
     def is_animated(self):
         """Return true if image is an animated gif
-
-        TODO -- support for animated png?
 
         :returns: boolean, True if the image is an animated gif
         """
@@ -689,7 +635,7 @@ class TemplateDirectory(Directory):
         self.path = template_dir
         # https://jinja.palletsprojects.com/en/master/api/#jinja2.Environment
         self.env = Environment(
-            loader=FileSystemLoader(String(template_dir)),
+            loader=FileSystemLoader(String(self.path)),
             #extensions=['jinja2.ext.with_'] # http://jinja.pocoo.org/docs/dev/templates/#with-statement
             lstrip_blocks=True,
             trim_blocks=True,
@@ -703,6 +649,16 @@ class TemplateDirectory(Directory):
     def has(self, template_name):
         return template_name in self.templates
 
+    def render(self, template_name, filepath, config, **kwargs):
+        tmpl = self.env.get_template("{}.html".format(template_name))
+        html = tmpl.render(config=config, **kwargs)
+        r = event.broadcast('output.template', config, html=HTML(html))
+        return r.html
+
+    def create(self, filepath, config, html):
+        f = File(filepath, encoding=config.encoding)
+        f.create(html)
+
     def output(self, template_name, filepath, config, **kwargs):
         """output kwargs using the template template_name to filepath
 
@@ -711,7 +667,8 @@ class TemplateDirectory(Directory):
         :param config: Config instance
         :param **kwargs: dict, all these will be passed to the template
         """
-        tmpl = self.env.get_template("{}.html".format(template_name))
-        return tmpl.stream(config=config, **kwargs).dump(String(filepath), encoding=config.encoding)
+        html = self.render(template_name, filepath, config, **kwargs)
+        self.create(filepath, config, html)
+        #return tmpl.stream(config=config, **kwargs).dump(String(filepath), encoding=config.encoding)
 
 
