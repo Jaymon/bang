@@ -11,7 +11,7 @@ from .event import event
 from .decorators import once
 
 
-__version__ = "0.2.12"
+__version__ = "1.0.0"
 
 
 logger = logging.getLogger(__name__)
