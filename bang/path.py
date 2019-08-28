@@ -7,14 +7,12 @@ from distutils import dir_util
 import shutil
 import codecs
 import logging
-from jinja2 import Environment, FileSystemLoader
 import fnmatch
 import struct
 import imghdr
 
 from .compat import *
 from .event import event
-from .utils import HTML
 
 
 logger = logging.getLogger(__name__)
@@ -596,6 +594,15 @@ class Directory(Path):
 
         return ds
 
+    def glob(self, pattern):
+        """
+        glob the immediate directory for pattern
+
+        :param pattern: string, something like '*.html'
+        """
+        for f in fnmatch.filter(os.listdir(String(self.path)), pattern):
+            yield f
+
     def has_file(self, *bits):
         """return true if the file basename exists in this directory"""
         return File(self.path, *bits).exists()
@@ -626,49 +633,57 @@ class DataDirectory(Directory):
         return self.child_directory("project")
 
 
-class TemplateDirectory(Directory):
-    """Thin wrapper around Jinja functionality that handles templating things
-
-    http://jinja.pocoo.org/docs/dev/
-    """
-    def __init__(self, template_dir):
-        self.path = template_dir
-        # https://jinja.palletsprojects.com/en/master/api/#jinja2.Environment
-        self.env = Environment(
-            loader=FileSystemLoader(String(self.path)),
-            #extensions=['jinja2.ext.with_'] # http://jinja.pocoo.org/docs/dev/templates/#with-statement
-            lstrip_blocks=True,
-            trim_blocks=True,
-        )
-
-        self.templates = {}
-        for f in fnmatch.filter(os.listdir(String(self.path)), '*.html'):
-            filename, fileext = os.path.splitext(f)
-            self.templates[filename] = f
-
-    def has(self, template_name):
-        return template_name in self.templates
-
-    def render(self, template_name, filepath, config, **kwargs):
-        tmpl = self.env.get_template("{}.html".format(template_name))
-        html = tmpl.render(config=config, **kwargs)
-        r = event.broadcast('output.template', config, html=HTML(html))
-        return r.html
-
-    def create(self, filepath, config, html):
-        f = File(filepath, encoding=config.encoding)
-        f.create(html)
-
-    def output(self, template_name, filepath, config, **kwargs):
-        """output kwargs using the template template_name to filepath
-
-        :param template_name: string, the template you want to use for kwargs
-        :param filepath: string, the destination file that will be output to
-        :param config: Config instance
-        :param **kwargs: dict, all these will be passed to the template
-        """
-        html = self.render(template_name, filepath, config, **kwargs)
-        self.create(filepath, config, html)
-        #return tmpl.stream(config=config, **kwargs).dump(String(filepath), encoding=config.encoding)
-
-
+# class TemplateDirectory(Directory):
+#     """Thin wrapper around Jinja functionality that handles templating things
+# 
+#     http://jinja.pocoo.org/docs/dev/
+#     https://jinja.palletsprojects.com/en/master/api/
+#     https://jinja.palletsprojects.com/en/2.10.x/
+# 
+#     template documentation:
+#         https://jinja.palletsprojects.com/en/2.10.x/templates/
+#     """
+#     def __init__(self, template_dir):
+#         self.path = template_dir
+#         # https://jinja.palletsprojects.com/en/master/api/#jinja2.Environment
+#         self.env = Environment(
+#             loader=FileSystemLoader(String(self.path)),
+#             #extensions=['jinja2.ext.with_'] # http://jinja.pocoo.org/docs/dev/templates/#with-statement
+#             lstrip_blocks=True,
+#             trim_blocks=True,
+#         )
+# 
+#         self.templates = {}
+#         for f in self.path.files(regex=r"\.html$", depth=0):
+#             filename, fileext = os.path.splitext(File(f).relative(self.path))
+#             self.templates[filename] = f
+# 
+#     def has(self, template_name):
+#         return template_name in self.templates
+# 
+#     def render(self, template_name, filepath, config, **kwargs):
+#         """
+#         https://jinja.palletsprojects.com/en/master/api/#jinja2.Template.render
+#         """
+#         tmpl = self.env.get_template("{}.html".format(template_name))
+#         html = tmpl.render(config=config, **kwargs)
+#         r = event.broadcast('output.template', config, html=HTML(html))
+#         return r.html
+# 
+#     def create(self, filepath, config, html):
+#         f = File(filepath, encoding=config.encoding)
+#         f.create(html)
+# 
+#     def output(self, template_name, filepath, config, **kwargs):
+#         """output kwargs using the template template_name to filepath
+# 
+#         :param template_name: string, the template you want to use for kwargs
+#         :param filepath: string, the destination file that will be output to
+#         :param config: Config instance
+#         :param **kwargs: dict, all these will be passed to the template
+#         """
+#         html = self.render(template_name, filepath, config, **kwargs)
+#         self.create(filepath, config, html)
+#         #return tmpl.stream(config=config, **kwargs).dump(String(filepath), encoding=config.encoding)
+# 
+# 

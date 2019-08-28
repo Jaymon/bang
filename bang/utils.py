@@ -236,3 +236,11 @@ class HTML(String):
         ret = re.sub(regex, callback, self, flags=re.I|re.M)
         return type(self)(ret)
 
+    def inject_into_body(self, html):
+        def callback(m):
+            return "{}{}{}".format(m.group(1), html, m.group(0))
+
+        regex = r"(\s*)(</body>)"
+        ret = re.sub(regex, callback, self, flags=re.I|re.M)
+        return type(self)(ret)
+

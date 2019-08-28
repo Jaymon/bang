@@ -35,7 +35,7 @@ class Markdown(markdown.Markdown):
     https://github.com/Python-Markdown/markdown/blob/master/docs/change_log/release-3.0.md
 
     extends this class:
-        https://github.com/Python-Markdown/markdown/blob/master/markdown/core.py
+        https://github.com/Python-Markdown/markdown/blob/master/markdown/core.py#L45
     """
     @classmethod
     def create_extensions(cls):

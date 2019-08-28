@@ -1,4 +1,32 @@
 # -*- coding: utf-8 -*-
+"""
+This plugin will find any favicon.* image in the root input/ directory and then
+create the html for the head of an html page and then inject that html into a
+rendered html template, basically, it generates something like this and adds it
+to the <head> tag:
+
+    <!-- generics -->
+    <link rel="icon" href="/path/to/favicon-32.png" sizes="32x32">
+    <link rel="icon" href="/path/to/favicon-57.png" sizes="57x57">
+    <link rel="icon" href="/path/to/favicon-76.png" sizes="76x76">
+    <link rel="icon" href="/path/to/favicon-96.png" sizes="96x96">
+    <link rel="icon" href="/path/to/favicon-128.png" sizes="128x128">
+    <link rel="icon" href="/path/to/favicon-192.png" sizes="192x192">
+    <link rel="icon" href="/path/to/favicon-228.png" sizes="228x228">
+
+    <!-- Android -->
+    <link rel="shortcut icon" sizes="196x196" href=“/path/to/favicon-196.png">
+
+    <!-- iOS -->
+    <link rel="apple-touch-icon" href="/path/to/favicon-120.png" sizes="120x120">
+    <link rel="apple-touch-icon" href="path/to/favicon-152.png" sizes="152x152">
+    <link rel="apple-touch-icon" href="path/to/favicon-180.png" sizes="180x180">
+
+
+These are the links I used to figure out what to support:
+    https://www.emergeinteractive.com/insights/detail/the-essentials-of-favicons/
+    https://github.com/audreyr/favicon-cheat-sheet
+"""
 from __future__ import unicode_literals, division, print_function, absolute_import
 from collections import OrderedDict
 
@@ -9,7 +37,9 @@ from ..utils import Url
 
 class Favicons(object):
 
-    regex = r"^favicon\S*\.\S+$"
+    # safari requests apple-touch-icon.png and apple-touch-icon-precomposed.png
+    # automatically
+    regex = r"^(favicon\S*\.\S+|apple-touch-icon\S*.png)$"
 
     @property
     def outline(self):

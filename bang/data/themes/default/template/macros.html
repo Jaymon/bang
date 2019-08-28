@@ -10,13 +10,3 @@
   </article>
 {% endmacro %}
 
-{% macro opengraph(instance) %}
-  {# <!-- http://ogp.me/ --> #}
-  <meta name="description" content="{{ instance.description }}">
-  <meta property="og:url" content="{{ instance.url }}" />
-  <meta property="og:type" content="article" />
-  <meta property="og:title" content="{{ instance.title }}" />
-  <meta property="og:description" content="{{ instance.description }}" />
-  <meta property="og:image" content="{{ instance.image }}" />
-{% endmacro %}
-

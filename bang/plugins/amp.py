@@ -9,6 +9,8 @@ You can test amp validation in Chrome by appending #development=1 to an amp url
 and opening a DevTools window on the Console tab
 
     https://amp.dev/documentation/guides-and-tutorials/start/converting/building-page/
+    https://github.com/Jaymon/bang/issues/34
+    https://amp.dev/documentation/guides-and-tutorials/start/converting/resolving-errors/?format=websites
 """
 from __future__ import unicode_literals, division, print_function, absolute_import
 import logging
@@ -230,13 +232,17 @@ def configure(event, config):
     # will fallback to the default theme
     theme = config.theme
     if not theme.template_dir.has_directory("amp"):
-        theme = config.default_theme
+        config.theme_name = "default"
+    config.template_prefix = "amp"
 
-    # this is not ideal but since theme's aren't context aware I can't change
-    # values in the Theme instance and have them revert when exiting the
-    # context, so we basically clone the Theme instance
-    config.themes["amp_theme"] = Theme(theme.theme_dir, config, template_dir="template/amp")
-    config.theme_name = "amp_theme"
+
+#         theme = config.default_theme
+# 
+#     # this is not ideal but since theme's aren't context aware I can't change
+#     # values in the Theme instance and have them revert when exiting the
+#     # context, so we basically clone the Theme instance
+#     config.themes["amp_theme"] = Theme(theme.theme_dir, config, template_dir="template/amp")
+#     config.theme_name = "amp_theme"
     #pout.v(config.theme.template_dir.file_contents("amp.css"))
 
     # amp components (eg, Twitter, Youtube, and iframe) will set components into

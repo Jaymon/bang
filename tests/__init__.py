@@ -24,6 +24,8 @@ configure_logging("")
 
 class TestCase(testdata.TestCase):
 
+    plugins = []
+
     @classmethod
     def create_config(cls, input_files=None, **kwargs):
         p = cls.get_project(input_files)
@@ -52,6 +54,25 @@ class TestCase(testdata.TestCase):
         return project_dir, output_dir
 
     @classmethod
+    def get_bangfile_lines(cls, *lines):
+        bangfile_lines = []
+        for bangfile in lines:
+            if bangfile:
+                if isinstance(bangfile, basestring):
+                    bangfile = [bangfile]
+
+                bangfile_lines.extend(bangfile)
+
+        plugins = cls.plugins
+        if isinstance(plugins, basestring):
+            plugins = [plugins]
+
+        for plugin in plugins:
+            bangfile_lines.append("from bang.plugins import {}".format(plugin))
+
+        return bangfile_lines
+
+    @classmethod
     def get_project_files(cls, input_files=None, project_files=None, bangfile=None):
         input_files = input_files or {}
         project_files = project_files or {}
@@ -62,11 +83,7 @@ class TestCase(testdata.TestCase):
             "",
         ]
 
-        if bangfile:
-            if isinstance(bangfile, basestring):
-                bangfile_lines.append(bangfile)
-            else:
-                bangfile_lines.extend(bangfile)
+        bangfile_lines.extend(cls.get_bangfile_lines(bangfile))
 
         bangfile_lines.extend([
             "",
@@ -111,22 +128,22 @@ class TestCase(testdata.TestCase):
         return p
 
     @classmethod
-    def get_pages(cls, page_files):
-        p = cls.get_project(page_files)
+    def get_pages(cls, page_files, bangfile=None):
+        p = cls.get_project(page_files, bangfile=bangfile)
         p.compile()
         return p.types["page"]
 
     @classmethod
-    def get_count_pages(cls, count):
+    def get_count_pages(cls, count, bangfile=None):
         page_files = {}
         for x in range(count):
             name = testdata.get_ascii(8)
             page_files["{}/index.md".format(name)] = testdata.get_words()
 
-        return cls.get_pages(page_files)
+        return cls.get_pages(page_files, bangfile=bangfile)
 
     @classmethod
-    def get_page(cls, page_file="", page_files=None):
+    def get_page(cls, page_file="", page_files=None, bangfile=None):
         if not page_file:
             page_file = [
                 "# title text",
@@ -143,7 +160,7 @@ class TestCase(testdata.TestCase):
             name = "{}/index.md".format(testdata.get_ascii(8))
             page_files[name] = page_file
 
-        return cls.get_pages(page_files).first_page
+        return cls.get_pages(page_files, bangfile=bangfile).first_page
 
     @classmethod
     def get_body(cls, filepath):
@@ -182,5 +199,5 @@ class TestCase(testdata.TestCase):
                 sys.modules.pop(k, None)
 
         # clear singletons
-        event.bound.clear()
+        event.reset()
 

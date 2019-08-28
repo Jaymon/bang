@@ -4,7 +4,7 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 from ..event import event
 from ..types import TypeIterator, Page, Other
 from ..path import File
-from . import feed, sitemap
+from . import feed, sitemap, opengraph
 
 
 class Post(Page):

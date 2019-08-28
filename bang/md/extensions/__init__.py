@@ -8,7 +8,7 @@ Extension api: https://python-markdown.github.io/extensions/api/
 
 extension for the markdown lib I use: https://github.com/waylan/Python-Markdown
 
-# https://github.com/Python-Markdown/markdown/blob/master/markdown/extensions/__init__.py
+https://github.com/Python-Markdown/markdown/tree/master/markdown/extensions
 https://python-markdown.github.io/extensions/api/#registry
 https://github.com/Python-Markdown/markdown/wiki/Third-Party-Extensions
 https://python-markdown.github.io/extensions/
@@ -18,7 +18,7 @@ from markdown.extensions import Extension as BaseExtension
 from markdown.treeprocessors import Treeprocessor as BaseTreeprocessor
 from markdown.postprocessors import Postprocessor as BasePostprocessor
 from markdown.blockprocessors import BlockProcessor as BaseBlockprocessor
-from markdown.util import etree
+from markdown.util import etree # https://github.com/Python-Markdown/markdown/blob/master/markdown/util.py
 
 
 class Postprocessor(BasePostprocessor):
@@ -30,6 +30,7 @@ class Blockprocessor(BaseBlockprocessor):
     """Fixes differences between BlockProcessor and the other extension processors
 
     https://github.com/Python-Markdown/markdown/blob/master/markdown/blockprocessors.py#L61
+    https://python-markdown.github.io/extensions/api/#blockparser
     """
     def __init__(self, md):
         """For some reason the vanilla BlockParser takes a parser instead of a 
@@ -48,8 +49,10 @@ class Blockprocessor(BaseBlockprocessor):
 class Treeprocessor(BaseTreeprocessor):
     """
     http://effbot.org/zone/pythondoc-elementtree-ElementTree.htm
+    https://python-markdown.github.io/extensions/api/#treeprocessors
     https://github.com/waylan/Python-Markdown/blob/master/markdown/treeprocessors.py
     https://python-markdown.github.io/extensions/api/#working_with_et
+    http://effbot.org/zone/element-index.htm#documentation
     """
     def dump(self, elem):
         """dump elem to stdout to debug"""

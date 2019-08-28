@@ -138,6 +138,10 @@ class Events(object):
 
         return wrap
 
+    def reset(self):
+        self.bound.clear()
+        self.pushed.clear()
+
 
 class Extend(object):
     """you can use this decorator to extend instances in the bangfile with custom

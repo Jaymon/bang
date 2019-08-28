@@ -568,7 +568,6 @@ class Page(Type):
 
         html = theme.render_template(
             self.template_name,
-            output_file,
             **kwargs
         )
 

@@ -7,11 +7,14 @@ from collections import defaultdict
 import importlib
 import logging
 
+from jinja2 import Environment, FileSystemLoader
+
 from .compat import *
 from .event import event
 from .types import Other, Page
-from .path import DataDirectory, Directory, TemplateDirectory
+from .path import DataDirectory, Directory, File
 from .md import Markdown
+from .utils import HTML
 
 
 logger = logging.getLogger(__name__)
@@ -255,14 +258,51 @@ class Config(object):
 
 
 class Theme(object):
+    """
+    Holds information about a theme
+
+    Template functionality is a thin wrapper around Jinja functionality that
+    handles templating things
+
+    http://jinja.pocoo.org/docs/dev/
+    https://jinja.palletsprojects.com/en/master/api/
+    https://jinja.palletsprojects.com/en/2.10.x/
+
+    template documentation:
+        https://jinja.palletsprojects.com/en/2.10.x/templates/
+    """
     def __init__(self, theme_dir, config, **kwargs):
         self.theme_dir = theme_dir
         self.name = self.theme_dir.basename
         self.config = config
-        self.template_dir = TemplateDirectory(
-            self.theme_dir.child(kwargs.get("template_dir", "template"))
-        )
+#         self.template_dir = TemplateDirectory(
+#             self.theme_dir.child(kwargs.get("template_dir", "template"))
+#         )
         self.input_dir = self.theme_dir.child("input")
+
+        self.template_dir = self.theme_dir.child(kwargs.get("template_dir", "template"))
+
+        # https://jinja.palletsprojects.com/en/master/api/#jinja2.Environment
+        self.template = Environment(
+            loader=FileSystemLoader(String(self.template_dir)),
+            #extensions=['jinja2.ext.with_'] # http://jinja.pocoo.org/docs/dev/templates/#with-statement
+            lstrip_blocks=True,
+            trim_blocks=True,
+        )
+
+        self.templates = {}
+        for f in self.template_dir.files(regex=r"\.html$", depth=0):
+            rel_f = File(f).relative(self.template_dir)
+            filename, fileext = os.path.splitext(rel_f)
+            self.templates[filename] = rel_f
+
+    def get_template_name(self, template_name):
+        parts = []
+        prefix = self.config.get("template_prefix", "").strip("/")
+        if prefix:
+            parts.append(prefix)
+        parts.append(template_name.lstrip("/"))
+        return "/".join(parts)
 
     def output(self):
         if self.input_dir.exists():
@@ -272,23 +312,27 @@ class Theme(object):
             ))
             self.input_dir.copy_to(self.config.output_dir)
 
-    def render_template(self, template_name, filepath, **kwargs):
-        return self.template_dir.render(
-            template_name,
-            filepath,
-            self.config,
-            **kwargs
-        )
+    def render_template(self, template_name, **kwargs):
+        """
+        https://jinja.palletsprojects.com/en/master/api/#jinja2.Template.render
+        """
+        tmpl = self.template.get_template("{}.html".format(self.get_template_name(template_name)))
+        html = tmpl.render(config=self.config, **kwargs)
+        r = event.broadcast('output.template', self.config, html=HTML(html))
+        return r.html
 
     def output_template(self, template_name, filepath, **kwargs):
-        return self.template_dir.output(
-            template_name,
-            filepath,
-            self.config,
-            **kwargs
-        )
+        """output kwargs using the template template_name to filepath
+
+        :param template_name: string, the template you want to use for kwargs
+        :param filepath: string, the destination file that will be output to
+        :param **kwargs: dict, all these will be passed to the template
+        """
+        html = self.render_template(template_name, **kwargs)
+        f = File(filepath, encoding=self.config.encoding)
+        f.create(html)
 
     def has_template(self, template_name):
         """Return True if the theme contains template_name"""
-        return self.template_dir.has(template_name)
+        return self.get_template_name(template_name) in self.templates
 

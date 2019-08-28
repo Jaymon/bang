@@ -1,11 +1,7 @@
 {% extends "master.html" %}
-{% from 'macros.html' import opengraph, article %}
+{% from 'macros.html' import article %}
 
 {% block title %}{{ instance.title }}{% endblock %}
-
-{% block description %}
-  {{ opengraph(instance) }}
-{% endblock %}
 
 {% block content %}
   {{ article(instance) }}

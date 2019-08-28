@@ -9,15 +9,7 @@ from .. import TestCase as BaseTestCase
 
 
 class TestCase(BaseTestCase):
-    @classmethod
-    def get_project(cls, input_files=None, project_files=None, bangfile=None):
-        bangfile = bangfile or []
-        bangfile.insert(0, "from bang.plugins import amp")
-        return super(TestCase, cls).get_project(
-            input_files,
-            project_files,
-            bangfile=bangfile
-        )
+    plugins = "amp"
 
 
 class AmpTest(TestCase):
@@ -52,12 +44,8 @@ class AmpTest(TestCase):
         pr = self.get_project(
             input_files={
                 "some-page/index.md": [
-                    "![this is the file](foo.jpg)",
-                    "",
                     "bar.png",
-                    ""
                 ],
-                "some-page/foo.jpg": "",
                 "some-page/bar.png": "",
             },
             project_files={
@@ -78,10 +66,8 @@ class AmpTest(TestCase):
         pr.config.project.output()
 
         html = pr.output_dir.child_directory("some-page/amp").file_contents("index.html")
-        pout.v(html)
-
-
-
+        self.assertTrue('height="' in html)
+        self.assertTrue('width="' in html)
 
     def test_canonical(self):
         p = self.get_page()
@@ -93,6 +79,13 @@ class AmpTest(TestCase):
 
         r_amp = p.output_dir.child_directory("amp").file_contents("index.html")
         self.assertTrue('rel="canonical"' in r_amp)
+
+    def test_css(self):
+        p = self.get_page()
+        p.config.project.output()
+        html = p.output_dir.file_contents("amp/index.html")
+        self.assertTrue("<style amp-custom>" in html)
+        self.assertTrue("<style amp-boilerplate>" in html)
 
 
 class AmpEmbedTest(TestCase):

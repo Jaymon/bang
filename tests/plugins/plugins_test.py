@@ -89,6 +89,8 @@ class SitemapTest(TestCase):
 
 
 class FaviconTest(TestCase):
+    plugins = "favicon"
+
     @classmethod
     def get_dirs(cls, project_files=None):
         project_dir, output_dir = super(FaviconTest, cls).get_dirs(project_files)
@@ -103,15 +105,15 @@ class FaviconTest(TestCase):
 
         return project_dir, output_dir
 
-    @classmethod
-    def get_project(cls, input_files=None, project_files=None, bangfile=None):
-        bangfile = bangfile or []
-        bangfile.insert(0, "from bang.plugins import favicon")
-        return super(FaviconTest, cls).get_project(
-            input_files,
-            project_files,
-            bangfile=bangfile
-        )
+#     @classmethod
+#     def get_project(cls, input_files=None, project_files=None, bangfile=None):
+#         bangfile = bangfile or []
+#         bangfile.insert(0, "from bang.plugins import favicon")
+#         return super(FaviconTest, cls).get_project(
+#             input_files,
+#             project_files,
+#             bangfile=bangfile
+#         )
 
     def get_favicons(self):
         p = self.get_project()
@@ -137,4 +139,36 @@ class FaviconTest(TestCase):
         self.assertTrue('rel="icon"' in html)
         self.assertTrue('rel="shortcut-icon"' in html)
         self.assertTrue('rel="apple-touch-icon"' in html)
+
+
+class GoogleAnalyticsTest(TestCase):
+    plugins = "googleanalytics"
+
+    def test_html_context(self):
+        p = self.get_page()
+        p.config.ga_tracking_id = "XX-DDDDDDDD-D"
+        p.output()
+        html = p.output_dir.file_contents("index.html")
+        self.assertTrue("gtag('config', 'XX-DDDDDDDD-D')" in html)
+
+    def test_amp_context(self):
+        p = self.get_page(bangfile="from bang.plugins import amp")
+        p.config.ga_tracking_id = "XX-DDDDDDDD-D"
+        p.config.project.output()
+
+        html = p.output_dir.file_contents("index.html")
+        self.assertTrue("gtag('config', 'XX-DDDDDDDD-D')" in html)
+
+        html = p.output_dir.file_contents("amp/index.html")
+        self.assertTrue("<amp-analytics " in html)
+
+
+class OpenGraphTest(TestCase):
+    plugins = "opengraph"
+    def test_html(self):
+        p = self.get_page()
+        p.output()
+        html = p.output_dir.file_contents("index.html")
+        for s in ["og:url", "og:type", "og:title", "og:description", "og:image"]:
+            self.assertTrue(s in html)
 
