@@ -507,10 +507,18 @@ class Page(Type):
         return cache["title"], cache["html"], cache["meta"]
 
     def find_title(self, html):
+        """Find an appropriate title for this page, this is called in the .compile()
+        method when a suitable title can't be found and it's a separate method
+        call so children can override it
+
+        :param html: string, the html of this page
+        :returns: string, the title that will go into the .title property
+        """
+        return ""
         # default to just the name of the directory this aux file lives in
-        basename = os.path.basename(String(self.input_dir))
-        title = basename.capitalize()
-        return title
+        #basename = os.path.basename(String(self.input_dir))
+        #title = basename.capitalize()
+        #return title
 
     def __str__(self):
         return self.input_dir.path

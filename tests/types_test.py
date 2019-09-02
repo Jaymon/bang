@@ -30,6 +30,18 @@ class OtherTest(TestCase):
 
 
 class PageTest(TestCase):
+    def test_title_1(self):
+        """https://github.com/Jaymon/bang/issues/48"""
+        pr = self.get_project({
+            "index.md": "body text",
+        })
+        pr.output()
+
+        p = pr.types["page"].head
+        self.assertEqual("", p.title)
+        html = pr.output_dir.file_contents("index.html")
+        self.assertFalse("<h1" in html)
+
     def test_compile(self):
         p = self.get_page([
             "# this is the title",

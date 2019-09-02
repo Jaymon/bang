@@ -39,6 +39,15 @@ class HTMLTest(TestCase):
 class HTMLStripperTest(TestCase):
     def test_remove_tags(self):
         hs = HTMLStripper(
+            '<div class="foo">1<div>2</div>3</div><div>4</div><p>5</p>',
+            remove_tags=["div"]
+        )
+
+        plain = hs.get_data()
+        self.assertEqual("5", plain)
+        return
+
+        hs = HTMLStripper(
             '<div class="foo">1<div>2</div>3</div><div>4</div>',
             remove_tags=["div.foo"]
         )

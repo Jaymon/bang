@@ -1,11 +1,13 @@
 {% macro article(instance) %}
   <article class="body">
-    <h1><a href="{{instance.url}}">{{ instance.title }}</a></h1>
+    {% if instance.title %}
+      <h1><a href="{{instance.url}}">{{ instance.title }}</a></h1>
+    {% endif %}
 
     {{ instance.html }}
 
     <time datetime="{{ instance.modified.strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}" class="metadata">
-        {{ instance.modified.strftime('%b %d %Y') }}
+      {{ instance.modified.strftime('%b %d %Y') }}
     </time>
   </article>
 {% endmacro %}

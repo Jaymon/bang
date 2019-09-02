@@ -112,7 +112,7 @@ blockquote {
   background-color: #fbfbfb;
 }
 
-amp-img {
+img {
   height: auto;
   max-width: 100%;
   border: 1px solid #f1f1f1;
@@ -137,7 +137,6 @@ article {
 
 article h1 {
   font-size: 3.0em;
-  /* https://stackoverflow.com/questions/14431411/ */
   font-size: calc(100% + 3.0vw);
   font-weight: bold;
 }
@@ -151,13 +150,27 @@ article h4, article h5, article h6 {
 }
 
 article p a {
-  /*  color: */
   text-decoration: underline;
 }
 
 hr {
   margin: 25px 0 25px 0;
   color: #fbe8e7;
+}
+
+/* handles centering Twitter js widget */
+twitterwidget {
+  margin: auto;
+}
+
+/* handles centering Instagram js widget */
+.instagram-media {
+  margin: 0 auto; 
+}
+
+.hljs {
+  padding: 0;
+  background: none;
 }
 
 time {
