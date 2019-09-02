@@ -5,6 +5,7 @@ import os
 from bang import event
 
 
+# uncomment the plugins you want your project to use
 # from bang.plugins import (
 #     blog, # is this website a blog?
 #     favicon, # autodiscover favicons
@@ -18,7 +19,7 @@ from bang import event
 
 # main configuration for your project
 @event("configure.project")
-def configure_plugins(event, config):
+def configure_project(event, config):
     config.env = os.environ.get("BANG_ENV", "dev")
     config.host = os.environ.get("BANG_HOST", "")
     #config.name = "PROJECT NAME"
@@ -36,7 +37,7 @@ def configure_plugins(event, config):
 
 # handle html context exclusive configuration
 @event('context.html')
-def context_web(event_name, config):
+def context_html(event_name, config):
     # for support of both https and http on html pages, this results in //host/path/ urls
     config.scheme = ""
 

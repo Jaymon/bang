@@ -1,10 +1,20 @@
 # Bang
 
-A static site generator, powers [marcyes.com](http://marcyes.com)
+A static site generator built in Python with support for things like sitemaps, Open Graph, RSS feeds, and Google Amp. Powers [marcyes.com](http://marcyes.com)
 
 You run bang from the command line:
 
     $ bang command --project-dir=...
+
+[Documentation](https://github.com/Jaymon/bang/tree/master/docs)
+
+-------------------------------------------------------------------------------
+
+## Installation
+
+Use pip:
+
+    pip install bangtext
 
 -------------------------------------------------------------------------------
 
@@ -32,133 +42,66 @@ Now, open a browser and load `localhost:8000` to see your masterpiece, that's it
 
 ## Setup and Configuration
 
-A bang site can have any folder structure and bang will check each folder for a markdown (extension `.md`) file, if it finds one named `index.md` it will not treat it like a blog post but just compile the folder to an `index.html` file. If it finds a markdown file with any other name, then it is considered a blog post with the file's name being the title. So, if you have this file structure:
+A bang project will check each folder in the project directory for an `index.md` markdown file, if it finds one it will compile it to an `index.html` file. 
+
+So, if you have this file structure in your `project-dir`:
 
     project-dir/
       input/
-        2014/
-          001-this-is-the-slug/
-            This is the title of the blog post.md
+        foo/
+        	index.md
+        	image.png
+        bar/
+        	index.md
 
-It would compile down to a blog post with a title *This is the title of the blog post* available at the uri:
+Would compile down to this file structure:
 
-    /2014/001-this-is-the-slug
+    project-dir/
+      output/
+        foo/
+        	index.html
+        	image.png
+        bar/
+        	index.html
 
-Any other files (images or whatnot) will just be copied over to their respective locations.
+So it would have urls like:
+
+	http://host.tld/foo/
+	http://host.tld/bar/
+
+
+### Plugins
+
+You activate [plugins](https://github.com/Jaymon/bang/blob/master/docs/PLUGINS.md) by importing them into your [project's bangfile](https://github.com/Jaymon/bang/blob/master/docs/CONFIGURATION.md).
+
+You can customize your project to your needs, like turning it into a blog, adding Google Amp support, and things like that.
 
 
 ### Project Directory
 
-Your project directory is where all the magic happens. It has to contain a few folders:
+Your project directory is where all the magic happens.
+
+#### Structure
 
 
-#### input (required)
+##### input directory (required)
 
-This is where everything you want to be in the final output folder should go, this includes your blog posts and any other files/folders you want your *live* static site to contain.
-
-
-#### template (required)
-
-This is where all your [Jinja](http://jinja.pocoo.org/) templates go, they are used to compile your blog posts to their final form. Bang looks for a few template files by default for blog posts:
-
-* `post.html` - This contains the html for rendering a post's permalink page.
-* `posts.html` - This contains the html for rendering a list of posts.
-* `aux.html` - The template for rendering any non-post markdown files (index.md files)
+This is where everything you want to be in the final output folder should go, this is where you would place your markdown files and any other files/folders you want your *live* static site to contain.
 
 
-#### output (optional)
+##### themes directory (optional)
+
+What your site looks like. Read more about [themes](https://github.com/Jaymon/bang/blob/master/docs/THEMES.md) and how to create your own.
+
+
+##### output directory (optional)
 
 This is the default output directory when the `compile` command is used with no `--output-dir` argument.
 
 
-#### bangfile.py (optional)
+##### bangfile.py (optional)
 
-You can add this file to configure bang when compiling:
-
-```python
-# /project_dir/bangfile.py
-from bang import event
-
-@event("config")
-def configure(event_name, conf):
-    conf.name = "your site name"
-    conf.description = "your site description"
-    conf.host = "example.com"
-```
-
-
-### Environment configuration
-
-If you don't want to bother with a `bangfile.py` in your project directory, Bang can also be configured using environment variables, basically, any `BANG_*` environment variables will be put into the configuration, here are a couple you might want to set:
-
-* **BANG_HOST** -- the host of your website, this is used to generate urls and stuff.
-* **BANG_SCHEME** -- the http method to use (either `http` or `https`).
-
-You can also combine a bangfile with the environment, this makes it easy to have different environments:
-
-```python
-# /project_dir/bangfile.py
-import os
-
-from bang import event
-
-@event("config")
-def configure(event_name, conf):
-
-    conf.name = "your site name"
-    conf.description = "your site description"
-
-    # change the host and scheme based on the environment
-    env = os.environ.get("BANG_ENV", "prod")
-    if env == "prod":
-        conf.host = "example.com"
-        conf.scheme = "https"
-    else:
-        conf.host = "localhost"
-        conf.scheme = "http"
-```
-
-
--------------------------------------------------------------------------------
-
-## Markdown
-
-For the most part, Bang uses vanilla markdown, but there are some enhancements you can take advantage of if you like:
-
-### Easy Footnotes
-
-Using the `^n` footnote will just assign footnotes in order:
-
-```
-first[^n] second[^n]
-
-[^n]: this will be assigned to the "first" footnote
-[^n]: this will be assigned to the "second" footnote
-```
-
-That way you don't have to worry about uniquely naming footnotes since they are just assigned in order, but if you want to give your footnotes unique names that works also.
-
-
-### Easy links
-
-Similar to the footnotes, using the `n` reference name:
-
-```
-[first][n]
-[second][n]
-
-[n]: http://first.com
-[n]: http://second.com
-```
-
-
-### Easy images
-
-If no title is used, then the alt becomes the title:
-
-```
-![this will be the title](path/to/image.jpg)
-```
+You can add a [bangfile](https://github.com/Jaymon/bang/blob/master/docs/CONFIGURATION.md) to configure your project.
 
 
 -------------------------------------------------------------------------------
@@ -194,57 +137,9 @@ This is designed to be used on the remote server that will host your site in a c
 
 ### generate
 
-Generate a site skeleton that you can use as a starting point to your own bang site, this will take the `project_dir` and make sure it exists (or create it) and then add `input` and `template` dirs along with skeleton template files.
+Generate a site skeleton that you can use as a starting point to your own bang site, this will take the `project_dir` and make sure it exists (or create it) and then copy over the [default project](https://github.com/Jaymon/bang/tree/master/bang/data/project) structure.
 
     $ bang generate --project-dir=...
-
-
--------------------------------------------------------------------------------
-
-## Events
-
-Events are callbacks that are fired at specific times.
-
-The easiest way to hook these in to your site compiling is to define or import them into your `bangfile.py` configuration file. You can see examples of how they are used in the `bang.plugins` [module](https://github.com/Jaymon/bang/tree/master/bang/plugins).
-
-Events are basically defined like this:
-
-```python
-from bang import event, echo
-
-@event("output.finish")
-def callback(event_name, site):
-    """print all the post titles and urls to the screen"""
-    for p in site.posts:
-        echo.out(p.title)
-        echo.err(p.url)
-```
-
-
-### Some Common Events
-
-#### config
-
-This is called right after the bangfile is loaded in order to set initial global configuration.
-
-
-#### output.finish
-
-This event is fired after all the posts are compiled, right now it is used to do things like generating RSS feeds and the sitemap.
-
-
-#### context.NAME
-
-Anytime the configuration context changes, this event is called, when the html pages are generated, `context.web` is the broadcast event, the feed plugin will broadcast `context.feed` and the sitemap plugin will broadcast `context.sitemap`.
-
-```python
-from bang import event
-
-@event("context.web")
-def callback(event_name, config):
-    """allows custom configuration for web context"""
-    pass
-```
 
 
 -------------------------------------------------------------------------------
@@ -261,12 +156,4 @@ You can also run the unit tests:
 
     $ python -m unittest bang_test
 
-
--------------------------------------------------------------------------------
-
-## Install
-
-Use pip:
-
-    pip install bangtext
 

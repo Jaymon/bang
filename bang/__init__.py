@@ -31,6 +31,7 @@ class Project(object):
         self.configure()
 
     def configure(self):
+        #self.config.load_environ()
         Bangfile("{}.bangfile".format(self.config.module_name))
         Bangfile(self.project_dir),
 
