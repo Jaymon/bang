@@ -4,7 +4,7 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 import testdata
 
 from bang.compat import *
-from bang.utils import Url, Profile, HTML
+from bang.utils import Url, Profile, HTML, HTMLStripper
 from . import TestCase
 
 
@@ -34,4 +34,15 @@ class HTMLTest(TestCase):
         html = HTML("<html><head></head><body></body></html>")
         r = html.inject_into_head("foo")
         self.assertEqual("<html><head>foo</head><body></body></html>", r)
+
+
+class HTMLStripperTest(TestCase):
+    def test_remove_tags(self):
+        hs = HTMLStripper(
+            '<div class="foo">1<div>2</div>3</div><div>4</div>',
+            remove_tags=["div.foo"]
+        )
+
+        plain = hs.get_data()
+        self.assertEqual("4", plain)
 

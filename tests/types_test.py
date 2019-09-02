@@ -28,6 +28,7 @@ class OtherTest(TestCase):
         self.assertTrue(p.input_dir.has_file("random.txt"))
         self.assertTrue(p.output_dir.has_file("random.txt"))
 
+
 class PageTest(TestCase):
     def test_compile(self):
         p = self.get_page([
@@ -66,7 +67,7 @@ class PageTest(TestCase):
         #self.assertRegex(r, r"<h1[^>]*>title text</h1>")
         self.assertRegex(r, r"<p[^>]*>body text</p>")
 
-    def test_description(self):
+    def test_description_1(self):
         p = self.get_page([
             'This is the sentence. This is the second one!!!! And the third. And the fourth.',
             ""
@@ -98,6 +99,30 @@ class PageTest(TestCase):
 
         desc = p.description
         self.assertEqual("This is the first line There are no sentences", desc)
+
+    def test_description_2(self):
+        """https://github.com/Jaymon/bang/issues/32"""
+        p = self.get_page([
+            "before",
+            "",
+            'footnote[^1]',
+            "",
+            "after",
+            "",
+            "[^1]: http://example.com",
+        ])
+        self.assertFalse("footnote1" in p.description)
+        self.assertEqual("before footnote after", p.description)
+
+        p = self.get_page([
+            "before",
+            "",
+            '![figcaption](images/che.jpg)',
+            "",
+            "after",
+        ])
+        self.assertFalse("figcaption" in p.description)
+
 
     def test_absolute_url(self):
         p = self.get_page({

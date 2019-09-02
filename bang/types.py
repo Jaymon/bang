@@ -10,7 +10,7 @@ import inspect
 from .compat import *
 from .decorators import classproperty, once
 from .path import Directory, File
-from .utils import HTMLStripper, Url, ContextCache, HTML
+from .utils import Url, ContextCache, HTML
 from .event import event
 
 
@@ -414,8 +414,7 @@ class Page(Type):
         #desc = getattr(self, "_description", None)
         desc = None
         if desc is None:
-            html = self.html
-            plain = HTMLStripper.strip_tags(html)
+            plain = self.html.strip_tags(remove_tags=["figcaption", "sup", "div.footnote"])
             ms = re.split("(?<=\S[\.\?!])(?:\s|$)", plain, maxsplit=2, flags=re.M)
             sentences = []
             for sentence in ms[0:2]:
@@ -457,7 +456,7 @@ class Page(Type):
         return -- string -- rendered html
         """
         title, html, meta = self.compile()
-        return html
+        return HTML(html)
 
     @property
     def meta(self):

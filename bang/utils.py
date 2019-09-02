@@ -3,29 +3,9 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 import os
 import re
 import time
-from collections import defaultdict
+from collections import defaultdict, Counter
 
 from .compat import *
-
-
-# http://stackoverflow.com/a/925630/5006
-class HTMLStripper(HTMLParser):
-    """strip html tags"""
-    @classmethod
-    def strip_tags(cls, html):
-        s = cls()
-        s.feed(html)
-        return s.get_data()
-
-    def __init__(self):
-        self.reset()
-        self.fed = []
-
-    def handle_data(self, d):
-        self.fed.append(d)
-
-    def get_data(self):
-        return ''.join(self.fed)
 
 
 class Profile(object):
@@ -227,6 +207,63 @@ class UnlinkedTagTokenizer(object):
         yield tag, plain
 
 
+class HTMLStripper(HTMLParser):
+    """strip html tags and return plaintext data
+
+    https://docs.python.org/3/library/html.parser.html
+    http://stackoverflow.com/a/925630/5006
+    """
+    @classmethod
+    def strip_tags(cls, html, remove_tags=None):
+        s = cls(html, remove_tags)
+        return s.get_data()
+
+    def __init__(self, html="", remove_tags=None):
+        #self.reset()
+        if is_py2:
+            HTMLParser.__init__(self)
+        else:
+            super(HTMLStripper, self).__init__()
+
+        self.fed = []
+        self.removed = Counter()
+        self.remove_tags = set(remove_tags or [])
+
+        if html:
+            self.feed(html)
+
+    def handle_starttag(self, tag, attrs):
+        if tag in self.remove_tags:
+            self.removed[tag] = 0
+
+        # really basic css selector support
+        for k, v in attrs:
+            if k == "class":
+                if "{}.{}".format(tag, v) in self.remove_tags:
+                    self.removed[tag] = 0
+
+            if k == "id":
+                if "{}#{}".format(tag, v) in self.remove_tags:
+                    self.removed[tag] = 0
+
+        if tag in self.removed:
+            self.removed[tag] += 1
+
+    def handle_data(self, d):
+        if sum(self.removed.values()) == 0:
+            self.fed.append(d)
+
+    def handle_endtag(self, tag):
+        if sum(self.removed.values()) > 0:
+            if tag in self.removed:
+                self.removed[tag] -= 1
+                if self.removed[tag] <= 0:
+                    del self.removed[tag]
+
+    def get_data(self):
+        return ''.join(self.fed)
+
+
 class HTML(String):
     def inject_into_head(self, html):
         def callback(m):
@@ -243,4 +280,8 @@ class HTML(String):
         regex = r"(\s*)(</body>)"
         ret = re.sub(regex, callback, self, flags=re.I|re.M)
         return type(self)(ret)
+
+    def strip_tags(self, remove_tags=None):
+        return HTMLStripper(self, remove_tags=remove_tags).get_data()
+
 
