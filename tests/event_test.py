@@ -50,6 +50,45 @@ class EventsTest(TestCase):
         r = ev.broadcast("foo", config, count=r.count)
         self.assertEqual(2, r.count)
 
+    def test_once(self):
+        ev = Events()
+        config = self.get_config()
+
+        @ev("once")
+        def once1(event, config):
+            pass
+
+        @ev("once")
+        def once2(event, config):
+            pass
+
+        with self.assertLogs(level="DEBUG") as c:
+            ev.once("once", config)
+        logs = "\n".join(c[1])
+        self.assertTrue("once1" in logs)
+        self.assertTrue("once2" in logs)
+
+        with self.assertLogs(level="DEBUG") as c:
+            ev.once("once", config)
+        logs = "\n".join(c[1])
+        self.assertTrue("ignored" in logs)
+
+        @ev("once")
+        def once3(event, config):
+            pass
+
+        with self.assertLogs(level="DEBUG") as c:
+            ev.once("once", config)
+        logs = "\n".join(c[1])
+        self.assertFalse("once1" in logs)
+        self.assertFalse("once2" in logs)
+        self.assertTrue("once3" in logs)
+
+        with self.assertLogs(level="DEBUG") as c:
+            ev.once("once", config)
+        logs = "\n".join(c[1])
+        self.assertTrue("ignored" in logs)
+
 
 class ExtendTest(TestCase):
     def test_property(self):

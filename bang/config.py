@@ -191,11 +191,11 @@ class Config(object):
         for k, v in kwargs.items():
             self.set(k, v)
 
-        event.broadcast("context.{}".format(self.context_name), self)
+        event.once("context.{}".format(self.context_name), self)
 
         yield self
 
-        event.broadcast("context.{}.finish".format(self.context_name), self)
+        #event.broadcast("context.{}.finish".format(self.context_name), self)
         self._context_names.pop(-1)
 
     def add_themes(self, themes_dir):

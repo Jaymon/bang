@@ -309,7 +309,7 @@ class Type(Directory):
         d = self.input_dir
         relative = d.relative()
         relative = relative.replace('\\', '/')
-        v = "/".join(['', relative])
+        v = "/".join(["", relative, ""])
         return v
 
     @property
@@ -555,6 +555,8 @@ class Page(Type):
             output_file,
             **kwargs
         )
+
+        # TODO -- output.page event?
 
     def output_template(self, output_file, theme=None, **kwargs):
         # not sure which one I like better yet

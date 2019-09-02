@@ -47,6 +47,8 @@ class Events(object):
         # this will hold Event instances under event_name keys that have been
         # broadcast through the .push() method
         self.pushed = defaultdict(list)
+        self.onced = defaultdict(list)
+        #self.onced = {}
 
     def push(self, event_name, config, **kwargs):
         """Similar to broadcast but if any new callbacks are bound to the event_name
@@ -60,6 +62,27 @@ class Events(object):
         """
         event = self.broadcast(event_name, config, **kwargs)
         self.pushed[event_name].append(event)
+        return event
+
+    def once(self, event_name, config, **kwargs):
+        """Similar to broadcast but all the bound events for event_name will only
+        be ran once and only once
+
+        trigger might be an ok name for this also
+
+        :param event_name: string, the event name whose callbacks should be ran
+        :param config: Config instance, the current project configuration
+        :param **kwargs: key=val values that will be accessible in the Event instance
+            passed to the callbacks
+        :returns: an Event instance
+        """
+        event = self.broadcast(event_name, config, **kwargs)
+
+        # remove the callbacks from bound and add them to the once history so
+        # they won't be ran again on subsequent calls
+        callbacks = self.bound.pop(event_name, [])
+        self.onced[event_name].extend(callbacks)
+
         return event
 
     def broadcast(self, event_name, config, **kwargs):
@@ -78,6 +101,22 @@ class Events(object):
 
             for callback in callbacks:
                 self.run(event, callback)
+
+#                 if event_name in self.onced:
+#                     if callback in self.onced[event_name]:
+#                         logger.debug(
+#                             "Event [{}] {} has already been called once".format(
+#                                 event_name,
+#                                 callback
+#                             )
+#                         )
+# 
+#                     else:
+#                         self.run(event, callback)
+#                         self.onced[event_name].add(callback)
+# 
+#                 else:
+#                     self.run(event, callback)
 
         else:
             logger.debug("Event [{}] ignored".format(event_name))

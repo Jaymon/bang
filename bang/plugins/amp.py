@@ -250,31 +250,53 @@ def configure(event, config):
     config.amp_components = set()
 
 
-@event('output.finish')
-def output_amp(event, config):
-    with config.context("amp") as config:
-        theme = config.theme
-        for p in config.amp_iter:
-
-            # we generate the html so things like config.amp_components will be
-            # populated when we go to template the page I can't figure out any
-            # better way to do this right now
-            #p.html
-
-            p.amp_output_file = p.output_dir.child_file("amp", p.output_basename)
-
-            p.output_dir.child_directory("amp").create()
-
-            p.output_template(
-                p.amp_output_file,
-                theme=theme
-            )
+# @event('output.finish')
+# def output_amp(event, config):
+#     with config.context("amp") as config:
+#         theme = config.theme
+#         for p in config.amp_iter:
+# 
+#             # we generate the html so things like config.amp_components will be
+#             # populated when we go to template the page I can't figure out any
+#             # better way to do this right now
+#             #p.html
+# 
+#             p.amp_output_file = p.output_dir.child_file("amp", p.output_basename)
+# 
+#             p.output_dir.child_directory("amp").create()
+# 
+#             p.output_template(
+#                 p.amp_output_file,
+#                 theme=theme
+#             )
 
 
 @extend.property(Page, "amp_url")
 def amp_url(self):
     """returns the amp permalink url for this page"""
-    return "{}/amp".format(self.url.rstrip("/"))
+    return "{}/amp/".format(self.url.rstrip("/"))
+
+
+@event("output.template.page")
+def output_amp(event, config):
+    # sanity check, we only want to run this callback if we aren't already
+    # running it, otherwise we would infinitely recurse
+    if config.is_context("amp"):
+        return
+
+    instance = event.instance
+
+    with config.context("amp") as config:
+        theme = config.theme
+
+        instance.amp_output_file = instance.output_dir.child_file("amp", instance.output_basename)
+
+        instance.output_dir.child_directory("amp").create()
+
+        instance.output_template(
+            instance.amp_output_file,
+            theme=theme
+        )
 
 
 @event("output.template.page")
