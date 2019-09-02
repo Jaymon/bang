@@ -4,11 +4,16 @@ import os
 
 from bang import event
 
-# uncomment if you would like this website to be a blog
-# from bang.plugins import blog
 
-# uncomment if you would like to support amp pages
-# from bang.plugins import amp
+# from bang.plugins import (
+#     blog, # is this website a blog?
+#     favicon, # autodiscover favicons
+#     amp, # support Google's amp
+#     sitemap, # enable sitemap support
+#     feed, # enable rss feed support
+#     googleanalytics, # enable Google Analytics
+#     opengraph # enable open graph support
+# )
 
 
 # main configuration for your project

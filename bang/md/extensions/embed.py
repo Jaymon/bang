@@ -133,7 +133,7 @@ class TwitterProcessor(Blockprocessor):
     name = "twitter"
 
     def get_cache_directory(self):
-        cache_dir = self.md.dirtype.input_dir.child_directory("_embed")
+        cache_dir = self.md.page.input_dir.child_directory("_embed")
         return Directory(cache_dir)
 
     def read_cache(self):

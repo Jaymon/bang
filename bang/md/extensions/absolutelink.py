@@ -16,8 +16,8 @@ class AbsoluteLinkTreeprocessor(Treeprocessor):
     """
     def normalize_url(self, url):
         """normalizes the url into a full url"""
-        dtype = self.markdown.dirtype
-        return dtype.absolute_url(url)
+        p = self.markdown.page
+        return p.absolute_url(url)
 
     def run(self, doc):
         for elem in self.get_tags(doc, "a", "img"):

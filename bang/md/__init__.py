@@ -82,12 +82,17 @@ class Markdown(markdown.Markdown):
 
     def reset(self):
         super(Markdown, self).reset()
-        self.dirtype = None
+        self.page = None
 
-    def output(self, dirtype):
+    def output(self, page):
+        """output the markdown body of the given Page instance
+
+        :param page: Page, the page instance whose markdown body will be parsed
+        :returns: string, the html from Page.body
+        """
         self.reset()
-        self.dirtype = dirtype
-        return self.convert(dirtype.body)
+        self.page = page
+        return self.convert(page.body)
 
 #     def convert(self, source):
 #         """This is the method that all the magic happens, so if you need to start peering
