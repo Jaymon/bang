@@ -235,40 +235,9 @@ def configure(event, config):
         config.theme_name = "default"
     config.template_prefix = "amp"
 
-
-#         theme = config.default_theme
-# 
-#     # this is not ideal but since theme's aren't context aware I can't change
-#     # values in the Theme instance and have them revert when exiting the
-#     # context, so we basically clone the Theme instance
-#     config.themes["amp_theme"] = Theme(theme.theme_dir, config, template_dir="template/amp")
-#     config.theme_name = "amp_theme"
-    #pout.v(config.theme.template_dir.file_contents("amp.css"))
-
     # amp components (eg, Twitter, Youtube, and iframe) will set components into
     # this so they can be added to the head of the html file
     config.amp_components = set()
-
-
-# @event('output.finish')
-# def output_amp(event, config):
-#     with config.context("amp") as config:
-#         theme = config.theme
-#         for p in config.amp_iter:
-# 
-#             # we generate the html so things like config.amp_components will be
-#             # populated when we go to template the page I can't figure out any
-#             # better way to do this right now
-#             #p.html
-# 
-#             p.amp_output_file = p.output_dir.child_file("amp", p.output_basename)
-# 
-#             p.output_dir.child_directory("amp").create()
-# 
-#             p.output_template(
-#                 p.amp_output_file,
-#                 theme=theme
-#             )
 
 
 @extend.property(Page, "amp_url")

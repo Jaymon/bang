@@ -1,4 +1,4 @@
-# Structure of the codebase
+# Structure of the Bang Codebase
 
 ## Compilation
 
