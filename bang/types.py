@@ -181,6 +181,12 @@ class Pages(object):
 
         :param **kwargs: dict, these will be passed to the template
         """
+        if self.config.output_dir.has_file("index.html"):
+            logger.warning(
+                "Pages.output() cannot generate a root index.html file because one already exists"
+            )
+            return
+
         chunks = list(self.chunk(self.config.get("page_limit", 10), reverse=True))
         for page, pages in enumerate(chunks, 1):
 
@@ -316,7 +322,20 @@ class Type(Directory):
     def url(self):
         """the full url of the post with host and everything"""
         base_url = self.config.base_url
-        return "{}{}".format(base_url, self.uri)
+        return Url("{}{}".format(base_url, self.uri))
+
+    @property
+    def heading(self):
+        """this will return something for a title no matter what, so even if the
+        page doesn't have a title this will return something that is descriptive
+        of the page
+
+        :returns: string, some title
+        """
+        ret = self.title
+        if not ret:
+            ret = self.uri
+        return ret
 
     def __init__(self, input_dir, output_dir, config):
         """create an instance

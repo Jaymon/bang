@@ -13,7 +13,8 @@ from bang import event
 #     sitemap, # enable sitemap support
 #     feed, # enable rss feed support
 #     googleanalytics, # enable Google Analytics
-#     opengraph # enable open graph support
+#     opengraph, # enable open graph support
+#     breadcrumbs, # put subfolder navigation in each folder
 # )
 
 

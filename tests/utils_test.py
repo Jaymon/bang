@@ -22,6 +22,11 @@ class UrlTest(TestCase):
         config = self.get_config(host="localhost:8000", scheme="http")
         self.assertTrue(u.is_local(config))
 
+    def test_breadcrumbs(self):
+        u = Url("http://host.tld/foo/bar/che/baz")
+        r = ["/foo", "/foo/bar", "/foo/bar/che", "/foo/bar/che/baz"]
+        self.assertEqual(r, u.breadcrumbs())
+
 class ProfileTest(TestCase):
     def test_with(self):
         with Profile() as total:

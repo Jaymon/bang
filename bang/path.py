@@ -622,8 +622,10 @@ class Directory(Path):
 
 
 class DataDirectory(Directory):
-    def __init__(self):
-        base_dir = os.path.dirname(sys.modules[__name__.split(".")[0]].__file__)
+    def __init__(self, modpath=""):
+        if not modpath:
+            modpath = __name__.split(".")[0]
+        base_dir = os.path.dirname(sys.modules[modpath].__file__)
         super(DataDirectory, self).__init__(base_dir, "data")
 
     def themes_directory(self):

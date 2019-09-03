@@ -172,3 +172,21 @@ class OpenGraphTest(TestCase):
         for s in ["og:url", "og:type", "og:title", "og:description", "og:image"]:
             self.assertTrue(s in html)
 
+
+class BreadcrumbsTest(TestCase):
+    plugins = "breadcrumbs"
+
+    def test_breadcrumbs(self):
+        p = self.get_project({
+            "foo/bar/index.md": "",
+            "foo/che/index.md": "",
+            "foo/boo/index.md": "",
+            "baz/bam/index.md": "",
+        })
+        p.output()
+
+        html = p.output_dir.file_contents("foo/index.html")
+        self.assertTrue(">/foo/bar" in html)
+        self.assertTrue(">/foo/boo" in html)
+        self.assertTrue(">/foo/che" in html)
+

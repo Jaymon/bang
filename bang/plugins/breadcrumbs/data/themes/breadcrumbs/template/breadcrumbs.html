@@ -1,0 +1,16 @@
+{% extends "master.html" %}
+
+{% block title %}Pages in {{ breadcrumb }}{% endblock %}
+
+{% block description %}
+<meta name="description" content="Pages in {{ breadcrumb }}">
+{% endblock %}
+
+{% block content %}
+    <ul>
+    {% for instance in instances %}
+        <li><a href="{{instance.url}}">{{ instance.heading }}</a></li>
+    {% endfor %}
+    </ul>
+{% endblock %}
+

@@ -219,12 +219,12 @@ class AmpExtension(Extension):
 
 
 @event("configure.plugins")
-def configure(event, config):
+def configure_plugins_amp(event, config):
     config.setdefault("amp_iter", PageIterator(config))
 
 
 @event('context.amp')
-def configure(event, config):
+def configure_context_amp(event, config):
     md = config.markdown
     md.register(AmpExtension())
 

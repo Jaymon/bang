@@ -93,3 +93,14 @@ This plugin will create a `/sitemap.xml` file of your project's pages.
 ```python
 from bang.plugins import sitemap
 ```
+
+
+## Breadcrumbs
+
+This plugin will create a list of pages (e.g., `types.Page` and `bang.plugins.blog.Post` instances) that are in each folder, it creates `index.html` files in the folders so it should be run after any plugins that also generate `index.html` files automatically (like the _blog_ plugin). 
+
+```python
+from bang.plugins import breadcrumbs
+```
+
+This plugin will check your current theme for a `breadcrumbs.html` template file, otherwise it will fallback to its default template.

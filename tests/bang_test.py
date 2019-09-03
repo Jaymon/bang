@@ -22,7 +22,7 @@ class ProjectTest(TestCase):
             'bangfile.py': ""
         })
 
-        self.assertRegexpMatches(ps.first_page.url, "^/{}$".format(name))
+        self.assertRegexpMatches(ps.first_page.url, r"^/{}/?$".format(name))
 
     def test_single_document(self):
         p = self.get_page({

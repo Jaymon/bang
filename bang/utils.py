@@ -87,6 +87,21 @@ class Url(String):
             ret = True
         return ret
 
+    def breadcrumbs(self):
+        """Returns the list of breadcrumbs for path
+
+        :returns: list, so if path was /foo/bar/che this would return
+            [/foo, /foo/bar, /foo/bar/che]
+        """
+        ret = []
+        path = self.path
+        paths = path.strip("/").split("/")
+
+        for x in range(1, len(paths) + 1):
+            ret.append("/" + "/".join(paths[0:x]))
+
+        return ret
+
 
 class ContextCache(object):
     @property
