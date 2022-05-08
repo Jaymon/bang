@@ -95,7 +95,7 @@ def console_watch(args, project_dir, output_dir):
             )
             if (output.find("Updating") >= 0) or not output_dir.exists():
                 # there are new changes, let's recompile the project
-                s = Site(project_dir, output_dir)
+                s = Project(project_dir, output_dir)
                 s.output()
 
             elif output.find("Already up-to-date"):
