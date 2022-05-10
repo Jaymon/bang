@@ -2,6 +2,8 @@
 
 Events are callbacks that are fired at specific times. As bang outputs a project it runs various events at certain times.
 
+Most main events are broadcast from the `.configure()`, `.compile()`, and `.output()` methods in the `bang.Project` class.
+
 
 ## Hooking into an event
 
@@ -40,6 +42,11 @@ def callback(event, config):
 This might not be an exhaustive list, the bang output logs will tell you when it is running events so you might be able to find other events that are ran at certain times during compilation and output.
 
 
+### configure.start
+
+This is called before anything else so if you want to do something before anything else you can use this.
+
+
 ### configure.plugins
 
 This is primarily used by plugins to set default plugin configuration before project configuration so the project configuration can override the plugins configuration.
@@ -58,6 +65,21 @@ Use this to set specific theme configuration
 ### configure.theme.THEME_NAME
 
 If you are testing different themes that have different required configuration you can use this event to separate the configuration as you switch between themes in the `configure.project`
+
+
+### configure.finish
+
+The last configuration event called, so any configuration cleanup can go here.
+
+
+### compile.start
+
+Called before the compile phase starts.
+
+
+### compile.finish
+
+Called after the main compile phase finishes.
 
 
 ### context.NAME
@@ -80,6 +102,21 @@ def callback(event, config):
 ```
 
 
+### output.start
+
+Conceptually, this isn't really that different than `compile.finish`, as it's broadcast almost immediately after that event, but it's here for completeness and readability of the intended functionality of a callback that is meant to be ran before the output phase is started.
+
+
+### output.html.start
+
+This is ran after the first `context.html` is ran, and is used to configure anything before the main html generation is started and uses the html context configuration
+
+
+### output.html.stop
+
+This is used to cleanup anything using the html context configuration after the main html compilation phase is done
+
+
 ### output.template
 
 Fired whenever a template is used
@@ -92,7 +129,7 @@ Fired whenever a template is used on a page type. This is used by plugins to inj
 
 ### output.finish
 
-This event is fired after all the posts are compiled, right now it is used to do things like generating RSS feeds and the sitemap.
+This event is fired after all the posts are compiled, right now it is used to do things like generating RSS feeds and the sitemap. This is usually the very last event broadcast before the script finishes.
 
 
 

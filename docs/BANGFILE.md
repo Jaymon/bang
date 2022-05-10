@@ -8,6 +8,12 @@ You can take a look at [the default project bangfile](https://github.com/Jaymon/
 
 Most of your project configuration will be done through setting callbacks on various events, you do that by importing the event handler and binding an event name to your callback, which will be called at various times while bang is compiling your project.
 
+Bangfiles are called in a certain order and their configuration and effects stack with later called bangfile's able to override configuration set in previous bangfiles:
+
+1. Bang's default `bangfile.py`
+2. `<PROJECT-DIR>/bangfile.py`
+3. `<THEME-DIR>/bangfile.py`
+
 You can also import plugins into your bangfile which will activate those plugins, for example, to turn your project into a blog, in your bangfile you would import the [blog plugin](https://github.com/Jaymon/bang/blob/master/bang/plugins/blog.py):
 
 ```python

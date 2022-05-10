@@ -11,7 +11,7 @@ from .event import event
 from .decorators import once
 
 
-__version__ = "1.0.1"
+__version__ = "1.1.0"
 
 
 logger = logging.getLogger(__name__)
@@ -32,12 +32,13 @@ class Project(object):
 
     def configure(self):
         #self.config.load_environ()
+        event.push("configure.start", self.config)
+
         Bangfile("{}.bangfile".format(self.config.module_name))
         Bangfile(self.project_dir),
 
         event.push("configure.plugins", self.config)
         event.push("configure.project", self.config)
-        event.push("configure", self.config) # deprecated 8-5-2019, move to configure.project
 
         theme = self.config.theme
         Bangfile(theme.theme_dir)
@@ -46,6 +47,10 @@ class Project(object):
         # configuration will most likely set the theme to be used
         event.push("configure.theme", self.config)
         event.push("configure.theme.{}".format(theme.name), self.config)
+
+        # do any cleanup after finishing the configure phase, this should only
+        # be called by user edited bangfiles so they can do any final overriding
+        event.push("configure.finish", self.config)
 
     def __iter__(self):
         return self.input_dir.copy_paths(self.output_dir)
@@ -68,7 +73,8 @@ class Project(object):
         """go through project's input/ directory and find all the different types
 
         This just populates self.types but doesn't do any actual outputting and is
-        really broken out from output() for easier testing"""
+        really only broken out from output() for easier testing"""
+        event.broadcast("compile.start", self.config)
 
         self.types = {}
 
@@ -81,29 +87,37 @@ class Project(object):
                     instances.append(instance)
                     break
 
+        # do any cleanup after finishing the compile phase
+        event.broadcast("compile.finish", self.config)
+
     def output(self, regex=None):
         """go through input/ dir and compile the files and move them to output/ dir"""
         self.compile()
 
-        with self.config.context("html") as config:
+        # conceptually the same event as compile.stop but here for completeness
+        # and easier readability of the intention of a callback in a bangfiles
+        event.broadcast('output.start', self.config)
 
+        with self.config.context("html") as config:
             if regex:
                 logger.warning("output directory {} not cleared because regex present".format(self.output_dir))
-                logger.warning("output.start event not broadcast because regex present")
             else:
                 logger.info("Clearing output directory")
                 self.output_dir.clear()
 
-                event.broadcast('output.start', config)
                 config.theme.output()
+
+            event.broadcast('output.html.start', config)
 
             for name, instances in self.types.items():
                 logger.debug("{}: {}".format(name, len(instances)))
                 for instance in instances.filter(regex):
                     instance.output()
 
+            event.broadcast('output.html.finish', config)
+
         if regex:
             logger.warning("output.finish event not broadcast because regex present")
         else:
-            event.broadcast('output.finish', config)
+            event.broadcast('output.finish', self.config)
 

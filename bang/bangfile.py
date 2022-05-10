@@ -5,3 +5,10 @@ from .event import event
 from .types import Page, TypeIterator
 from .plugins import sitemap, favicon
 
+
+# handle html context exclusive configuration
+@event('context.html')
+def context_html(event, config):
+    # support both https and http on html pages, results in //host/path/ urls
+    config.scheme = ""
+

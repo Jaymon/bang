@@ -183,7 +183,7 @@ class Config(object):
             with config.context("foo"):
                 # anything in this block will use the foo configuration
                 pass
-            # anything outside this block will not use the foo configuration
+            # anything outside this block will *NOT* use the foo configuration
         """
         self._context_names.append(name)
 
@@ -191,11 +191,17 @@ class Config(object):
         for k, v in kwargs.items():
             self.set(k, v)
 
+        # we use .once() here because if this context is used again we will just
+        # pull the values from the already configured instance, so no reason to
+        # go though and set everything again
         event.once("context.{}".format(self.context_name), self)
 
         yield self
 
-        #event.broadcast("context.{}.finish".format(self.context_name), self)
+        # we do not want to do a context.*.finish event because contexts could
+        # be called multiple times in a run and so if something used a finish
+        # event it could end up doing the same work over and over
+
         self._context_names.pop(-1)
 
     def add_themes(self, themes_dir):

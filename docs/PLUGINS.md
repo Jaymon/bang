@@ -104,3 +104,36 @@ from bang.plugins import breadcrumbs
 ```
 
 This plugin will check your current theme for a `breadcrumbs.html` template file, otherwise it will fallback to its default template.
+
+
+## Assets
+
+This plugin will transfer the contents of the `<PROJECT-DIR>/assets/` and `<THEME-DIR>/assets/` to `/assets` but version the files. So if you had `<THEME-DIR>/assets/app.css` this would copy that to `/assets/<MD5-HASH>.app.css` and inject the stylesheet into the `<head>` tag of the generated html.
+
+```python
+from bang.plugins import assets
+```
+
+It also broadcasts a `config.assets` event so you can configure it in your `bangfile.py` file. The `Assets` instance will be available through `config.assets`.
+
+```python
+@event('configure.assets')
+def configure_assets(event, config):
+    assets = config.assets
+
+    # For code syntax highlighting, see: http://highlightjs.org/download -->
+    assets.add("https://unpkg.com/@highlightjs/cdn-assets@11.5.1/styles/default.min.css")
+    assets.add("https://unpkg.com/@highlightjs/cdn-assets@11.5.1/highlight.min.js")
+
+    # add media values for the main css file that were discovered in assets/
+    assets.get("screen.css").properties["media"] = "screen"
+    assets.get("print.css").properties["media"] = "print"
+
+    # set which stylesheets should be last when the html is injected right before `</head>`
+    assets.order(after=[r"screen", r"print"])
+
+    # add a script that is injected right before `</body>`
+    assets.add_script("\n".join([
+        "hljs.highlightAll();",
+    ]), body=True)
+```

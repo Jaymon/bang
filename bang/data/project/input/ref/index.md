@@ -7,36 +7,20 @@ What does each thing look like with my stylesheet.
 This is just a modified version of this [site](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)
 
 ```no-highlight
-# H1
-
-Alt-H1
-======
-
-## H2
-
-Alt-H2
-------
-
-### H3
-#### H4
-##### H5
-###### H6
+# H1 - Almost before we knew it, we had left the ground
+## H2 - Almost before we knew it, we had left the ground
+### H3 - Almost before we knew it, we had left the ground
+#### H4 - Almost before we knew it, we had left the ground
+##### H5 - Almost before we knew it, we had left the ground
+###### H6 - Almost before we knew it, we had left the ground
 ```
 
-# H1
-
-Alt-H1
-======
-
-## H2
-
-Alt-H2
-------
-
-### H3
-#### H4
-##### H5
-###### H6
+# H1 - Almost before we knew it, we had left the ground
+## H2 - Almost before we knew it, we had left the ground
+### H3 - Almost before we knew it, we had left the ground
+#### H4 - Almost before we knew it, we had left the ground
+##### H5 - Almost before we knew it, we had left the ground
+###### H6 - Almost before we knew it, we had left the ground
 
 
 -------------------------------------------------------------------------------

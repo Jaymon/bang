@@ -47,6 +47,16 @@ class Url(String):
     def path(self):
         return self.parts.path
 
+    @property
+    def ext(self):
+        """return the extension of the file, the basename without the fileroot"""
+        return os.path.splitext(self.basename)[1].lstrip(".")
+    extension = ext
+
+    @property
+    def basename(self):
+        return os.path.basename(self.path)
+
     def __new__(cls, base_url, *paths):
         paths = cls.normalize_paths(*paths)
         if paths:

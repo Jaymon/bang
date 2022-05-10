@@ -54,6 +54,10 @@ class Events(object):
         """Similar to broadcast but if any new callbacks are bound to the event_name
         those will be run on the binding so it can pick up straggler bind calls
 
+        .push() is used primarily for configure events to make order of events a
+        little less important while configuring everything, after configuration,
+        most events are done using .broadcast()
+
         :param event_name: string, the event name whose callbacks should be ran
         :param config: Config instance, the current project configuration
         :param **kwargs: key=val values that will be accessible in the Event instance

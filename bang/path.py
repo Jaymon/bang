@@ -10,6 +10,7 @@ import logging
 import fnmatch
 import struct
 import imghdr
+import hashlib
 
 from .compat import *
 from .event import event
@@ -100,7 +101,7 @@ class File(Path):
     @property
     def ext(self):
         """return the extension of the file, the basename without the fileroot"""
-        return os.path.splitext(self.basename)[1].lstrip(".")
+        return os.path.splitext(self.basename)[1].lstrip(".").lower()
     extension = ext
 
     @property
@@ -154,11 +155,14 @@ class File(Path):
         self.encoding = encoding
         return self
 
-    def copy_to(self, output_dir):
+    def copy_into(self, output_dir):
         basename = self.basename
         output_file = File(output_dir, basename)
         logger.debug("copy file {} to {}".format(self.path, output_file))
         return File(shutil.copy(String(self.path), String(output_file)))
+
+    def copy_to(self, target):
+        return File(shutil.copy(String(self.path), String(File(target).path)))
 
     def open(self, mode="", encoding=""):
         """open the file"""
@@ -171,6 +175,18 @@ class File(Path):
 
         else:
             return open(self.path, mode=mode)
+
+    def checksum(self):
+        """return md5 hash of a file"""
+        h = hashlib.md5()
+        blocksize = 65536
+        # http://stackoverflow.com/a/21565932/5006
+        with self.open(mode="rb") as fp:
+            for block in iter(lambda: fp.read(blocksize), b""):
+                h.update(block)
+        return h.hexdigest()
+
+    def hash(self): return self.checksum()
 
 
 class Image(File):
@@ -430,7 +446,7 @@ class Directory(Path):
 
     def copy_file(self, input_file):
         """copy the input_file to this directory"""
-        return File(input_file).copy_to(self.path)
+        return File(input_file).copy_into(self.path)
 
     def copy_paths(self, output_dir, depth=0):
         """you have current directory self and you want to copy the entire directory
