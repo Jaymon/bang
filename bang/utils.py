@@ -275,12 +275,7 @@ class HTMLStripper(HTMLParser):
         if tag in self.removed:
             self.removed[tag] += 1
 
-        #pout.b("handle_starttag")
-        #pout.v(tag, self.removed)
-
     def handle_data(self, d):
-        #pout.b("handle_data")
-        #pout.v(self.removed, d)
         if sum(self.removed.values()) == 0:
             self.fed.append(d)
 
@@ -290,9 +285,6 @@ class HTMLStripper(HTMLParser):
                 self.removed[tag] -= 1
                 if self.removed[tag] <= 0:
                     del self.removed[tag]
-
-        #pout.b("handle_endtag")
-        #pout.v(tag, self.removed)
 
     def get_data(self):
         return ''.join(self.fed)

@@ -271,10 +271,6 @@ class Image(File):
                 # https://en.wikipedia.org/wiki/ICO_(file_format)#Outline
                 fp.seek(0)
                 reserved, image_type, image_count = struct.unpack('<HHH', fp.read(6))
-#                 reserved = struct.unpack('<H', fp.read(2))
-#                 image_type = struct.unpack('<H', fp.read(2))[0]
-#                 image_count = struct.unpack('<H', fp.read(2))[0]
-
                 for x in range(image_count):
                     width = struct.unpack('<B', fp.read(1))[0] or 256
                     height = struct.unpack('<B', fp.read(1))[0] or 256

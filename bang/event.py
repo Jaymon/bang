@@ -106,22 +106,6 @@ class Events(object):
             for callback in callbacks:
                 self.run(event, callback)
 
-#                 if event_name in self.onced:
-#                     if callback in self.onced[event_name]:
-#                         logger.debug(
-#                             "Event [{}] {} has already been called once".format(
-#                                 event_name,
-#                                 callback
-#                             )
-#                         )
-# 
-#                     else:
-#                         self.run(event, callback)
-#                         self.onced[event_name].add(callback)
-# 
-#                 else:
-#                     self.run(event, callback)
-
         else:
             logger.debug("Event [{}] ignored".format(event_name))
 

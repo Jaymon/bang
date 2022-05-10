@@ -13,11 +13,6 @@ class Post(Page):
 
     regex = r'\.(md|markdown)$'
 
-#     @property
-#     def title(self):
-#         title = File(self.content_file).fileroot
-#         return title
-
     @classmethod
     def match(cls, directory):
         return True if directory.files(cls.regex) else False
@@ -40,7 +35,4 @@ def configure(event, config):
 def compile_root_index_files(event, config):
     # this compiles the root index.html
     config.project.get_type(Post.name).output()
-    #p = TypeIterator(config, [Post])
-    #for pages in p:
-    #    pages.output()
 

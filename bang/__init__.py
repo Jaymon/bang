@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals, division, print_function, absolute_import
-#from collections import defaultdict
 import logging
 
 from .config import Config, Bangfile
@@ -31,7 +30,6 @@ class Project(object):
         self.configure()
 
     def configure(self):
-        #self.config.load_environ()
         event.push("configure.start", self.config)
 
         Bangfile("{}.bangfile".format(self.config.module_name))

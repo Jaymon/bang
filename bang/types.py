@@ -369,10 +369,6 @@ class Type(Directory):
 
         return url
 
-    #def __getattr__(self, k):
-    #    """We want any properties that don't exist to not raise an error"""
-    #    return None
-
 
 class Other(Type):
     """The fallback Type, it's not really a page but is here to provide a 
@@ -534,10 +530,6 @@ class Page(Type):
         :returns: string, the title that will go into the .title property
         """
         return ""
-        # default to just the name of the directory this aux file lives in
-        #basename = os.path.basename(String(self.input_dir))
-        #title = basename.capitalize()
-        #return title
 
     def __str__(self):
         return self.input_dir.path
