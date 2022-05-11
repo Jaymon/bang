@@ -44,10 +44,8 @@ def get_datestr(dt):
 
 @event("configure.plugins")
 def configure_feed(event, config):
-    if not config.get("feed_filename", ""):
-        config.feed_filename = "feed.rss"
-    if not config.get("feed_url", ""):
-        config.feed_url = Url("/", config.feed_filename)
+    config.setdefault("feed_filename", "feed.rss")
+    config.setdefault("feed_url", Url("/", config.feed_filename))
 
 
 @event('output.finish')
