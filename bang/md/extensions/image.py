@@ -49,6 +49,9 @@ class ImagePattern(BaseImagePattern):
                 src = el.get("src")
                 el.set("alt", os.path.basename(src))
 
+            # https://web.dev/browser-level-image-lazy-loading/
+            el.set("loading", "lazy")
+
         return el, start_offset, stop_offset
 
 
@@ -60,7 +63,12 @@ class ImageReferencePattern(BaseImageReferencePattern):
             title = text
             text = os.path.basename(href)
 
-        return super(ImageReferencePattern, self).makeTag(href, title, text)
+        el = super(ImageReferencePattern, self).makeTag(href, title, text)
+
+        # https://web.dev/browser-level-image-lazy-loading/
+        el.set("loading", "lazy")
+
+        return el
 
 
 class ImageProcessor(Blockprocessor):
