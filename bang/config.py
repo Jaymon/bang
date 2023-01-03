@@ -8,13 +8,15 @@ import importlib
 import logging
 
 from jinja2 import Environment, FileSystemLoader
+from datatypes.reflection import OrderedSubclasses
 
 from .compat import *
 from .event import event
-from .types import Other, Page
+from .types import Page, Type
 from .path import DataDirectory, Directory, File
 from .md import Markdown
 from .utils import HTML
+
 
 
 logger = logging.getLogger(__name__)
@@ -35,13 +37,13 @@ class Bangfile(object):
         if os.path.isfile(config_file):
             # http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
             h = "bangfile_{}".format(ByteString(config_file).md5())
-            logger.debug("Running bangfile from file path {}".format(config_file))
+            logger.debug("Running bangfile with file path: {}".format(config_file))
             module = imp.load_source(h, config_file)
 
         return module
 
     def get_module(cls, modpath):
-        logger.debug("Running bangfile with module path {}".format(modpath))
+        logger.debug("Running bangfile with module path: {}".format(modpath))
         module = importlib.import_module(modpath)
         return module
 
@@ -136,6 +138,12 @@ class Config(object):
 
         return base_url
 
+    @property
+    def types(self):
+        ret = OrderedSubclasses(Type)
+        ret.insert_modules()
+        return ret
+
     def __init__(self, project):
         # we set support properties directly on the __dict__ so __setattr__ doesn't
         # infinite loop, context properties can just be set normally
@@ -164,7 +172,7 @@ class Config(object):
         self.project = project
 
         # order matters here, it should go from most strict matching to least
-        self.types = [Page, Other]
+        #self.types = [Page, Other]
 
 
         # TODO -- https://github.com/Jaymon/bang/issues/41 this should force

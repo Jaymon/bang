@@ -6,7 +6,7 @@ import json
 import os
 import logging
 
-from markdown import util
+import xml.etree.ElementTree as etree
 import requests
 
 from ...path import Directory
@@ -82,11 +82,11 @@ class Blockprocessor(BaseBlockprocessor):
 
     def get_figure(self, parent, name):
         if self.parser.markdown.output_format in ["html"]:
-            figure = util.etree.SubElement(parent, 'figure')
+            figure = etree.SubElement(parent, 'figure')
             figure.set("class", "embed {}".format(name))
 
         else:
-            figure = util.etree.SubElement(parent, 'div')
+            figure = etree.SubElement(parent, 'div')
             figure.set("class", "embed figure {}".format(name))
 
         return figure
@@ -301,7 +301,7 @@ class EmbedImageProcessor(Blockprocessor):
 
     it only works on links that end with an image extension like .jpg
     """
-    test_regex = re.compile(r"^(?:[^\s\]\[\:<>]+|\https?\:\/\/\S+?)\.(?:jpe?g|gif|bmp|png|ico|tiff)$", re.I)
+    test_regex = re.compile(r"^(?:[^\s\]\[\:<>]+|https?\:\/\/\S+?)\.(?:jpe?g|gif|bmp|png|ico|tiff)$", re.I)
 
     def get_id(self, url):
         return True

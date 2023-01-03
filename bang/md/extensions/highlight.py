@@ -49,7 +49,7 @@ class HighlightExtension(fenced_code.FencedCodeExtension):
     """
     def extendMarkdown(self, md):
         """ Add FencedBlockPreprocessor to the Markdown instance. """
-        processor = CodeBlockPreprocessor(md)
+        processor = CodeBlockPreprocessor(md, self.getConfigs())
         md.register(
             self,
             processor, #CodeBlockPreprocessor(md),

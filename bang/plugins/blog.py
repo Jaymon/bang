@@ -11,24 +11,17 @@ class Post(Page):
     """this is a node in the Posts linked list, it holds all the information needed
     to output a Post in the input directory to the output directory"""
 
-    regex = r'\.(md|markdown)$'
-
-    @classmethod
-    def match(cls, directory):
-        return True if directory.files(cls.regex) else False
-
     def find_title(self, html):
-        title = File(self.content_file).fileroot
-        return title
+        raise ValueError(f"Blog Posts should have a title, please add one or convert to {super().name}")
 
 
 @event("configure.plugins")
-def configure(event, config):
+def configure_blog(event, config):
     config.feed_iter = TypeIterator(config, [Post]).reverse()
-    config.sitemap_iter = TypeIterator(config, [Post])
+    #config.sitemap_iter = TypeIterator(config, [Post])
 
     # TODO -- there should be a better way to do this
-    config.types = [Page, Post, Other]
+    #config.types = [Page, Post, Other]
 
 
 @event("output.html.finish")

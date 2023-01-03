@@ -121,7 +121,7 @@ class MagicRefExtension(Extension):
             ["n", "the text string that marks magic references"]
         )
 
-    def extendMarkdown(self, md, md_globals):
+    def extendMarkdown(self, md):
         md.register(
             self,
             MagicRefPreprocessor(md, self.getConfigs()),

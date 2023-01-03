@@ -3,7 +3,7 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 import os
 import re
 
-from markdown import util
+import xml.etree.ElementTree as etree
 # https://github.com/Python-Markdown/markdown/blob/master/markdown/inlinepatterns.py
 from markdown.inlinepatterns import (
     ImageInlineProcessor as BaseImagePattern,
@@ -27,7 +27,7 @@ class ImageTreeprocessor(AbsoluteLinkTreeprocessor):
             for child in self.get_tags(elem, "img"):
                 title = child.get("title")
                 if title:
-                    figcaption = util.etree.SubElement(elem, 'figcaption')
+                    figcaption = etree.SubElement(elem, 'figcaption')
                     figcaption.text = title
 
 
@@ -125,7 +125,7 @@ class ImageProcessor(Blockprocessor):
 
     def run(self, parent, blocks):
         block = blocks.pop(0)
-        figure = util.etree.SubElement(parent, 'figure')
+        figure = etree.SubElement(parent, 'figure')
         figure.text = block.strip()
 
 

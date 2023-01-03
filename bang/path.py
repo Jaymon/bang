@@ -32,7 +32,7 @@ class Path(object):
         if bits:
             bits = list(String(b) for b in bits)
             bits[0] = self.normalize(bits[0])
-            for i in xrange(1, len(bits)):
+            for i in range(1, len(bits)):
                 bits[i] = bits[i].strip('\\/')
             self.path = os.path.join(*bits)
 

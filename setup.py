@@ -27,7 +27,7 @@ setup(
     packages=find_packages(),
     package_data={name: ['data/*']},
     license="MIT",
-    install_requires=['Jinja2', 'Markdown', 'requests'],
+    install_requires=['Jinja2', 'Markdown', 'requests', 'datatypes'],
     classifiers=[ # https://pypi.python.org/pypi?:action=list_classifiers
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
@@ -37,7 +37,7 @@ setup(
         'Topic :: Database',
         'Topic :: Software Development :: Libraries',
         'Topic :: Utilities',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
     ],
     #test_suite = "{}_test".format(name),
     entry_points = {

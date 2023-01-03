@@ -18,7 +18,7 @@ from markdown.extensions import Extension as BaseExtension
 from markdown.treeprocessors import Treeprocessor as BaseTreeprocessor
 from markdown.postprocessors import Postprocessor as BasePostprocessor
 from markdown.blockprocessors import BlockProcessor as BaseBlockprocessor
-from markdown.util import etree # https://github.com/Python-Markdown/markdown/blob/master/markdown/util.py
+import xml.etree.ElementTree as etree
 
 
 class Postprocessor(BasePostprocessor):
@@ -61,13 +61,12 @@ class Treeprocessor(BaseTreeprocessor):
     def get_tags(self, elem, *tags):
         """go through and return all the *tags elements that are children of elem"""
 
-        # http://effbot.org/zone/pythondoc-elementtree-ElementTree.htm#elementtree.ElementTree._ElementInterface.getiterator-method
         if len(tags) == 1:
-            it = elem.getiterator(tags[0])
+            it = elem.iter(tags[0])
             tags = set()
 
         else:
-            it = elem.getiterator()
+            it = elem.iter()
             tags = set(tags)
 
         for child in it:

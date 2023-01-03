@@ -17,7 +17,6 @@ from ..types import PageIterator
 logger = logging.getLogger(__name__)
 
 
-
 @event("configure.plugins")
 def configure_sitemap(event, config):
     config.setdefault("sitemap_iter", PageIterator(config))

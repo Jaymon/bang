@@ -7,6 +7,8 @@ import re
 import logging
 import inspect
 
+from datatypes.reflection import OrderedSubclasses
+
 from .compat import *
 from .decorators import classproperty, once
 from .path import Directory, File
@@ -164,7 +166,7 @@ class Pages(object):
         yield instances
 
     def filter(self, regex=r"", callback=None):
-        """Iterate only through posts whose directory matches regex"""
+        """Iterate only through directories whose directory matches regex"""
         for p in self:
             if regex and not re.search(regex, String(p.input_dir), re.I):
                 continue
@@ -253,6 +255,50 @@ class Pages(object):
             **kwargs
         )
 
+# class Types(list):
+#     """We want to keep a particular order of the Type subclasses to make sure
+#     that certain classes are checked before others
+# 
+#     this class maintains subclass order, basically, it makes sure all subclasses get
+#     checked before the parent class, so if you want your CustomType to evaluate
+#     before OtherType, you would just have CustomType extend OtherType
+#     """
+#     def __init__(self, cutoff_class=object):
+#         super().__init__()
+# 
+#         self.indexes = {}
+#         self.cutoff_class = cutoff_class
+# 
+#     def insert(self, klass):
+#         index = len(self)
+#         for subclass in reversed(inspect.getmro(klass)):
+#             if issubclass(subclass, self.cutoff_class):
+#                 index_name = f"{subclass.__module__}.{subclass.__name__}"
+#                 if index_name in self.indexes:
+#                     index = min(index, self.indexes[index_name])
+# 
+#                 else:
+#                     self.indexes[index_name] = len(self)
+#                     super().insert(index, subclass)
+# 
+#     def insert_module(self, module):
+#         for name, klass in inspect.getmembers(module, inspect.isclass):
+#             if issubclass(klass, self.cutoff_class):
+#                 self.insert(klass)
+# 
+#     def insert_modules(self):
+#         for m in list(sys.modules.values()):
+#             self.insert_module(m)
+# 
+#     def find_class(self, val):
+#         """Return the *Value class that represents val"""
+#         for vcls in self:
+#             if vcls.is_valid(val):
+#                 value_cls = vcls
+#                 break
+#         return value_cls
+
+
 
 class Type(Directory):
     """Generic base class for types, a site is composed of different types, the 
@@ -273,10 +319,6 @@ class Type(Directory):
     pages_class = Pages
     """Holds the aggregator class that will hold all instances of this type"""
 
-    output_basename = 'index.html'
-    """this is the name of the file that this post will be outputted to after it
-    is templated"""
-
     pages = None
     """contains a reference to the container class if the instance was appended
     to the container. This makes it possible for any Type instance to get the rest
@@ -286,8 +328,8 @@ class Type(Directory):
     def template_names(cls):
         """this is the template that will be used to compile the post into html"""
         ret = []
-        for c in inspect.getmro(cls):
-            if c is object: continue
+        subclasses = OrderedSubclasses(Type)
+        for c in subclasses[:-1]:
             if hasattr(c, "name"):
                 ret.append(c.name)
         return ret
@@ -388,18 +430,20 @@ class Other(Type):
 class Page(Type):
     """This is the generic page type, any index.md files will be this page type"""
 
-    regex = r'^index\.(md|markdown)$'
+    output_basename = 'index.html'
+    """this is the name of the file that this post will be outputted to after it
+    is templated"""
 
     @property
     def content_file(self):
         d = self.input_dir
-        for f in d.files(self.regex):
+        for f in d.files(self.regex()):
             break
         return f
 
     @property
     def other_files(self):
-        return self.input_dir.files(regex=self.regex, exclude=True)
+        return self.input_dir.files(regex=self.regex(), exclude=True)
 
     @property
     def next_url(self):
@@ -481,6 +525,14 @@ class Page(Type):
         # make sure meta is parsed and available
         title, html, meta = self.compile()
         return meta
+
+    @classmethod
+    def regex(cls):
+        return rf'^{cls.__name__.lower()}\.(md|markdown)$'
+
+    @classmethod
+    def match(cls, directory):
+        return True if directory.files(cls.regex()) else False
 
     def compile(self):
         cache = getattr(self, "_cache", ContextCache(self.config))
@@ -598,9 +650,5 @@ class Page(Type):
         r = event.broadcast('output.template.page', self.config, html=HTML(html), instance=self)
         f = File(output_file, encoding=self.config.encoding)
         f.create(r.html)
-
-    @classmethod
-    def match(cls, directory):
-        return True if directory.files(cls.regex) else False
 
 
