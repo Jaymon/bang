@@ -31,7 +31,7 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 from collections import OrderedDict
 
 from ..event import event
-from ..path import File, Directory, Image
+from ..path import Imagepath
 from ..utils import Url
 
 
@@ -77,22 +77,7 @@ class Favicons(object):
 
         regex = kwargs.get("regex", self.regex)
         for f in input_dir.files(regex=regex):
-            self.images.append(Image(f))
-
-#         for p in paths:
-#             if isinstance(p, Image):
-#                 self.images.append(p)
-# 
-#             elif isinstance(p, File):
-#                 self.images.append(Image(p))
-# 
-#             elif isinstance(p, Directory):
-#                 regex = kwargs.get("regex", r"^favicon\.\S+$")
-#                 for f in p.files(regex=regex):
-#                     self.images.append(Image(f))
-# 
-#             else:
-#                 raise ValueError("Favicons only takes Image, File, or Directory instances")
+            self.images.append(Imagepath(f))
 
     def __str__(self):
         return self.__bytes__() if is_py2 else self.__unicode__()

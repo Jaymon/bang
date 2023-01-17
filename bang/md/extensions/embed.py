@@ -9,7 +9,7 @@ import logging
 import xml.etree.ElementTree as etree
 import requests
 
-from ...path import Directory
+from ...path import Dirpath
 from . import Extension, Postprocessor, Blockprocessor as BaseBlockprocessor
 from ...utils import UnlinkedTagTokenizer
 
@@ -134,7 +134,7 @@ class TwitterProcessor(Blockprocessor):
 
     def get_cache_directory(self):
         cache_dir = self.md.page.input_dir.child_directory("_embed")
-        return Directory(cache_dir)
+        return Dirpath(cache_dir)
 
     def read_cache(self):
         cache = {}
@@ -147,7 +147,7 @@ class TwitterProcessor(Blockprocessor):
     def write_cache(self, cache):
         d = self.get_cache_directory()
         contents = json.dumps(cache)
-        d.create_file(self.filename, contents)
+        d.add_file(self.filename, contents)
 
     def get_html(self, url, body):
         return body["html"]
@@ -250,7 +250,7 @@ class InstagramProcessor(TwitterProcessor):
                             if ext == "jpeg":
                                 ext = "jpg"
 
-                        d.create_file("{}.{}".format(igid, ext), res.content, encoding="")
+                        d.add_file("{}.{}".format(igid, ext), res.content, encoding="")
 
                     else:
                         logger.error("Raw cache for {} failed with code {}".format(url, res.status_code))

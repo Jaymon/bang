@@ -12,7 +12,6 @@ import testdata
 from bang.compat import *
 from bang.decorators import deprecated
 from bang import Project
-from bang.path import Directory
 from bang.__main__ import configure_logging
 from bang.event import event
 
@@ -37,9 +36,8 @@ class TestCase(testdata.TestCase):
 
     @classmethod
     def get_dirs(cls, project_files=None):
-        project_dir = Directory(testdata.create_dir())
-        tmpdir = String(project_dir)
-        output_dir = Directory(testdata.create_dir("output", tmpdir=tmpdir))
+        project_dir = testdata.create_dir()
+        output_dir = testdata.create_dir("output", tmpdir=project_dir)
 
         if project_files:
             for fp, contents in project_files.items():
@@ -48,14 +46,14 @@ class TestCase(testdata.TestCase):
                     testdata.create_image(
                         image_type=m.group(1),
                         path=fp,
-                        tmpdir=tmpdir
+                        tmpdir=project_dir
                     )
 
                 else:
                     testdata.create_file(
                         data=contents, 
                         path=fp,
-                        tmpdir=tmpdir
+                        tmpdir=project_dir
                     )
 
         return project_dir, output_dir
@@ -186,7 +184,7 @@ class TestCase(testdata.TestCase):
                 del os.environ[k]
 
         # clear any loaded bangfiles
-        for k in sys.modules.keys():
+        for k in list(sys.modules.keys()):
             if k.startswith("bangfile_"):
                 # we don't want any rogue bangfiles hanging around in memory, just in case
                 sys.modules.pop(k, None)

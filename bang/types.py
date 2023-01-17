@@ -8,11 +8,16 @@ import logging
 import inspect
 
 from datatypes.reflection import OrderedSubclasses
+from datatypes import (
+    Url,
+    HTML,
+    ContextNamespace,
+)
 
 from .compat import *
 from .decorators import classproperty, once
-from .path import Directory, File
-from .utils import Url, ContextCache, HTML
+from .path import Dirpath, Filepath
+from .utils import ContextCache
 from .event import event
 
 
@@ -52,12 +57,8 @@ class TypeIterator(object):
 
 class PageIterator(TypeIterator):
     """like TypeIterator but will iterate through all config defined page_types"""
-    @property
-    def types(self):
-        return self.config.page_types
-
     def __init__(self, config):
-        self.config = config
+        super().__init__(config, config.page_types)
 
 
 class Pages(object):
@@ -183,7 +184,7 @@ class Pages(object):
 
         :param **kwargs: dict, these will be passed to the template
         """
-        if self.config.output_dir.has_file("index.html"):
+        if self.config.output_dir.has_file(self.output_file):
             logger.warning(
                 "Pages.output() cannot generate a root index.html file because one already exists"
             )
@@ -300,7 +301,7 @@ class Pages(object):
 
 
 
-class Type(Directory):
+class Type(object):
     """Generic base class for types, a site is composed of different types, the 
     compile phase should check all the configured types's .match() method and the
     first .match() that returns True, that's what type the folder/file is
@@ -329,6 +330,7 @@ class Type(Directory):
         """this is the template that will be used to compile the post into html"""
         ret = []
         subclasses = OrderedSubclasses(Type)
+        subclasses.insert(cls)
         for c in subclasses[:-1]:
             if hasattr(c, "name"):
                 ret.append(c.name)
@@ -364,7 +366,7 @@ class Type(Directory):
     def url(self):
         """the full url of the post with host and everything"""
         base_url = self.config.base_url
-        return Url("{}{}".format(base_url, self.uri))
+        return Url(base_url, self.uri)
 
     @property
     def heading(self):
@@ -392,11 +394,11 @@ class Type(Directory):
         self.input_dir = input_dir
         self.output_dir = output_dir
         self.config = config
-        super(Type, self).__init__(input_dir)
+        super().__init__(input_dir)
 
     def absolute_url(self, url):
         """normalizes the url into a full url using this Type as a base"""
-        if not Url.match(url):
+        if not Url.is_url(url):
             config = self.config
 
             if url.startswith('/'):
@@ -423,11 +425,11 @@ class Other(Type):
         self.input_dir.copy_to(self.output_dir, depth=1)
 
     @classmethod
-    def match(cls, directory):
+    def match(cls, filepath):
         return True
 
 
-class Page(Type):
+class Page(Other):
     """This is the generic page type, any index.md files will be this page type"""
 
     output_basename = 'index.html'
@@ -531,14 +533,16 @@ class Page(Type):
         return rf'^{cls.__name__.lower()}\.(md|markdown)$'
 
     @classmethod
-    def match(cls, directory):
-        return True if directory.files(cls.regex()) else False
+    def match(cls, filepath):
+        return bool(re.search(cls.regex(), filepath, flags=re.I))
 
     def compile(self):
-        cache = getattr(self, "_cache", ContextCache(self.config))
+        cache = getattr(self, "_cache", ContextNamespace())
+
+        context_name = self.config.context_name()
+        cache.push_context(context_name)
 
         if "html" not in cache:
-            context_name = self.config.context_name
             logger.debug("Rendering html[{}]: {}".format(context_name, self.uri))
 
             try:
@@ -569,7 +573,7 @@ class Page(Type):
                 # there might be attribute errors deep into Markdown that would
                 # be suppressed if they bubbled up from here
                 logger.exception(e)
-                raise ValueError(e)
+                raise ValueError(e) from e
 
         return cache["title"], cache["html"], cache["meta"]
 

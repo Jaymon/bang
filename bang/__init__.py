@@ -5,12 +5,12 @@ import logging
 from .config import Config, Bangfile
 from .event import event
 from .server import Server
-from .path import Directory
+from .path import Dirpath
 from .event import event
 from .decorators import once
 
 
-__version__ = "1.2.0"
+__version__ = "2.0.0"
 
 
 logger = logging.getLogger(__name__)
@@ -21,9 +21,9 @@ class Project(object):
     config_class = Config
 
     def __init__(self, project_dir, output_dir):
-        self.project_dir = Directory(project_dir)
-        self.output_dir = Directory(output_dir)
-        self.input_dir = Directory(self.project_dir, 'input')
+        self.project_dir = Dirpath(project_dir)
+        self.output_dir = Dirpath(output_dir)
+        self.input_dir = self.project_dir.child_dir('input')
         self.config = self.config_class(self)
         self.types = {}
 
@@ -51,7 +51,12 @@ class Project(object):
         event.push("configure.finish", self.config)
 
     def __iter__(self):
-        return self.input_dir.copy_paths(self.output_dir)
+        for input_p in self.input_dir.files().not_basenames(self.config.is_private_basename):
+            relpath = input_p.relative_to(self.input_dir)
+            output_p = self.output_dir.child_file(relpath)
+            yield relpath, input_p, output_p
+
+        #return self.input_dir.copy_paths(self.output_dir)
 
     def get_type(self, type_name):
         """return the instances of type_name found during project compile"""
@@ -75,10 +80,11 @@ class Project(object):
         event.broadcast("compile.start", self.config)
 
         self.types = {}
+        type_classes = self.config.types
 
-        for input_dir, output_dir in self:
-            for dt_class in self.config.types:
-                if dt_class.match(input_dir):
+        for relpath, input_path, output_path in self:
+            for type_class in type_classes:
+                if type_class.match(input_path):
                     instances = self.get_type(dt_class.name)
                     logger.debug("{}: /{}".format(dt_class.name, input_dir.relative()))
                     instance = dt_class(input_dir, output_dir, self.config)

@@ -7,12 +7,43 @@ import re
 import testdata
 
 from bang.compat import *
-from bang.path import Directory, File
+from bang.path import Dirpath, Filepath
 from bang import config
 from . import TestCase
 
 
 class ProjectTest(TestCase):
+
+    def test___iter__(self):
+        p = self.get_project({
+            "foo/page.md": "1",
+            "bar/_page.md": "2",
+            "bar/_baz/NOTES.txt": "3",
+            "_NOTES_2.txt": "4",
+            "boo/_che/bam/page.md": "5",
+            "boo/page.md": "6",
+            "boo/NOTES_3.txt": "7",
+        })
+
+        r_count = 0
+        r = set(["foo/page.md", "boo/NOTES_3.txt", "boo/page.md"])
+        for rp, ip, op in p:
+            self.assertTrue(rp in r)
+            r_count += 1
+        self.assertEqual(len(r), r_count)
+
+    def test_compile(self):
+        p = self.get_project({
+            "foo/page.md": "1",
+            "bar/_page.md": "2",
+            "bar/_baz/NOTES.txt": "3",
+            "_NOTES_2.txt": "4",
+            "boo/_che/bam/page.md": "5",
+            "boo/page.md": "6",
+            "boo/NOTES_3.txt": "7",
+        })
+
+
     def test_no_bangfile_host(self):
         name = testdata.get_ascii(16)
         ps = self.get_pages({

@@ -9,11 +9,20 @@ import logging
 
 from jinja2 import Environment, FileSystemLoader
 from datatypes.reflection import OrderedSubclasses
+from datatypes import (
+    Url,
+    ContextNamespace
+)
 
 from .compat import *
 from .event import event
 from .types import Page, Type
-from .path import DataDirectory, Directory, File
+from .path import (
+    Path,
+    DataDirpath,
+    Dirpath,
+    Filepath
+)
 from .md import Markdown
 from .utils import HTML
 
@@ -24,37 +33,45 @@ logger = logging.getLogger(__name__)
 
 class Bangfile(object):
     """load a Bangfile"""
-    @classmethod
-    def get_file(cls, directory, basename="bangfile.py"):
+    def get_dir(self, dirpath, basename="bangfile.py"):
         """get the bangfile in the given directory with the given basename
 
         directory -- Directory|string -- usually the project_dir, the directory that
             contains the bangfile to be loaded
         basename -- string -- the basename of the bangfile
         """
-        module = None
-        config_file = os.path.join(String(directory), basename)
-        if os.path.isfile(config_file):
+        return self.get_file(Filepath(dirpath, basename))
+
+    def get_file(self, filepath):
+        if filepath.isfile():
             # http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
-            h = "bangfile_{}".format(ByteString(config_file).md5())
-            logger.debug("Running bangfile with file path: {}".format(config_file))
-            module = imp.load_source(h, config_file)
+            h = "bangfile_{}".format(String(filepath).md5())
+            logger.debug(f"Running bangfile with file path: {filepath}")
+            return imp.load_source(h, filepath)
 
-        return module
-
-    def get_module(cls, modpath):
+    def get_module(self, modpath):
         logger.debug("Running bangfile with module path: {}".format(modpath))
         module = importlib.import_module(modpath)
         return module
 
-    def __init__(self, dir_or_modpath, *args, **kwargs):
-        if os.path.isdir(String(dir_or_modpath)):
-            self.module = self.get_file(dir_or_modpath, *args, **kwargs)
+    def __init__(self, path, **kwargs):
+        """
+        :param path: Path|str, This can be a file, directory, or module path
+            file: /path/bangfile.py
+            dir: /path/
+            modulepath: foo.bar.bangfile
+        """
+        if Path.is_file_path(path):
+            self.module = self.get_file(Filepath(path))
+
+        elif Path.is_dir_path(path):
+            self.module = self.get_dir(Dirpath(path))
+
         else:
-            self.module = self.get_module(dir_or_modpath)
+            self.module = self.get_module(path)
 
 
-class Config(object):
+class Config(ContextNamespace):
     """A context aware configuration class, really this is a glorified getter/setter
     but you can change the context using with .context(name) which means you can
     change values and then when you switch contexts the values will reset to what
@@ -65,16 +82,6 @@ class Config(object):
     a value it will check the current context, if there is no value there it will
     check for that value in the previous context, all the way down the line
     """
-    @property
-    def default_theme_name(self):
-        """the default theme name, .theme_name can change but this should stay
-        constant since it is the fallback theme"""
-        return "default"
-
-    @property
-    def default_theme(self):
-        return self.themes[self.default_theme_name]
-
     @property
     def theme(self):
         return self.themes[self.theme_name]
@@ -93,50 +100,33 @@ class Config(object):
         return self.project.output_dir
 
     @property
-    def context_name(self):
-        return self._context_names[-1]
-
-    @property
     def fields(self):
         """return a dict of all active values in the config at the moment"""
-        fields = {}
-        for context_name in self._context_names:
-            fields.update(self._fields[context_name])
-        return fields
+        return self.copy()
 
     @property
     def markdown(self):
-        context_name = self.context_name
-        md = self._markdown_instances.get(context_name, None)
+        """Returns a unique markdown instance for each context"""
+        context = self.current_context()
+        md = context.get("_markdown_instance", None)
         if not md:
-            logger.debug("Creating Markdown instance for context [{}]".format(context_name))
+            logger.debug("Creating Markdown instance for context [{}]".format(self.context_name()))
             extensions = self.get("markdown_extensions", None)
             md = Markdown.create_instance(self, extensions=extensions)
-            self._markdown_instances[context_name] = md
+            context["_markdown_instance"] = md
         return md
-
-    @property
-    def page_types(self):
-        """returns types of Page and above (any children of Page)"""
-        return [t for t in self.types if issubclass(t, Page)]
 
     @property
     def base_url(self):
         """Return the base url with scheme (scheme) and host and everything, if scheme
         is unknown this will use // (instead of http://). If host is empty, then
         it will just return empty string regardless of the scheme setting"""
-        base_url = ""
-        scheme = self.scheme
-        host = self.host
+        return Url(scheme=self.scheme, hostname=self.host) if self.host else ""
 
-        if host:
-            if scheme:
-                base_url = '{}://{}'.format(scheme, host)
-
-            else:
-                base_url = '//{}'.format(host)
-
-        return base_url
+    @property
+    def page_types(self):
+        """returns types of Page and above (any children of Page)"""
+        return [t for t in self.types if issubclass(t, Page)]
 
     @property
     def types(self):
@@ -145,41 +135,22 @@ class Config(object):
         return ret
 
     def __init__(self, project):
+        super().__init__("global")
+
         # we set support properties directly on the __dict__ so __setattr__ doesn't
         # infinite loop, context properties can just be set normally
 
-        # a stack of the context names, where -1 is always the current active context
-        self.__dict__["_context_names"] = [""]
-
-        # this is where all the magic happens, the keys are the context names
-        # and the values are the set properties for that context, 
-        self.__dict__["_fields"] = defaultdict(dict)
-
-        # holds a markdown instance for each context
-        self.__dict__["_markdown_instances"] = dict()
-
         # initial settings for the themes
-        self.__dict__["themes"] = {}
-        self.add_themes(DataDirectory().themes_directory())
-        project_themes_d = project.project_dir.child("themes")
-        if project_themes_d.exists():
-            self.add_themes(project_themes_d)
-        self.theme_name = self.default_theme_name
+        self.theme_name = "default"
+        self.add_themes(DataDirpath().themes_dir())
+        project_themes_dir = project.project_dir.child_dir("themes")
+        if project_themes_dir.exists():
+            self.add_themes(project_themes_dir)
 
         self.encoding = "UTF-8"
         self.lang = "en"
 
         self.project = project
-
-        # order matters here, it should go from most strict matching to least
-        #self.types = [Page, Other]
-
-
-        # TODO -- https://github.com/Jaymon/bang/issues/41 this should force
-        # re-calling events that have fired
-        #event.push("config", self.config)
-        #event.push("configure", self) # deprecate this in favor of "project"?
-        #event.push("config", self)
 
     @contextmanager
     def context(self, name, **kwargs):
@@ -193,24 +164,25 @@ class Config(object):
                 pass
             # anything outside this block will *NOT* use the foo configuration
         """
-        self._context_names.append(name)
+        with super().context(name, **kwargs):
+            # we use .once() here because if this context is used again we will just
+            # pull the values from the already configured instance, so no reason to
+            # go though and set everything again
+            event.once(f"context.{self.context_name()}", self)
 
-        # passed in values get set on the instance directly
-        for k, v in kwargs.items():
-            self.set(k, v)
-
-        # we use .once() here because if this context is used again we will just
-        # pull the values from the already configured instance, so no reason to
-        # go though and set everything again
-        event.once("context.{}".format(self.context_name), self)
-
-        yield self
+            yield self
 
         # we do not want to do a context.*.finish event because contexts could
         # be called multiple times in a run and so if something used a finish
         # event it could end up doing the same work over and over
 
-        self._context_names.pop(-1)
+    def is_private_basename(self, basename):
+        """This is used by the project to decide if a basename of a file/folder is
+        considered private and therefore shouldn't be traversed
+
+        This is here in config so it could be overridden if needed
+        """
+        return basename.startswith("_") or basename.startswith(".")
 
     def add_themes(self, themes_dir):
         """a themes directory is a directory that contains themes, each theme in
@@ -220,63 +192,48 @@ class Config(object):
 
         :param themes_dir: Directory, a directory where themes can be found
         """
-        themes_dir = Directory(themes_dir)
-        for theme_dir in themes_dir.directories():
+        # we always add the themes to the global context
+        context = self.get_context(self._context_names[0])
+        context.setdefault("themes", self.context_class())
+
+        themes_dir = Dirpath(themes_dir)
+        for theme_dir in themes_dir.dirs().depth(1):
             t = Theme(theme_dir, self)
             self.themes[t.name] = t
 
     def set(self, k, v):
-        self._fields[self.context_name][k] = v
+        self[k] = v
 
-    def get(self, k, default_val=None):
-        for context_name in reversed(self._context_names):
-            fields = self._fields[context_name]
-            if k in fields:
-                return fields[k]
-
-        return default_val
-
-    def __getattr__(self, k):
-        return self.get(k)
-
-    def __setattr__(self, k, v):
-        if k in self.__dict__ or k in self.__class__.__dict__:
-            super(Config, self).__setattr__(k, v)
-        else:
-            self.set(k, v)
-
-    def __setitem__(self, k, v):
-        return self.__setattr__(k, v)
-
-    def __getitem__(self, k):
-        return self.__getattr__(k)
-
-    def __contains__(self, k):
-        for context_name in reversed(self._context_names):
-            if k in self._fields[context_name]:
-                return True
-        return False
-
-    def setdefault(self, k, v):
-        if k not in self:
-            self.set(k, v)
+    def __missing__(self, k):
+        return None
 
     def load_environ(self, prefix="BANG_"):
         """find all environment vars and add them into this instance"""
         for k, v in os.environ.items():
             if k.startswith(prefix):
-                self.set(k[5:].lower(), v)
-
-    def is_context(self, context_name):
-        return self.context_name == context_name
+                self.set(k[len(prefix):].lower(), v)
 
 
 class Theme(object):
-    """
-    Holds information about a theme
+    """Holds information about a theme
 
     Template functionality is a thin wrapper around Jinja functionality that
     handles templating things
+
+    A theme directory is structured like this:
+
+        <THEME NAME>/
+            input/
+            template/
+                *.html
+
+    The directory's basename will become .name. The input directory is copied over
+    to the output directory. Any .html files in the template directory are what
+    is used to template the markdown files. A page.md file would be templated with
+    the page.html file, etc.
+
+    The template_name would be the .html file fileroot. So if you had a "page.html"
+    template file, then the template_name would be "page"
 
     http://jinja.pocoo.org/docs/dev/
     https://jinja.palletsprojects.com/en/master/api/
@@ -289,34 +246,28 @@ class Theme(object):
         self.theme_dir = theme_dir
         self.name = self.theme_dir.basename
         self.config = config
-#         self.template_dir = TemplateDirectory(
-#             self.theme_dir.child(kwargs.get("template_dir", "template"))
-#         )
-        self.input_dir = self.theme_dir.child("input")
-
-        self.template_dir = self.theme_dir.child(kwargs.get("template_dir", "template"))
+        self.input_dir = self.theme_dir.child_dir("input")
+        self.template_dir = self.theme_dir.child_dir("template")
 
         # https://jinja.palletsprojects.com/en/master/api/#jinja2.Environment
         self.template = Environment(
-            loader=FileSystemLoader(String(self.template_dir)),
+            loader=FileSystemLoader(self.template_dir),
             #extensions=['jinja2.ext.with_'] # http://jinja.pocoo.org/docs/dev/templates/#with-statement
             lstrip_blocks=True,
             trim_blocks=True,
         )
-
-        self.templates = {}
-        for f in self.template_dir.files(regex=r"\.html$", depth=0):
-            rel_f = File(f).relative(self.template_dir)
-            filename, fileext = os.path.splitext(rel_f)
-            self.templates[filename] = rel_f
 
     def get_template_name(self, template_name):
         parts = []
         prefix = self.config.get("template_prefix", "").strip("/")
         if prefix:
             parts.append(prefix)
-        parts.append(template_name.lstrip("/"))
+        parts.append(template_name.strip("/"))
         return "/".join(parts)
+
+    def get_template_info(self, template_name):
+        template_name = self.get_template_name(template_name)
+        return (template_name, f"{template_name}.html")
 
     def output(self):
         if self.input_dir.exists():
@@ -330,9 +281,16 @@ class Theme(object):
         """
         https://jinja.palletsprojects.com/en/master/api/#jinja2.Template.render
         """
-        tmpl = self.template.get_template("{}.html".format(self.get_template_name(template_name)))
+        template_name, template_relpath = self.get_template_info(template_name)
+        tmpl = self.template.get_template(template_relpath)
         html = tmpl.render(config=self.config, **kwargs)
-        r = event.broadcast('output.template', self.config, html=HTML(html))
+
+        r = event.broadcast(
+            'output.template',
+            self.config,
+            html=HTML(html),
+            template_name=template_name,
+        )
         return r.html
 
     def output_template(self, template_name, filepath, **kwargs):
@@ -343,10 +301,11 @@ class Theme(object):
         :param **kwargs: dict, all these will be passed to the template
         """
         html = self.render_template(template_name, **kwargs)
-        f = File(filepath, encoding=self.config.encoding)
-        f.create(html)
+        f = Filepath(filepath, encoding=self.config.encoding)
+        f.write_text(html)
 
     def has_template(self, template_name):
         """Return True if the theme contains template_name"""
-        return self.get_template_name(template_name) in self.templates
+        template_name, template_relpath = self.get_template_info(template_name)
+        return self.template_dir.has_file(template_relpath)
 

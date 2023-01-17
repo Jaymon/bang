@@ -2,8 +2,11 @@
 from __future__ import unicode_literals, division, print_function, absolute_import
 
 from bang.compat import *
-from bang.config import Config
-from . import TestCase
+from bang.config import (
+    Config,
+    Theme,
+)
+from . import TestCase, testdata
 
 
 class ThemeTest(TestCase):
@@ -43,22 +46,20 @@ class ThemeTest(TestCase):
         self.assertTrue(s.config.output_dir.has_file("assets/app.css"))
         self.assertTrue(s.config.output_dir.has_file("assets/app.js"))
 
+    def test_has_template(self):
+        theme_dir = testdata.create_files({
+            "template/foo.html": "foo",
+            "template/che.html": "che",
+            "template/bar/baz.html": "baz",
+        })
+
+        t = Theme(theme_dir, testdata.mock(get=""))
+        self.assertTrue(t.has_template("foo"))
+        self.assertTrue(t.has_template("che"))
+        self.assertTrue(t.has_template("bar/baz"))
+
 
 class ConfigTest(TestCase):
-    def test_context_with(self):
-        config = self.create_config()
-        with config.context("foo", bar=1) as conf:
-            self.assertEqual("foo", conf.context_name)
-            self.assertEqual(1, conf.bar)
-        self.assertEqual(None, config.bar)
-        self.assertEqual("", conf.context_name)
-
-        with config.context("foo2", bar=2) as conf:
-            self.assertEqual(2, conf.bar)
-
-        with config.context("foo") as conf:
-            self.assertEqual(1, conf.bar)
-
     def test_base_url(self):
         config = self.create_config()
         with config.context("web", scheme="", host="example.com") as conf:
@@ -78,37 +79,4 @@ class ConfigTest(TestCase):
 
         with config.context("none_host_and_scheme", scheme=None, host=None) as conf:
             self.assertEqual("", conf.base_url)
-
-    def test_context_hierarchy(self):
-        """https://github.com/Jaymon/bang/issues/33"""
-        config = self.create_config()
-        config.foo = False
-
-        with config.context("foo") as c:
-            c.foo = True
-            self.assertEqual("foo", c.context_name)
-            self.assertTrue(c.foo)
-
-            with config.context("bar") as c:
-                self.assertEqual("bar", c.context_name)
-                self.assertTrue(c.foo)
-                c.foo = False
-
-                with config.context("che") as c:
-                    # should be in che context here
-                    self.assertEqual("che", c.context_name)
-                    self.assertFalse(c.foo)
-
-                # should be in bar context here
-                self.assertEqual("bar", c.context_name)
-                self.assertFalse(c.foo)
-
-            #should be in foo context here
-            self.assertEqual("foo", c.context_name)
-            self.assertTrue(c.foo)
-
-        # should be in "" context here
-        self.assertEqual("", c.context_name)
-        self.assertFalse(c.foo)
-
 

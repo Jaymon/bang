@@ -10,7 +10,7 @@ import itertools
 import re
 
 from ..event import event
-from ..path import File, Directory, Image
+from ..path import Filepath, Dirpath
 from ..utils import Url
 from ..decorators import once
 
@@ -34,7 +34,7 @@ class Asset(object):
         else:
             basename = self.input_file.basename
             checksum = self.input_file.checksum()
-            self.output_file = File(self.output_dir, "{}.{}".format(checksum, basename))
+            self.output_file = Filepath(self.output_dir, "{}.{}".format(checksum, basename))
 
     def output(self):
         """output phase, go through all the assets and actually copy them over to
@@ -106,7 +106,7 @@ class Assets(object):
         self._body_html = ""
         #self.lookup = defaultdict(dict)
 
-        self.output_dir = Directory(output_dir, self.DIRNAME)
+        self.output_dir = Dirpath(output_dir, self.DIRNAME)
         self.output_dir.ancestor_dir = output_dir
 
         self.config = config
@@ -117,7 +117,7 @@ class Assets(object):
         :param path: str, this directory path will be checked for a .DIRNAME directory
         inside of it
         """
-        assets_dir = Directory(path, self.DIRNAME)
+        assets_dir = Dirpath(path, self.DIRNAME)
         if assets_dir.exists():
             for path in assets_dir.files(depth=0):
                 self.add(path)
@@ -138,7 +138,7 @@ class Assets(object):
             d = getattr(self, f.ext, self.other)
 
         else:
-            f = File(path)
+            f = Filepath(path)
             basename = f.basename
             ext = f.ext
 

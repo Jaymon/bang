@@ -12,8 +12,8 @@ import time
 
 from bang import __version__, Project
 from bang.server import Server
-from bang.path import Directory, DataDirectory
-from bang.utils import Profile
+from bang.path import Dirpath, DataDirpath
+from bang.utils import Profiler
 
 
 logger = logging.getLogger(__name__)
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 def console_compile(args, project_dir, output_dir):
 
-    with Profile() as total:
+    with Profiler() as total:
         regex = args.regex
         s = Project(project_dir, output_dir)
 
@@ -42,9 +42,9 @@ def console_compile(args, project_dir, output_dir):
 
 def console_generate(args, project_dir, output_dir):
     logger.info("Generating new project in {}".format(project_dir))
-    with Profile() as total:
+    with Profiler() as total:
 
-        data_d = DataDirectory()
+        data_d = DataDirpath()
         data_d.project_directory().copy_to(project_dir)
 
     logger.info("Generate done in {}".format(total))
@@ -52,7 +52,7 @@ def console_generate(args, project_dir, output_dir):
 
 
 def console_serve(args, project_dir, output_dir):
-    with Profile() as total:
+    with Profiler() as total:
         ret_code = 0
         logger.info("* " * 40)
         logger.info("serving directory")
@@ -84,7 +84,7 @@ def console_test(args, project_dir, output_dir):
 def console_watch(args, project_dir, output_dir):
     ret_code = 0
     logger.info("running watch")
-    d = Directory(project_dir, '.git')
+    d = Dirpath(project_dir, '.git')
     if d.exists():
         try:
             git_path = subprocess.check_output(['which', 'git']).strip()
@@ -308,13 +308,13 @@ def console():
 
     args = parser.parse_args()
 
-    project_dir = Directory(args.project_dir)
+    project_dir = Dirpath(args.project_dir)
     output_dir = args.output_dir
     if output_dir:
-        output_dir = Directory(output_dir)
+        output_dir = Dirpath(output_dir)
 
     else:
-        output_dir = Directory(args.project_dir, 'output')
+        output_dir = Dirpath(args.project_dir, 'output')
 
     ret_code = args.func(args, project_dir, output_dir)
     sys.exit(ret_code)

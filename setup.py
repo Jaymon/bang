@@ -28,6 +28,7 @@ setup(
     package_data={name: ['data/*']},
     license="MIT",
     install_requires=['Jinja2', 'Markdown', 'requests', 'datatypes'],
+    package_data={name: ['data/*']},
     classifiers=[ # https://pypi.python.org/pypi?:action=list_classifiers
         'Development Status :: 4 - Beta',
         'Environment :: Web Environment',
