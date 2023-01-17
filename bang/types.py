@@ -61,89 +61,64 @@ class PageIterator(TypeIterator):
         super().__init__(config, config.page_types)
 
 
-class Pages(object):
-    """this is a simple container of Type instances, the Type instances have next_page
-    and prev_type pointers that this class takes advantage of to build the list"""
-    first_page = None
+class Types(object):
+    first_instance = None
     """holds the head Type instance"""
 
     total = 0
     """holds how many Type instances have been appended to this container"""
 
-    last_page = None
+    last_instance = None
     """holds the tail Type instance"""
-
-    output_basename = 'index.html'
-    """this is the name of the file that this post will be outputted to after it
-    is templated"""
-
-    @classproperty
-    def template_names(cls):
-        """this is the template that will be used to compile the post into html"""
-        ret = []
-        for c in inspect.getmro(cls):
-            if c is object: continue
-            if hasattr(c, "name"):
-                ret.append(c.name)
-        return ret
 
     @classproperty
     def name(cls):
         return cls.__name__.lower()
 
     @property
-    @once
-    def template_name(self):
-        theme = self.config.theme
-        for template_name in self.template_names:
-            logger.debug("Attempting to use template [{}.{}]".format(theme.name, template_name))
-            if theme.has_template(template_name):
-                return template_name
-
-    @property
     def head(self):
-        return self.first_page
+        return self.first_instance
 
     @property
     def tail(self):
-        return self.last_page
+        return self.last_instance
 
     def __init__(self, config):
         self.config = config
 
-    def append(self, page):
-        page.pages = self
-        if not self.first_page:
-            self.first_page = page
+    def append(self, t):
+        t.instances = self
+        if not self.first_instance:
+            self.first_instance = t
 
-        if self.last_page:
-            page.prev_page = self.last_page
-            self.last_page.next_page = page
+        if self.last_instance:
+            t.prev_instance = self.last_instance
+            self.last_instance.next_instance = t
 
-        self.last_page = page
+        self.last_instance = t
         self.total += 1
 
     def count(self):
         return self.total
 
     def __iter__(self):
-        p = self.first_page
-        while p:
-            yield p
-            p = p.next_page
+        t = self.first_instance
+        while t:
+            yield t
+            t = t.next
 
     def __reversed__(self):
         return self.reverse()
 
     def reverse(self, count=0):
         """iterate backwards through the posts up to count"""
-        p_count = 0
-        p = self.last_page
-        while p:
-            p_count += 1
-            yield p
-            p = p.prev_page
-            if count and p_count >= count:
+        t_count = 0
+        t = self.last_instance
+        while t:
+            t_count += 1
+            yield t
+            t = t.prev
+            if count and t_count >= count:
                 break
 
     def chunk(self, limit, reverse=False):
@@ -166,18 +141,35 @@ class Pages(object):
             instances.append(p)
         yield instances
 
-    def filter(self, regex=r"", callback=None):
-        """Iterate only through directories whose directory matches regex"""
-        for p in self:
-            if regex and not re.search(regex, String(p.input_dir), re.I):
-                continue
-            if callback and not callback(p):
-                continue
-
-            yield p
-
     def __len__(self):
         return self.total
+
+
+class Pages(Types):
+    """this is a simple container of Type instances, the Type instances have next_page
+    and prev_type pointers that this class takes advantage of to build the list"""
+    output_basename = 'index.html'
+    """this is the name of the file that this post will be outputted to after it
+    is templated"""
+
+    @classproperty
+    def template_names(cls):
+        """this is the template that will be used to compile the post into html"""
+        ret = []
+        for c in inspect.getmro(cls):
+            if c is object: continue
+            if hasattr(c, "name"):
+                ret.append(c.name)
+        return ret
+
+    @property
+    @once
+    def template_name(self):
+        theme = self.config.theme
+        for template_name in self.template_names:
+            logger.debug("Attempting to use template [{}.{}]".format(theme.name, template_name))
+            if theme.has_template(template_name):
+                return template_name
 
     def output(self, **kwargs):
         """This will output an index.html file in the root directory
@@ -256,98 +248,29 @@ class Pages(object):
             **kwargs
         )
 
-# class Types(list):
-#     """We want to keep a particular order of the Type subclasses to make sure
-#     that certain classes are checked before others
-# 
-#     this class maintains subclass order, basically, it makes sure all subclasses get
-#     checked before the parent class, so if you want your CustomType to evaluate
-#     before OtherType, you would just have CustomType extend OtherType
-#     """
-#     def __init__(self, cutoff_class=object):
-#         super().__init__()
-# 
-#         self.indexes = {}
-#         self.cutoff_class = cutoff_class
-# 
-#     def insert(self, klass):
-#         index = len(self)
-#         for subclass in reversed(inspect.getmro(klass)):
-#             if issubclass(subclass, self.cutoff_class):
-#                 index_name = f"{subclass.__module__}.{subclass.__name__}"
-#                 if index_name in self.indexes:
-#                     index = min(index, self.indexes[index_name])
-# 
-#                 else:
-#                     self.indexes[index_name] = len(self)
-#                     super().insert(index, subclass)
-# 
-#     def insert_module(self, module):
-#         for name, klass in inspect.getmembers(module, inspect.isclass):
-#             if issubclass(klass, self.cutoff_class):
-#                 self.insert(klass)
-# 
-#     def insert_modules(self):
-#         for m in list(sys.modules.values()):
-#             self.insert_module(m)
-# 
-#     def find_class(self, val):
-#         """Return the *Value class that represents val"""
-#         for vcls in self:
-#             if vcls.is_valid(val):
-#                 value_cls = vcls
-#                 break
-#         return value_cls
-
-
 
 class Type(object):
     """Generic base class for types, a site is composed of different types, the 
     compile phase should check all the configured types's .match() method and the
-    first .match() that returns True, that's what type the folder/file is
-
-    The base class for a directory type, which handles checking directories
-    that match certain format, if it finds a directory that matches then that
-    directory will be considered the type of whatever matched it and no files
-    or subdirectories within that directory would be traversed"""
-
-    next_page = None
+    first .match() that returns True, that's what type the file is
+    """
+    next_instance = None
     """holds a pointer to the next Post"""
 
-    prev_page = None
+    prev_instance = None
     """holds a pointer to the previous Post"""
 
-    pages_class = Pages
+    instances_class = Types
     """Holds the aggregator class that will hold all instances of this type"""
 
-    pages = None
+    instances = None
     """contains a reference to the container class if the instance was appended
     to the container. This makes it possible for any Type instance to get the rest
     of the Type instances that were found"""
 
     @classproperty
-    def template_names(cls):
-        """this is the template that will be used to compile the post into html"""
-        ret = []
-        subclasses = OrderedSubclasses(Type)
-        subclasses.insert(cls)
-        for c in subclasses[:-1]:
-            if hasattr(c, "name"):
-                ret.append(c.name)
-        return ret
-
-    @classproperty
     def name(cls):
         return cls.__name__.lower()
-
-    @property
-    @once
-    def template_name(self):
-        theme = self.config.theme
-        for template_name in self.template_names:
-            logger.debug("Attempting to use theme.template [{}.{}]".format(theme.name, template_name))
-            if theme.has_template(template_name):
-                return template_name
 
     @classmethod
     def match(cls, t):
@@ -356,11 +279,7 @@ class Type(object):
     @property
     def uri(self):
         """the path of the post (eg, /foo/bar/post-slug)"""
-        d = self.input_dir
-        relative = d.relative()
-        relative = relative.replace('\\', '/')
-        v = "/".join(["", relative, ""])
-        return v
+        return Url(path=self.relpath)
 
     @property
     def url(self):
@@ -381,7 +300,7 @@ class Type(object):
             ret = self.uri
         return ret
 
-    def __init__(self, input_dir, output_dir, config):
+    def __init__(self, relpath, input_file, output_dir, config):
         """create an instance
 
         :param input_dir: Directory, this is the input directory of the actual
@@ -391,17 +310,17 @@ class Type(object):
         :param config: Config instance, useful for being able to populate information
             about the rest of the site on this page
         """
-        self.input_dir = input_dir
+        self.relpath = relpath
+        self.input_file = input_file
         self.output_dir = output_dir
         self.config = config
-        super().__init__(input_dir)
 
     def absolute_url(self, url):
         """normalizes the url into a full url using this Type as a base"""
         if not Url.is_url(url):
             config = self.config
 
-            if url.startswith('/'):
+            if Url.is_path_url(url):
                 # a uri like /foo/bar is from root directory
                 base_url = self.config.base_url
 
@@ -421,8 +340,7 @@ class Other(Type):
     copies all the contents from input_dir to output_dir"""
 
     def output(self, **kwargs):
-        if self.input_dir.is_private(): return
-        self.input_dir.copy_to(self.output_dir, depth=1)
+        self.input_file.copy_to(self.output_dir.child_file(self.input_file.basename))
 
     @classmethod
     def match(cls, filepath):
@@ -431,43 +349,33 @@ class Other(Type):
 
 class Page(Other):
     """This is the generic page type, any index.md files will be this page type"""
+    instances_class = Pages
 
     output_basename = 'index.html'
     """this is the name of the file that this post will be outputted to after it
     is templated"""
 
     @property
-    def content_file(self):
-        d = self.input_dir
-        for f in d.files(self.regex()):
-            break
-        return f
-
-    @property
-    def other_files(self):
-        return self.input_dir.files(regex=self.regex(), exclude=True)
-
-    @property
     def next_url(self):
         """returns the url of the next post"""
-        p = self.next_page
+        p = self.next_instance
         return p.url if p else ""
 
     @property
     def prev_url(self):
         """returns the url of the previous post"""
-        p = self.prev_page
+        p = self.prev_instance
         return p.url if p else ""
 
     @property
     def modified(self):
-        t = os.path.getmtime(self.content_file)
+        t = os.path.getmtime(self.input_file)
         modified = datetime.datetime.fromtimestamp(t)
         return modified
 
     @property
     def body(self):
-        return self.input_dir.file_contents(os.path.basename(self.content_file))
+        return self.input_file.read_text()
 
     @property
     def description(self):
@@ -528,19 +436,38 @@ class Page(Other):
         title, html, meta = self.compile()
         return meta
 
+    @property
+    def template_name(self):
+        theme = self.config.theme
+        for template_name in self.template_names:
+            logger.debug("Attempting to use theme.template [{}.{}]".format(theme.name, template_name))
+            if theme.has_template(template_name):
+                return template_name
+
+    @classproperty
+    def template_names(cls):
+        """this is the template that will be used to compile the post into html"""
+        ret = []
+        subclasses = OrderedSubclasses(Type)
+        subclasses.insert(cls)
+        for c in subclasses[:-1]:
+            if hasattr(c, "name"):
+                ret.append(c.name)
+        return ret
+
     @classmethod
     def regex(cls):
-        return rf'^{cls.__name__.lower()}\.(md|markdown)$'
+        return rf'^{cls.name}\.(md|markdown)$'
 
     @classmethod
     def match(cls, filepath):
         return bool(re.search(cls.regex(), filepath, flags=re.I))
 
     def compile(self):
-        cache = getattr(self, "_cache", ContextNamespace())
+        cache = getattr(self, "_cache", ContextNamespace(cascade=False))
 
         context_name = self.config.context_name()
-        cache.push_context(context_name)
+        cache.switch_context(context_name)
 
         if "html" not in cache:
             logger.debug("Rendering html[{}]: {}".format(context_name, self.uri))
@@ -588,7 +515,8 @@ class Page(Other):
         return ""
 
     def __str__(self):
-        return self.input_dir.path
+        output_relpath = self.output_dir.relative_to(self.config.output_dir)
+        return f"{self.name}: {self.relpath} -> {output_relpath}/{self.output_basename}"
 
     def output(self, **kwargs):
         """
@@ -614,9 +542,9 @@ class Page(Other):
         self.output_file = output_file
 
         kwargs["prev_url"] = self.prev_url
-        kwargs["prev_title"] = self.prev_page.title if self.prev_page else ""
+        kwargs["prev_title"] = self.prev_instance.title if self.prev_instance else ""
         kwargs["next_url"] = self.next_url
-        kwargs["next_title"] = self.next_page.title if self.next_page else ""
+        kwargs["next_title"] = self.next_instance.title if self.next_instance else ""
 
         self.output_template(
             output_file,

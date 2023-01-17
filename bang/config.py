@@ -16,7 +16,7 @@ from datatypes import (
 
 from .compat import *
 from .event import event
-from .types import Page, Type
+from .types import Page, Type, Other
 from .path import (
     Path,
     DataDirpath,
@@ -128,11 +128,11 @@ class Config(ContextNamespace):
         """returns types of Page and above (any children of Page)"""
         return [t for t in self.types if issubclass(t, Page)]
 
-    @property
-    def types(self):
-        ret = OrderedSubclasses(Type)
-        ret.insert_modules()
-        return ret
+#     @property
+#     def types(self):
+#         ret = OrderedSubclasses(Type)
+#         ret.insert_modules()
+#         return ret
 
     def __init__(self, project):
         super().__init__("global")
@@ -151,6 +151,9 @@ class Config(ContextNamespace):
         self.lang = "en"
 
         self.project = project
+
+        self.add_type(Other)
+        self.add_type(Page)
 
     @contextmanager
     def context(self, name, **kwargs):
@@ -183,6 +186,12 @@ class Config(ContextNamespace):
         This is here in config so it could be overridden if needed
         """
         return basename.startswith("_") or basename.startswith(".")
+
+    def add_type(self, type_class):
+        # we always add Types to the global context
+        context = self.get_context(self._context_names[0])
+        context.setdefault("types", OrderedSubclasses(Type))
+        context.types.insert(type_class)
 
     def add_themes(self, themes_dir):
         """a themes directory is a directory that contains themes, each theme in

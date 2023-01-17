@@ -51,12 +51,19 @@ class Project(object):
         event.push("configure.finish", self.config)
 
     def __iter__(self):
-        for input_p in self.input_dir.files().not_basenames(self.config.is_private_basename):
-            relpath = input_p.relative_to(self.input_dir)
-            output_p = self.output_dir.child_file(relpath)
-            yield relpath, input_p, output_p
+        """Iterate through the files found in self.input_dir
 
-        #return self.input_dir.copy_paths(self.output_dir)
+        Coincidently, this is the exact three values Type takes
+
+        :returns: yields tuples of (relpath, input_file, output_dir) where
+            relpath is the relative path of the file to self.input_dir, input_file
+            is the full path to the file and output_dir is the full folder path
+            (subdir of self.output_dir) where the file should be copied.
+        """
+        for input_file in self.input_dir.files().not_basenames(self.config.is_private_basename):
+            relpath = input_file.relative_to(self.input_dir)
+            output_dir = self.output_dir.child_file(relpath).parent
+            yield relpath, input_file, output_dir
 
     def get_type(self, type_name):
         """return the instances of type_name found during project compile"""

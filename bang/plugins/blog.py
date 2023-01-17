@@ -2,7 +2,7 @@
 from __future__ import unicode_literals, division, print_function, absolute_import
 
 from ..event import event
-from ..types import TypeIterator, Page, Other
+from ..types import TypeIterator, Page
 from ..path import File
 from . import feed, sitemap, opengraph
 
@@ -20,8 +20,7 @@ def configure_blog(event, config):
     config.feed_iter = TypeIterator(config, [Post]).reverse()
     #config.sitemap_iter = TypeIterator(config, [Post])
 
-    # TODO -- there should be a better way to do this
-    #config.types = [Page, Post, Other]
+    config.add_type(Post)
 
 
 @event("output.html.finish")
