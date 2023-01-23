@@ -19,7 +19,7 @@ class ThemeTest(TestCase):
         project_files = {
             'bangfile.py': [
                 "from bang import event",
-                "@event('configure')",
+                "@event('configure.finish')",
                 "def theme_config(event_name, config):",
                 "    config.theme_name = '{}'".format(theme_name),
                 ""

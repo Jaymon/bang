@@ -16,7 +16,7 @@ from collections import defaultdict
 from ...compat import *
 from ...event import event
 from ...types import PageIterator
-from ...path import DataDirectory
+from ...path import DataDirpath
 
 
 logger = logging.getLogger(__name__)
@@ -33,8 +33,8 @@ def configure_context_breadcrumbs(event, config):
     theme_name = config.theme_name
     theme = config.theme
     if not theme.has_template("breadcrumbs"):
-        dd = DataDirectory(__name__)
-        config.add_themes(dd.themes_directory())
+        dd = DataDirpath(__name__)
+        config.add_themes(dd.themes_dir())
         theme_name = "breadcrumbs"
 
     config.setdefault("breadcrumbs_theme_name", theme_name)
@@ -46,17 +46,17 @@ def output_breadcrumbs(event, config):
 
         d = defaultdict(list)
         for p in config.breadcrumbs_iter:
-            for bc in p.url.breadcrumbs():
+            for bc in p.url.paths:
                 d[bc].append(p)
 
         theme = config.themes[config.breadcrumbs_theme_name]
 
         for breadcrumb, instances in d.items():
-            path = config.output_dir.child_directory(breadcrumb)
+            path = config.output_dir.child_dir(breadcrumb)
 
             # we only want to add breadcrumb files to directories that don't
             # have any index files already
-            if not path.has_file("index.html"):
+            if not path.has_file(config.page_output_basename):
                 logger.debug("Generating breadcrumb for {}".format(breadcrumb))
                 theme.output_template(
                     "breadcrumbs",

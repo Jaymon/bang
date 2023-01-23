@@ -5,18 +5,23 @@ import re
 import testdata
 
 from bang.compat import *
-from bang.types import Page, Pages
+from bang.types import Other, Page, Pages
 from . import TestCase
 
 
 class OtherTest(TestCase):
-    def test_md_copy(self):
-        p = self.get_project({
-            "foo/index.md": "# Foo",
-        })
+    def test_crud(self):
+        relpath = "foo/bar.txt"
+        o = self.get_type(Other, relpath)
 
-        p.output()
-        self.assertFalse(p.output_dir.has_file("foo", "index.md"))
+        output_relpath = o.output_file.relative_to(o.config.output_dir)
+        self.assertEqual(relpath, output_relpath)
+        self.assertTrue(o.input_file.isfile())
+        self.assertFalse(o.output_file.isfile())
+
+        o.output()
+
+        self.assertTrue(o.output_file.isfile())
 
     def test_file_copy(self):
         p = self.get_project({
@@ -30,16 +35,31 @@ class OtherTest(TestCase):
 
 
 class PageTest(TestCase):
+    def test_match(self):
+        self.assertTrue(Page.match("page.md"))
+        self.assertFalse(Page.match("other.md"))
+        self.assertFalse(Page.match("index.md"))
+
+    def test_crud(self):
+        p = self.get_page()
+
+        self.assertTrue(p.input_file.isfile())
+        self.assertFalse(p.output_file.isfile())
+
+        p.output()
+
+        self.assertTrue(p.output_file.isfile())
+
     def test_title_1(self):
         """https://github.com/Jaymon/bang/issues/48"""
         pr = self.get_project({
-            "index.md": "body text",
+            "page.md": "body text",
         })
         pr.output()
 
-        p = pr.types["page"].head
+        p = pr.get_types("page")[0]
         self.assertEqual("", p.title)
-        html = pr.output_dir.file_contents("index.html")
+        html = pr.output_dir.file_text("index.html")
         self.assertFalse("<h1" in html)
 
     def test_compile(self):
@@ -60,7 +80,7 @@ class PageTest(TestCase):
 
         with self.assertLogs(level="DEBUG") as c:
             p = self.get_page()
-            p2 = TemplateNameBar(p.input_dir, p.output_dir, p.config)
+            p2 = TemplateNameBar(p.input_file, p.output_dir, p.config)
             p2.output()
 
         r = "\n".join(c[1])
@@ -76,7 +96,6 @@ class PageTest(TestCase):
 
         r = p.html
         self.assertEqual("title text", p.title)
-        #self.assertRegex(r, r"<h1[^>]*>title text</h1>")
         self.assertRegex(r, r"<p[^>]*>body text</p>")
 
     def test_description_1(self):
@@ -135,10 +154,9 @@ class PageTest(TestCase):
         ])
         self.assertFalse("figcaption" in p.description)
 
-
     def test_absolute_url(self):
         p = self.get_page({
-            'index.md': [
+            'page.md': [
                 '![this is the file](images/che.jpg)',
                 ""
             ]
@@ -147,20 +165,8 @@ class PageTest(TestCase):
 
         p = self.get_page('![this is the file](images/che.jpg)')
         self.assertNotEqual(p.absolute_url("/images/che.jpg"), p.absolute_url("images/che.jpg"))
-
-    def test_other_files(self):
-        p = self.get_page({
-            "index.md": ["![this is the file](foo.jpg)",
-                "",
-                "bar.png",
-                ""
-            ],
-            "foo.jpg": "",
-            "bar.png": "",
-        })
-
-        for of in p.other_files:
-            self.assertFalse(of.endswith("index.md"))
+        self.assertTrue(p.uri in p.absolute_url("images/che.jpg"))
+        self.assertFalse(p.uri in p.absolute_url("/images/che.jpg"))
 
 
 class PagesTest(TestCase):
@@ -186,8 +192,8 @@ class PagesTest(TestCase):
 
         pages.output()
         self.assertTrue(pages.config.output_dir.has_file("index.html"))
-        self.assertTrue(pages.config.output_dir.child("page", "2").has_file("index.html"))
-        self.assertTrue(pages.config.output_dir.child("page", "3").has_file("index.html"))
-        self.assertFalse(pages.config.output_dir.child("page", "4").has_file("index.html"))
+        self.assertTrue(pages.config.output_dir.child_dir("page", "2").has_file("index.html"))
+        self.assertTrue(pages.config.output_dir.child_dir("page", "3").has_file("index.html"))
+        self.assertFalse(pages.config.output_dir.child_dir("page", "4").has_file("index.html"))
 
 

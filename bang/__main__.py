@@ -22,19 +22,20 @@ logger = logging.getLogger(__name__)
 def console_compile(args, project_dir, output_dir):
 
     with Profiler() as total:
-        regex = args.regex
+#         regex = args.regex
         s = Project(project_dir, output_dir)
 
-        if regex:
-            logger.info("Compiling directories matching {} in {} to {}".format(
-                regex,
-                s.input_dir,
-                s.output_dir
-            ))
-        else:
-            logger.info("Compiling directory {} to {}".format(s.input_dir, s.output_dir))
+#         if regex:
+#             logger.info("Compiling directories matching {} in {} to {}".format(
+#                 regex,
+#                 s.input_dir,
+#                 s.output_dir
+#             ))
+#         else:
+        logger.info("Compiling directory {} to {}".format(s.input_dir, s.output_dir))
 
-        s.output(regex)
+#         s.output(regex)
+        s.output()
 
     logger.info("Compile done in {}".format(total))
     return 0
@@ -45,7 +46,7 @@ def console_generate(args, project_dir, output_dir):
     with Profiler() as total:
 
         data_d = DataDirpath()
-        data_d.project_directory().copy_to(project_dir)
+        data_d.project_dir().copy_to(project_dir)
 
     logger.info("Generate done in {}".format(total))
     return 0
@@ -256,12 +257,12 @@ def console():
         help="Compile your site",
         add_help=False
     )
-    compile_parser.add_argument(
-        '--pattern', '--regex',
-        dest="regex",
-        required=False,
-        help='Only directories matching this pattern will be compiled'
-    )
+#     compile_parser.add_argument(
+#         '--pattern', '--regex',
+#         dest="regex",
+#         required=False,
+#         help='Only directories matching this pattern will be compiled'
+#     )
     compile_parser.set_defaults(func=console_compile)
 
     serve_parser = subparsers.add_parser(

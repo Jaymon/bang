@@ -16,7 +16,7 @@ class AbsoluteLinkTreeprocessor(Treeprocessor):
     """
     def normalize_url(self, url):
         """normalizes the url into a full url"""
-        p = self.markdown.page
+        p = self.md.page
         return p.absolute_url(url)
 
     def run(self, doc):

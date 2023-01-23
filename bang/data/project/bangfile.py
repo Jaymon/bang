@@ -21,9 +21,7 @@ from bang import event
 # main configuration for your project
 @event("configure.project")
 def configure_project(event, config):
-    config.env = os.environ.get("BANG_ENV", "dev")
-    config.host = os.environ.get("BANG_HOST", "")
-    #config.name = "PROJECT NAME"
+    config.load_environ()
 
     config.scheme = "http"
     if config.env == "prod":
@@ -36,9 +34,9 @@ def configure_plugins(event, config):
     pass
 
 
-# handle html context exclusive configuration
-@event('context.html')
-def context_html(event_name, config):
+# handle output context exclusive configuration
+@event('context.output')
+def context_output(event_name, config):
     # for support of both https and http on html pages, this results in //host/path/ urls
     config.scheme = ""
 

@@ -4,7 +4,7 @@ import os
 
 from bang import event
 
-@event('theme')
+@event('configure.theme')
 def theme_config(event_name, config):
     pass
 

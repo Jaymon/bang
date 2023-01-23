@@ -30,105 +30,119 @@ class Project(object):
         self.configure()
 
     def configure(self):
-        event.push("configure.start", self.config)
+        event.bind_callback_params(config=self.config)
+
+        event.push("configure.start")
 
         Bangfile("{}.bangfile".format(self.config.module_name))
         Bangfile(self.project_dir),
 
-        event.push("configure.plugins", self.config)
-        event.push("configure.project", self.config)
+        event.push("configure.plugins")
+        event.push("configure.project")
 
         theme = self.config.theme
         Bangfile(theme.theme_dir)
 
         # theme configuration comes after project configuration because project
         # configuration will most likely set the theme to be used
-        event.push("configure.theme", self.config)
-        event.push("configure.theme.{}".format(theme.name), self.config)
+        event.push("configure.theme")
+        event.push("configure.theme.{}".format(theme.name))
 
         # do any cleanup after finishing the configure phase, this should only
         # be called by user edited bangfiles so they can do any final overriding
-        event.push("configure.finish", self.config)
+        event.push("configure.finish")
+
+        logger.debug(f"Project project_dir: {self.project_dir}")
+        logger.debug(f"Project input_dir: {self.input_dir}")
+        logger.debug(f"Project output_dir: {self.output_dir}")
+        logger.debug(f"Project theme: {theme.name} ({theme.theme_dir})")
+
+
+    def is_private_basename(self, basename):
+        """This is used by the project to decide if a basename of a file/folder is
+        considered private and therefore shouldn't be traversed
+
+        This is here in config so it could be overridden if needed
+        """
+        return basename.startswith("_") or basename.startswith(".")
 
     def __iter__(self):
         """Iterate through the files found in self.input_dir
-
-        Coincidently, this is the exact three values Type takes
 
         :returns: yields tuples of (relpath, input_file, output_dir) where
             relpath is the relative path of the file to self.input_dir, input_file
             is the full path to the file and output_dir is the full folder path
             (subdir of self.output_dir) where the file should be copied.
         """
-        for input_file in self.input_dir.files().not_basenames(self.config.is_private_basename):
+        is_private_cb = self.config.get("is_private_callback", self.is_private_basename)
+
+        for input_file in self.input_dir.files().not_callback(is_private_cb, basenames=True):
             relpath = input_file.relative_to(self.input_dir)
             output_dir = self.output_dir.child_file(relpath).parent
             yield relpath, input_file, output_dir
 
-    def get_type(self, type_name):
+    def get_types(self, type_name):
         """return the instances of type_name found during project compile"""
-        ret = self.types.get(type_name, None)
-        if ret is None:
-            for dt_class in self.config.types:
-                if type_name == dt_class.name:
-                    ret = dt_class.pages_class(self.config)
-                    self.types[type_name] = ret
+        types = self.types.get(type_name, None)
+        if types is None:
+            for type_class in self.config.types:
+                if type_name == type_class.name:
+                    types = type_class.instances_class(self.config)
+                    self.types[type_name] = types
 
-            if ret is None:
-                raise ValueError("No defined pages class for type [{}]".format(type_name))
+            if types is None:
+                raise ValueError(f"No defined pages class for type [{type_name}]")
 
-        return ret
+        return types
 
     def compile(self):
         """go through project's input/ directory and find all the different types
 
         This just populates self.types but doesn't do any actual outputting and is
         really only broken out from output() for easier testing"""
-        event.broadcast("compile.start", self.config)
+        event.broadcast("compile.start")
 
         self.types = {}
         type_classes = self.config.types
 
-        for relpath, input_path, output_path in self:
+        for relpath, input_file, output_dir in self:
             for type_class in type_classes:
-                if type_class.match(input_path):
-                    instances = self.get_type(dt_class.name)
-                    logger.debug("{}: /{}".format(dt_class.name, input_dir.relative()))
-                    instance = dt_class(input_dir, output_dir, self.config)
-                    instances.append(instance)
+                if type_class.match(input_file.basename):
+                    types = self.get_types(type_class.name)
+                    instance = type_class(input_file, output_dir, self.config)
+                    logger.debug(f"Found: {instance}")
+                    types.append(instance)
                     break
 
         # do any cleanup after finishing the compile phase
-        event.broadcast("compile.finish", self.config)
+        event.broadcast("compile.finish")
 
-    def output(self, regex=None):
+    def output(self):
         """go through input/ dir and compile the files and move them to output/ dir"""
         self.compile()
 
-        # conceptually the same event as compile.stop but here for completeness
+        # conceptually the same event as compile.finish but here for completeness
         # and easier readability of the intention of a callback in a bangfiles
-        event.broadcast('output.start', self.config)
+        event.broadcast('output.clear')
 
-        with self.config.context("html") as config:
-            if regex:
-                logger.warning("output directory {} not cleared because regex present".format(self.output_dir))
-            else:
-                logger.info("Clearing output directory")
-                self.output_dir.clear()
+        logger.info("Clearing output directory")
+        self.output_dir.clear()
 
-                config.theme.output()
+        event.broadcast('output.start')
 
-            event.broadcast('output.html.start', config)
+        with self.config.context("output") as config:
 
-            for name, instances in self.types.items():
-                logger.debug("{}: {}".format(name, len(instances)))
-                for instance in instances.filter(regex):
+            config.theme.output()
+
+            for type_name, instances in self.types.items():
+
+                event.broadcast(f'output.start.{type_name}')
+                logger.debug(f"{type_name}: {len(instances)} instance(s)")
+
+                for instance in instances:
                     instance.output()
 
-            event.broadcast('output.html.finish', config)
+                event.broadcast(f'output.finish.{type_name}')
 
-        if regex:
-            logger.warning("output.finish event not broadcast because regex present")
-        else:
-            event.broadcast('output.finish', self.config)
+        event.broadcast('output.finish')
 

@@ -149,6 +149,7 @@ class Config(ContextNamespace):
 
         self.encoding = "UTF-8"
         self.lang = "en"
+        self.page_output_basename = "index.html"
 
         self.project = project
 
@@ -171,21 +172,13 @@ class Config(ContextNamespace):
             # we use .once() here because if this context is used again we will just
             # pull the values from the already configured instance, so no reason to
             # go though and set everything again
-            event.once(f"context.{self.context_name()}", self)
+            event.once(f"context.{self.context_name()}")
 
             yield self
 
-        # we do not want to do a context.*.finish event because contexts could
-        # be called multiple times in a run and so if something used a finish
-        # event it could end up doing the same work over and over
-
-    def is_private_basename(self, basename):
-        """This is used by the project to decide if a basename of a file/folder is
-        considered private and therefore shouldn't be traversed
-
-        This is here in config so it could be overridden if needed
-        """
-        return basename.startswith("_") or basename.startswith(".")
+            # we do not want to do a context.*.finish event because contexts could
+            # be called multiple times in a run and so if something used a finish
+            # event it could end up doing the same work over and over
 
     def add_type(self, type_class):
         # we always add Types to the global context
@@ -294,9 +287,10 @@ class Theme(object):
         tmpl = self.template.get_template(template_relpath)
         html = tmpl.render(config=self.config, **kwargs)
 
+        logger.debug(f"Rendering HTML with template: {template_name}")
+
         r = event.broadcast(
             'output.template',
-            self.config,
             html=HTML(html),
             template_name=template_name,
         )
@@ -312,6 +306,8 @@ class Theme(object):
         html = self.render_template(template_name, **kwargs)
         f = Filepath(filepath, encoding=self.config.encoding)
         f.write_text(html)
+
+        logger.debug(f"Rendered HTML written to: {f}")
 
     def has_template(self, template_name):
         """Return True if the theme contains template_name"""

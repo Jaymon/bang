@@ -138,7 +138,7 @@ class TestCase(testdata.TestCase):
         page_files = {}
         for x in range(count):
             name = testdata.get_ascii(8)
-            page_files["{}/index.md".format(name)] = testdata.get_words()
+            page_files["{}/page.md".format(name)] = testdata.get_words()
 
         return cls.get_pages(page_files, bangfile=bangfile)
 
@@ -157,10 +157,10 @@ class TestCase(testdata.TestCase):
             page_files.update(page_file)
 
         else:
-            name = "{}/index.md".format(testdata.get_ascii(8))
+            name = "{}/page.md".format(testdata.get_ascii(8))
             page_files[name] = page_file
 
-        return cls.get_pages(page_files, bangfile=bangfile).first_page
+        return cls.get_pages(page_files, bangfile=bangfile)[0]
 
     @classmethod
     def get_body(cls, filepath):
@@ -176,6 +176,21 @@ class TestCase(testdata.TestCase):
         meta = md.Meta
         html.meta = meta
         return html
+
+    @classmethod
+    def get_type(cls, type_class, relpath):
+        project_input_dir = testdata.create_dir()
+        input_file = testdata.create_file(path=relpath, tmpdir=project_input_dir)
+
+        project_output_dir = testdata.create_dir()
+        output_file = testdata.get_file(path=relpath, tmpdir=project_output_dir)
+        config = testdata.mock(input_dir=project_input_dir, output_dir=project_output_dir)
+
+        return type_class(
+            input_file,
+            output_file.parent,
+            config
+        )
 
     def setUp(self):
         # clear the environment

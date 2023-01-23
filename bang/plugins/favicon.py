@@ -30,6 +30,7 @@ These are the links I used to figure out what to support:
 from __future__ import unicode_literals, division, print_function, absolute_import
 from collections import OrderedDict
 
+from ..compat import *
 from ..event import event
 from ..path import Imagepath
 from ..utils import Url
@@ -76,7 +77,7 @@ class Favicons(object):
         self.input_dir = input_dir
 
         regex = kwargs.get("regex", self.regex)
-        for f in input_dir.files(regex=regex):
+        for f in input_dir.files().regex(regex, filename=True):
             self.images.append(Imagepath(f))
 
     def __str__(self):
@@ -102,6 +103,17 @@ class Favicons(object):
 
         return d
 
+    def icon_sizes(self, imagepath):
+        """produce sizes WxH for link sizes attribute
+
+        https://www.w3schools.com/tags/att_sizes.asp
+        """
+        sizes = []
+        info = imagepath.get_info()
+        for width, height in info["dimensions"]:
+            sizes.append("{}x{}".format(width, height))
+        return " ".join(sizes)
+
     def get_info(self):
 
         ret = []
@@ -111,9 +123,9 @@ class Favicons(object):
         if "favicon" in image_d:
             ret.append(OrderedDict([
                 ("rel", "icon"),
-                ("href", Url("/", image_d["favicon"].relative(self.input_dir))),
+                ("href", Url("/", image_d["favicon"].relative_to(self.input_dir))),
                 ("type", "image/x-icon"),
-                ("sizes", image_d["favicon"].sizes()),
+                ("sizes", self.icon_sizes(image_d["favicon"])),
             ]))
 
         for rel, sizes in outline_d.items():
@@ -121,8 +133,8 @@ class Favicons(object):
                 if size in image_d:
                     ret.append(OrderedDict([
                         ("rel", rel),
-                        ("href", Url("/", image_d[size].relative(self.input_dir))),
-                        ("sizes", image_d[size].sizes()),
+                        ("href", Url("/", image_d[size].relative_to(self.input_dir))),
+                        ("sizes", self.icon_sizes(image_d[size])),
                     ]))
 
         return ret

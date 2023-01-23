@@ -19,7 +19,7 @@ class BlogTest(TestCase):
     def get_posts(cls, post_files):
         p = cls.get_project(post_files)
         p.compile()
-        return p.types["post"]
+        return p.get_types("post")
 
     def test_file_structure(self):
         s = self.get_project({
@@ -37,15 +37,15 @@ class BlogTest(TestCase):
 
         self.assertTrue(s.output_dir.has_file("one.jpg"))
         self.assertTrue(s.output_dir.has_file("two.txt"))
-        self.assertTrue(s.output_dir.child("other").has_file("three.txt"))
-        self.assertTrue(s.output_dir.child("post1").has_file("index.html"))
-        self.assertTrue(s.output_dir.child("post1", "page1").has_file("index.html"))
-        self.assertTrue(s.output_dir.child("page2").has_file("index.html"))
-        self.assertTrue(s.output_dir.child("page2", "post2").has_file("index.html"))
+        self.assertTrue(s.output_dir.has_file("other", "three.txt"))
+        self.assertTrue(s.output_dir.has_file("post1", "index.html"))
+        self.assertTrue(s.output_dir.has_file("post1", "page1", "index.html"))
+        self.assertTrue(s.output_dir.has_file("page2", "index.html"))
+        self.assertTrue(s.output_dir.has_file("page2", "post2", "index.html"))
 
-        self.assertEqual(2, s.get_type("post"))
-        self.assertEqual(3, s.get_type("other"))
-        self.assertEqual(4, s.get_type("page"))
+        self.assertEqual(2, len(s.get_types("post")))
+        self.assertEqual(3, len(s.get_types("other")))
+        self.assertEqual(4, len(s.get_types("page")))
 
     def test_config_types(self):
         c = self.get_config()

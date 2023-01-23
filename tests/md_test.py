@@ -8,7 +8,6 @@ import textwrap
 import testdata
 
 from bang.compat import *
-from bang.path import Directory
 from bang.md import Registry, Markdown
 from . import TestCase
 
@@ -59,7 +58,7 @@ class MarkdownTest(TestCase):
             "![this is the caption](foo.jpg)",
         ])
         r = p.html
-        self.assertTrue('<figure><img alt="foo.jpg" src=' in r)
+        self.assertTrue('<figure><img alt="foo.jpg" ' in r)
 
     def test_image_figure_mixed(self):
         p = self.get_page([
@@ -76,10 +75,10 @@ class MarkdownTest(TestCase):
             "![](baz.jpg) this text after an image with [link](http://baz.com)",
         ])
         r = p.html
-        self.assertTrue('<figure><img alt="foo.jpg" src=' in r)
-        self.assertTrue('<p>This text has an image <img alt="bar.jpg" src=' in r)
-        self.assertTrue('<p><img alt="che.jpg" src=' in r)
-        self.assertTrue('<p><img alt="baz.jpg" src=' in r)
+        self.assertTrue('<figure><img alt="foo.jpg" ' in r)
+        self.assertTrue('<p>This text has an image <img alt="bar.jpg" ' in r)
+        self.assertTrue('<p><img alt="che.jpg" ' in r)
+        self.assertTrue('<p><img alt="baz.jpg" ' in r)
 
     def test_image_position(self):
         p = self.get_page('[![this is the alt](che.jpg "this is the title")](http://example.com)')
@@ -91,7 +90,7 @@ class MarkdownTest(TestCase):
 
         p = self.get_page({
             'che.jpg': "",
-            'index.md': [
+            'page.md': [
                 '![this is the file](che.jpg)',
                 ""
             ]
@@ -169,7 +168,7 @@ class MarkdownTest(TestCase):
     def test_href(self):
         p = self.get_page({
             'che.txt': testdata.get_words(),
-            'index.md': [
+            'page.md': [
                 "full [link](http://foo.com)",
                 "full [path](/bar)",
                 "file [path](che.txt)",
@@ -311,15 +310,15 @@ class MarkdownTest(TestCase):
 
     def test_uniq_footnotes(self):
         ps = self.get_pages({
-            'uniq_footnotes_1/index.md': [
+            'uniq_footnotes_1/page.md': [
                 "first text[^n]",
                 "[^n]: first footnote",
             ],
-            'uniq_footnotes_2/index.md': [
+            'uniq_footnotes_2/page.md': [
                 "second text[^n]",
                 "[^n]: second footnote",
             ],
-            'uniq_footnotes_3/index.md': [
+            'uniq_footnotes_3/page.md': [
                 "third text[^n]",
                 "[^n]: third footnote",
             ]
@@ -712,7 +711,7 @@ class EmbedPluginTest(TestCase):
         r = p.html
         self.assertEqual(2, r.count("<figure"))
 
-        contents = json.loads(p.input_dir.child_directory("_embed").file_contents("twitter.json"))
+        contents = json.loads(p.input_dir.child_dir("_embed").file_bytes("twitter.json"))
         self.assertEqual(2, len(contents))
 
     def test_no_embed_twitter_links(self):
@@ -724,6 +723,7 @@ class EmbedPluginTest(TestCase):
         self.assertTrue("a href" in r)
 
     def test_embed_instagram(self):
+        self.skip_test("FB disabled oembed without an app key in Oct 2020 so I've disabled IG")
         p = self.get_page([
             "before text",
             "",
@@ -754,7 +754,7 @@ class EmbedPluginTest(TestCase):
     def test_embed_image(self):
         p = self.get_page({
             'bogus.jpg': "",
-            'index.md': [
+            'page.md': [
                 "before text",
                 "",
                 "bogus.jpg",
@@ -770,7 +770,7 @@ class EmbedPluginTest(TestCase):
     def test_embed_image_url(self):
         p = self.get_page({
             'bogus.jpg': "",
-            'index.md': [
+            'page.md': [
                 "before text",
                 "",
                 "http://embedded.com/full/url/bogus.jpg",

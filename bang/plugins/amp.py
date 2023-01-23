@@ -27,7 +27,7 @@ from ..md.extensions.embed import (
 )
 from ..types import PageIterator, Page
 from ..utils import Url
-from ..path import File, Image
+from ..path import Imagepath
 from ..config import Config, Theme
 
 
@@ -87,7 +87,7 @@ class TwitterProcessor(BaseTwitterProcessor, AmpProcessor):
             '<amp-twitter',
             'data-tweetid="{}"'.format(tweetid),
             'layout="responsive"',
-            'width="{}" height="{}"></amp-youtube>'.format(width, height),
+            'width="{}" height="{}"></amp-twitter>'.format(width, height),
         ]
 
         return " ".join(embed_html)
@@ -113,7 +113,7 @@ class InstagramProcessor(BaseInstagramProcessor, AmpProcessor):
             'data-shortcode="{}"'.format(igid),
             'data-captioned',
             'layout="responsive"',
-            'width="{}" height="{}"></amp-youtube>'.format(width, height),
+            'width="{}" height="{}"></amp-instagram>'.format(width, height),
         ]
 
         return " ".join(embed_html)
@@ -138,7 +138,7 @@ class VimeoProcessor(BaseImageProcessor, AmpProcessor):
             '<amp-vimeo',
             'data-videoid="{}"'.format(vid),
             'layout="responsive"',
-            'width="{}" height="{}"></amp-youtube>'.format(width, height),
+            'width="{}" height="{}"></amp-vimeo>'.format(width, height),
         ]
 
         return " ".join(embed_html)
@@ -156,9 +156,9 @@ class AmpTreeprocessor(Treeprocessor):
             u = Url(elem.get("src"))
 
             elem.tag = "amp-img"
-            if u and u.is_local(config):
+            if u and (u.is_local() or u.hostname == config.host):
                 f = config.project.input_dir.child(u.path)
-                im = Image(f)
+                im = Imagepath(f)
                 elem.set("width", String(im.width))
                 elem.set("height", String(im.height))
                 elem.set("layout", "responsive")
@@ -231,7 +231,7 @@ def configure_context_amp(event, config):
     # amp will first check if current theme has amp support, if it doesn't then it
     # will fallback to the default theme
     theme = config.theme
-    if not theme.template_dir.has_directory("amp"):
+    if not theme.template_dir.has_dir("amp"):
         config.theme_name = "default"
     config.template_prefix = "amp"
 
@@ -243,33 +243,32 @@ def configure_context_amp(event, config):
 @extend.property(Page, "amp_url")
 def amp_url(self):
     """returns the amp permalink url for this page"""
-    return "{}/amp/".format(self.url.rstrip("/"))
+    return self.url.child("amp")
 
 
 @event("output.template.page")
 def output_amp(event, config):
     # sanity check, we only want to run this callback if we aren't already
     # running it, otherwise we would infinitely recurse
-    if config.is_context("amp"):
-        return
+    if not config.is_context("amp"):
+        instance = event.instance
 
-    instance = event.instance
+        with config.context("amp") as config:
+            theme = config.theme
 
-    with config.context("amp") as config:
-        theme = config.theme
+            instance.amp_output_file = instance.output_dir.child_file("amp", config.page_output_basename)
 
-        instance.amp_output_file = instance.output_dir.child_file("amp", instance.output_basename)
+            instance.output_dir.child_dir("amp").create()
 
-        instance.output_dir.child_directory("amp").create()
-
-        instance.output_template(
-            instance.amp_output_file,
-            theme=theme
-        )
+            instance.output_template(
+                instance.amp_output_file,
+                theme=theme
+            )
 
 
 @event("output.template.page")
 def template_amp(event, config):
+    """This will inject amp links into non amp html pages"""
 
     instance = event.instance
 

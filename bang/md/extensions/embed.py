@@ -81,7 +81,7 @@ class Blockprocessor(BaseBlockprocessor):
         return self.test_regex.match(block.strip()) and self.get_id(block)
 
     def get_figure(self, parent, name):
-        if self.parser.markdown.output_format in ["html"]:
+        if self.parser.md.output_format in ["html"]:
             figure = etree.SubElement(parent, 'figure')
             figure.set("class", "embed {}".format(name))
 
@@ -113,7 +113,7 @@ class YoutubeProcessor(Blockprocessor):
         embed_html = self.get_embed_code(block)
         if embed_html:
             figure = self.get_figure(parent, "youtube")
-            placeholder = self.parser.markdown.htmlStash.store(embed_html)
+            placeholder = self.parser.md.htmlStash.store(embed_html)
             figure.text = placeholder
 
 
@@ -133,13 +133,13 @@ class TwitterProcessor(Blockprocessor):
     name = "twitter"
 
     def get_cache_directory(self):
-        cache_dir = self.md.page.input_dir.child_directory("_embed")
+        cache_dir = self.md.page.input_dir.child_dir("_embed")
         return Dirpath(cache_dir)
 
     def read_cache(self):
         cache = {}
         d = self.get_cache_directory()
-        contents = d.file_contents(self.filename)
+        contents = d.file_bytes(self.filename)
         if contents:
             cache = json.loads(contents)
         return cache
@@ -190,7 +190,7 @@ class TwitterProcessor(Blockprocessor):
         # if we have the contents then we can load them up
         if html:
             figure = self.get_figure(parent, self.name)
-            placeholder = self.parser.markdown.htmlStash.store(html)
+            placeholder = self.parser.md.htmlStash.store(html)
             figure.text = placeholder
 
 
@@ -200,6 +200,21 @@ class InstagramProcessor(TwitterProcessor):
 
     https://help.instagram.com/513918941996087
     http://blog.instagram.com/post/55095847329/introducing-instagram-web-embeds
+
+    https://api.instagram.com/oembed?hidecaption=true&url=https://www.instagram.com/p/BNEweVYFVxq/
+
+    Update 1-22-2023
+
+        It doesn't look like FB supports IG embedding anymore without an "app" so I'm
+        going to disable this plugin 
+
+        https://developers.facebook.com/blog/post/2020/08/04/Introducing-graph-v8-marketing-api-v8/
+
+        Sept 7, 2021: https://developers.facebook.com/docs/instagram/oembed/
+            If you implemented the oEmbed product before June 8, 2021, you have until
+            September 7, 2021 to complete App Review for the oEmbed Read feature.
+            If you have not been approved for the oEmbed Read feature by September 7, 2021,
+            your oEmbed implementations will fail to load.
     """
 
     filename = "instagram.json"
@@ -222,6 +237,9 @@ class InstagramProcessor(TwitterProcessor):
     )
 
     id_regex = re.compile(r"\/p\/([^\/\?]+)")
+
+    def test(self, *args, **kwargs):
+        return False
 
     def get_response(self, url, **params):
         params.setdefault("hidecaption", "true")
@@ -292,7 +310,7 @@ class VimeoProcessor(Blockprocessor):
         embed_html = self.get_embed_code(block)
         if embed_html:
             figure = self.get_figure(parent, "vimeo")
-            placeholder = self.parser.markdown.htmlStash.store(embed_html)
+            placeholder = self.parser.md.htmlStash.store(embed_html)
             figure.text = placeholder
 
 

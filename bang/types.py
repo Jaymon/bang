@@ -12,12 +12,13 @@ from datatypes import (
     Url,
     HTML,
     ContextNamespace,
+    AppendList,
+    property as cachedproperty
 )
 
 from .compat import *
 from .decorators import classproperty, once
 from .path import Dirpath, Filepath
-from .utils import ContextCache
 from .event import event
 
 
@@ -61,65 +62,26 @@ class PageIterator(TypeIterator):
         super().__init__(config, config.page_types)
 
 
-class Types(object):
-    first_instance = None
-    """holds the head Type instance"""
-
-    total = 0
-    """holds how many Type instances have been appended to this container"""
-
-    last_instance = None
-    """holds the tail Type instance"""
+class Types(AppendList):
 
     @classproperty
     def name(cls):
         return cls.__name__.lower()
 
-    @property
-    def head(self):
-        return self.first_instance
-
-    @property
-    def tail(self):
-        return self.last_instance
-
     def __init__(self, config):
         self.config = config
+        super().__init__()
 
     def append(self, t):
         t.instances = self
-        if not self.first_instance:
-            self.first_instance = t
 
-        if self.last_instance:
-            t.prev_instance = self.last_instance
-            self.last_instance.next_instance = t
+        if self:
+            last = self[-1]
 
-        self.last_instance = t
-        self.total += 1
+            t.prev_instance = last
+            last.next_instance = t
 
-    def count(self):
-        return self.total
-
-    def __iter__(self):
-        t = self.first_instance
-        while t:
-            yield t
-            t = t.next
-
-    def __reversed__(self):
-        return self.reverse()
-
-    def reverse(self, count=0):
-        """iterate backwards through the posts up to count"""
-        t_count = 0
-        t = self.last_instance
-        while t:
-            t_count += 1
-            yield t
-            t = t.prev
-            if count and t_count >= count:
-                break
+        super().append(t)
 
     def chunk(self, limit, reverse=False):
         """chunk the total pages into limit chunks
@@ -141,16 +103,12 @@ class Types(object):
             instances.append(p)
         yield instances
 
-    def __len__(self):
-        return self.total
-
 
 class Pages(Types):
     """this is a simple container of Type instances, the Type instances have next_page
     and prev_type pointers that this class takes advantage of to build the list"""
-    output_basename = 'index.html'
-    """this is the name of the file that this post will be outputted to after it
-    is templated"""
+    #output_basename = 'index.html'
+    """this is the name of the file that will be outputted when templated"""
 
     @classproperty
     def template_names(cls):
@@ -162,8 +120,7 @@ class Pages(Types):
                 ret.append(c.name)
         return ret
 
-    @property
-    @once
+    @cachedproperty(cached="_template_name")
     def template_name(self):
         theme = self.config.theme
         for template_name in self.template_names:
@@ -171,33 +128,37 @@ class Pages(Types):
             if theme.has_template(template_name):
                 return template_name
 
-    def output(self, **kwargs):
+    def output(self, output_dir="", **kwargs):
         """This will output an index.html file in the root directory
 
+        :param output_dir: Dirpath, this is the directory to output index files
+            to. If this isn't passed in then it will default to self.config.output_dir
         :param **kwargs: dict, these will be passed to the template
         """
-        if self.config.output_dir.has_file(self.output_file):
+        output_basename = self.config.page_output_basename
+        output_dir = Dirpath(output_dir or self.config.output_dir)
+
+        if output_dir.has_file(output_basename):
             logger.warning(
                 "Pages.output() cannot generate a root index.html file because one already exists"
             )
             return
 
         chunks = list(self.chunk(self.config.get("page_limit", 10), reverse=True))
-        for page, pages in enumerate(chunks, 1):
+        for page_index, pages in enumerate(chunks, 1):
 
-            logger.info("output page {}".format(page))
+            logger.info(f"output page {page_index}")
 
-            if page == 1:
-                output_dir = self.config.output_dir
+            if page_index == 1:
+                page_output_dir = output_dir
             else:
-                output_dir = self.config.output_dir.child("page", String(page))
-            output_dir.create()
+                page_output_dir = output_dir.child_dir("page", String(page_index))
 
-            output_file = os.path.join(String(output_dir), self.output_basename)
+            page_output_file = page_output_dir.child_file(output_basename)
 
-            base_url = self.config.base_url
+            base_url = self.config.base_url.child(page_output_dir.relative_to(self.config.output_dir))
 
-            kwargs["page"] = page
+            kwargs["page"] = page_index
             # not sure which one I like more yet
             kwargs["pages"] = pages
             kwargs["instances"] = pages
@@ -215,27 +176,27 @@ class Pages(Types):
             # linked list and stay consistent on the site, so if you are on
             # page 2 then page 1 would be the next url and page 3 would be
             # the previous url
-            if page - 1:
-                if page - 1 == 1:
+            if page_index - 1:
+                if page_index - 1 == 1:
                     kwargs["next_url"] = base_url
                     kwargs["next_title"] = "Go Home"
 
                 else:
-                    kwargs["next_url"] = "{}/page/{}".format(base_url, page - 1)
-                    kwargs["next_title"] = "Page {}".format(page - 1)
+                    kwargs["next_url"] = base_url.child("page", page_index - 1)
+                    kwargs["next_title"] = "Page {}".format(page_index - 1)
 
-            if len(chunks) > page:
-                kwargs["prev_url"] = "{}/page/{}".format(base_url, page + 1)
-                kwargs["prev_title"] = "Page {}".format(page + 1)
+            if len(chunks) > page_index:
+                kwargs["prev_url"] = base_url.child("page", page_index + 1)
+                kwargs["prev_title"] = "Page {}".format(page_index + 1)
 
-            self.output_template(output_file, **kwargs)
+            self.output_template(page_output_file, **kwargs)
 
     def output_template(self, output_file, **kwargs):
         theme = self.config.theme
 
         logger.debug(
             'Templating Pages[{}] with theme.template [{}.{}] to output file {}'.format(
-                kwargs.get("page", "unkown"),
+                kwargs.get("page", "unknown"),
                 theme.name,
                 self.template_name,
                 output_file
@@ -277,15 +238,42 @@ class Type(object):
         raise NotImplementedError()
 
     @property
+    def input_dir(self):
+        return self.input_file.parent
+
+    @property
+    def output_file(self):
+        return self.output_dir.child_file(self.input_file.basename)
+
+    @property
     def uri(self):
-        """the path of the post (eg, /foo/bar/post-slug)"""
-        return Url(path=self.relpath)
+        """the path of the file (eg, /foo/bar/basename.ext)"""
+        relpath = self.output_file.relative_to(self.config.output_dir)
+        return Url(path=relpath)
 
     @property
     def url(self):
         """the full url of the post with host and everything"""
         base_url = self.config.base_url
         return Url(base_url, self.uri)
+
+    @property
+    def next_url(self):
+        """returns the url of the next post"""
+        p = self.next_instance
+        return p.url if p else ""
+
+    @property
+    def prev_url(self):
+        """returns the url of the previous post"""
+        p = self.prev_instance
+        return p.url if p else ""
+
+    @property
+    def modified(self):
+        t = os.path.getmtime(self.input_file)
+        modified = datetime.datetime.fromtimestamp(t)
+        return modified
 
     @property
     def heading(self):
@@ -300,7 +288,7 @@ class Type(object):
             ret = self.uri
         return ret
 
-    def __init__(self, relpath, input_file, output_dir, config):
+    def __init__(self, input_file, output_dir, config):
         """create an instance
 
         :param input_dir: Directory, this is the input directory of the actual
@@ -310,7 +298,6 @@ class Type(object):
         :param config: Config instance, useful for being able to populate information
             about the rest of the site on this page
         """
-        self.relpath = relpath
         self.input_file = input_file
         self.output_dir = output_dir
         self.config = config
@@ -332,6 +319,11 @@ class Type(object):
 
         return url
 
+    def __str__(self):
+        input_relpath = self.input_file.relative_to(self.config.input_dir)
+        output_relpath = self.output_file.relative_to(self.config.output_dir)
+        return f"{self.name}: {input_relpath} -> {output_relpath}"
+
 
 class Other(Type):
     """The fallback Type, it's not really a page but is here to provide a 
@@ -340,7 +332,8 @@ class Other(Type):
     copies all the contents from input_dir to output_dir"""
 
     def output(self, **kwargs):
-        self.input_file.copy_to(self.output_dir.child_file(self.input_file.basename))
+        logger.info(f"output {self}")
+        self.input_file.copy_to(self.output_file)
 
     @classmethod
     def match(cls, filepath):
@@ -351,27 +344,30 @@ class Page(Other):
     """This is the generic page type, any index.md files will be this page type"""
     instances_class = Pages
 
-    output_basename = 'index.html'
-    """this is the name of the file that this post will be outputted to after it
-    is templated"""
+    @property
+    def output_file(self):
+        """this is the path of the file that this page will be outputted to after it
+        is templated"""
+        output_basename = self.config.page_output_basename
+        return self.output_dir.child_file(output_basename)
 
     @property
-    def next_url(self):
-        """returns the url of the next post"""
+    def next_title(self):
+        """returns the title of the next post"""
         p = self.next_instance
-        return p.url if p else ""
+        return p.title if p else ""
 
     @property
-    def prev_url(self):
-        """returns the url of the previous post"""
+    def prev_title(self):
+        """returns the title of the previous post"""
         p = self.prev_instance
-        return p.url if p else ""
+        return p.title if p else ""
 
     @property
-    def modified(self):
-        t = os.path.getmtime(self.input_file)
-        modified = datetime.datetime.fromtimestamp(t)
-        return modified
+    def uri(self):
+        """the path of the post (eg, /foo/bar/post-slug)"""
+        relpath = self.output_dir.relative_to(self.config.output_dir)
+        return Url(path="/" if relpath == "." else "/" + relpath)
 
     @property
     def body(self):
@@ -384,6 +380,7 @@ class Page(Other):
         desc = None
         if desc is None:
             plain = self.html.strip_tags(remove_tags=["figcaption", "sup", "div.footnote"])
+            #plain = self.html.plain()
             ms = re.split("(?<=\S[\.\?!])(?:\s|$)", plain, maxsplit=2, flags=re.M)
             sentences = []
             for sentence in ms[0:2]:
@@ -440,7 +437,7 @@ class Page(Other):
     def template_name(self):
         theme = self.config.theme
         for template_name in self.template_names:
-            logger.debug("Attempting to use theme.template [{}.{}]".format(theme.name, template_name))
+            logger.debug("Attempting to use theme template [{}.{}]".format(theme.name, template_name))
             if theme.has_template(template_name):
                 return template_name
 
@@ -448,9 +445,9 @@ class Page(Other):
     def template_names(cls):
         """this is the template that will be used to compile the post into html"""
         ret = []
-        subclasses = OrderedSubclasses(Type)
+        subclasses = OrderedSubclasses(Page)
         subclasses.insert(cls)
-        for c in subclasses[:-1]:
+        for c in subclasses:
             if hasattr(c, "name"):
                 ret.append(c.name)
         return ret
@@ -460,8 +457,8 @@ class Page(Other):
         return rf'^{cls.name}\.(md|markdown)$'
 
     @classmethod
-    def match(cls, filepath):
-        return bool(re.search(cls.regex(), filepath, flags=re.I))
+    def match(cls, basename):
+        return bool(re.search(cls.regex(), basename, flags=re.I))
 
     def compile(self):
         cache = getattr(self, "_cache", ContextNamespace(cascade=False))
@@ -473,7 +470,6 @@ class Page(Other):
             logger.debug("Rendering html[{}]: {}".format(context_name, self.uri))
 
             try:
-                #md = Markdown.get_instance()
                 md = self.markdown
                 html = md.output(self)
                 meta = getattr(md, "Meta", {})
@@ -514,48 +510,32 @@ class Page(Other):
         """
         return ""
 
-    def __str__(self):
-        output_relpath = self.output_dir.relative_to(self.config.output_dir)
-        return f"{self.name}: {self.relpath} -> {output_relpath}/{self.output_basename}"
-
     def output(self, **kwargs):
         """
         **kwargs -- dict -- these will be passed to the template
         """
-        output_dir = self.output_dir
-        output_file = output_dir.child_file(self.output_basename)
-        #output_file = os.path.join(String(output_dir), self.output_basename)
+        output_file = self.output_file
         logger.info("output {} [{}] to {}".format(self.name, self.title, output_file))
 
-        r = output_dir.create()
-        for input_file in self.other_files:
-            output_dir.copy_file(input_file)
-
-        # NOTE -- if there are other directories in the post directory, those are
-        # considered "other directories" and so they will be copied over when the
-        # others list is ran through and copied. This keeps duplicated work but
-        # also isn't incredibly elegant, because if we ever just want to compile
-        # one post, we would need to compile the post and any other directories
-        # would need to be ran through separately
-
-        #html = self.html
-        self.output_file = output_file
+        self.output_dir.touch()
 
         kwargs["prev_url"] = self.prev_url
-        kwargs["prev_title"] = self.prev_instance.title if self.prev_instance else ""
+        kwargs["prev_title"] = self.prev_title
         kwargs["next_url"] = self.next_url
-        kwargs["next_title"] = self.next_instance.title if self.next_instance else ""
+        kwargs["next_title"] = self.next_title
 
         self.output_template(
             output_file,
             **kwargs
         )
 
-        # TODO -- output.page event?
-
     def output_template(self, output_file, theme=None, **kwargs):
-        # not sure which one I like better yet
-        kwargs["page"] = self
+        # not sure what name I like the best yet
+        template_names = self.template_names
+        template_name = self.template_name
+
+        for tn in template_names:
+            kwargs[tn] = self
         kwargs["instance"] = self
 
         if not theme:
@@ -563,24 +543,25 @@ class Page(Other):
 
         logger.info(
             'Templating input file {} with theme.template [{}.{}] to output file {}'.format(
-                self.content_file,
+                self.input_file.relative_to(self.config.input_dir),
                 theme.name,
-                self.template_name,
-                output_file
+                template_name,
+                output_file.relative_to(self.config.output_dir)
             )
         )
 
         html = theme.render_template(
-            self.template_name,
+            template_name,
             **kwargs
         )
 
-        # NOTE -- the .page is hardcoded instead of using something like
-        # .template_name so plugins can rely on this event name always being
-        # broadcast even if the templates can change (like a specific post
-        # template)
-        r = event.broadcast('output.template.page', self.config, html=HTML(html), instance=self)
-        f = File(output_file, encoding=self.config.encoding)
-        f.create(r.html)
+        for tn in template_names:
+            r = event.broadcast(
+                f"output.template.{tn}",
+                html=HTML(html),
+                **kwargs
+            )
 
+        f = Filepath(output_file, encoding=self.config.encoding)
+        f.write_text(r.html)
 

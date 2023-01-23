@@ -131,7 +131,7 @@ class Assets(object):
         """
         ext = ""
         asset_class = self.asset_class
-        if Url.match(path):
+        if Url.is_url(path):
             f = Url(path)
             basename = f.basename
             ext = f.ext
@@ -269,13 +269,13 @@ class Assets(object):
 
 
 @event('configure.theme')
-def configure_assets(_, config):
+def configure_assets(event, config):
     assets = Assets(config.project.output_dir, config)
     assets.add_dir(config.project.project_dir)
     assets.add_dir(config.theme.theme_dir)
     config.assets = assets
 
-    event.broadcast("configure.assets", config)
+    event.broadcast("configure.assets")
 
 
 @event('compile.finish')
@@ -283,7 +283,7 @@ def compile_assets(event, config):
     config.assets.compile()
 
 
-@event('output.html.start')
+@event('output.start')
 def context_html(event, config):
     config.assets.output()
 

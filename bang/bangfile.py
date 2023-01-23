@@ -2,14 +2,13 @@
 from __future__ import unicode_literals, division, print_function, absolute_import
 
 from .event import event
-from .types import Page, TypeIterator
-from .plugins import sitemap, favicon
-
-
-@event('context.html')
-def context_html(event, config):
-    """handle html context exclusive configuration"""
-
-    # support both https and http on html pages, results in //host/path/ urls
-    config.scheme = ""
-
+# from .plugins import sitemap, favicon
+# 
+# 
+# @event('context.output')
+# def context_html(event, config):
+#     """handle html context exclusive configuration"""
+# 
+#     # support both https and http on html pages, results in //host/path/ urls
+#     config.scheme = ""
+# 

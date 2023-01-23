@@ -27,23 +27,23 @@ class AmpTest(TestCase):
 
         #pout.v(p.output_dir.file_contents("index.html"))
 
-        self.assertTrue(p.output_dir.has_directory("amp"))
+        self.assertTrue(p.output_dir.has_dir("amp"))
         self.assertTrue(p.output_dir.has_file("amp", "index.html"))
 
-        amp = p.output_dir.child_directory("amp").file_contents("index.html")
+        amp = p.output_dir.file_text("amp", "index.html")
         self.assertTrue("<amp-img" in amp)
         ms = re.findall("<amp-img[^>]+>", amp)
         for m in ms:
             self.assertTrue("width=" in m)
             self.assertTrue("height=" in m)
 
-        html = p.output_dir.file_contents("index.html")
+        html = p.output_dir.file_text("index.html")
         self.assertFalse("<amp-img" in html)
 
     def test_image_2(self):
         pr = self.get_project(
             input_files={
-                "some-page/index.md": [
+                "some-page/page.md": [
                     "bar.png",
                 ],
                 "some-page/bar.png": "",
@@ -65,7 +65,7 @@ class AmpTest(TestCase):
 
         pr.config.project.output()
 
-        html = pr.output_dir.child_directory("some-page/amp").file_contents("index.html")
+        html = pr.output_dir.file_text("some-page/amp/index.html")
         self.assertTrue('height="' in html)
         self.assertTrue('width="' in html)
 
@@ -74,16 +74,17 @@ class AmpTest(TestCase):
 
         p.config.project.output()
 
-        r_html = p.output_dir.file_contents("index.html")
+        r_html = p.output_dir.file_text("index.html")
         self.assertTrue('rel="amphtml"' in r_html)
 
-        r_amp = p.output_dir.child_directory("amp").file_contents("index.html")
+        r_amp = p.output_dir.file_text("amp", "index.html")
         self.assertTrue('rel="canonical"' in r_amp)
 
     def test_css(self):
         p = self.get_page()
         p.config.project.output()
-        html = p.output_dir.file_contents("amp/index.html")
+        html = p.output_dir.file_text("amp/index.html")
+        pout.v(html)
         self.assertTrue("<style amp-custom>" in html)
         self.assertTrue("<style amp-boilerplate>" in html)
 
@@ -114,16 +115,9 @@ class AmpEmbedTest(TestCase):
         ])
 
         p.config.project.output()
-        r = p.output_dir.child_directory("amp").file_contents("index.html")
+        r = p.output_dir.file_text("amp", "index.html")
         self.assertTrue('custom-element="amp-youtube"' in r)
         self.assertTrue('<amp-youtube' in r)
-
-        return
-
-
-        with p.config.context("amp"):
-            r = p.html
-            pout.v(r)
 
     def test_embed_twitter(self):
         p = self.get_page([
@@ -135,11 +129,12 @@ class AmpEmbedTest(TestCase):
         ])
 
         p.config.project.output()
-        r = p.output_dir.child_directory("amp").file_contents("index.html")
+        r = p.output_dir.file_text("amp", "index.html")
         self.assertTrue('custom-element="amp-twitter"' in r)
         self.assertTrue('<amp-twitter' in r)
 
     def test_embed_instagram(self):
+        self.skip_test("See the embed plugin instagram test for why this is disabled")
         p = self.get_page([
             "before text",
             "",
@@ -149,7 +144,7 @@ class AmpEmbedTest(TestCase):
         ])
 
         p.config.project.output()
-        r = p.output_dir.child_directory("amp").file_contents("index.html")
+        r = p.output_dir.file_text("amp", "index.html")
         self.assertTrue('custom-element="amp-instagram"' in r)
         self.assertTrue('<amp-instagram' in r)
 
@@ -163,7 +158,7 @@ class AmpEmbedTest(TestCase):
         ])
 
         p.config.project.output()
-        r = p.output_dir.child_directory("amp").file_contents("index.html")
+        r = p.output_dir.file_text("amp", "index.html")
         self.assertTrue('custom-element="amp-vimeo"' in r)
         self.assertTrue('<amp-vimeo' in r)
 

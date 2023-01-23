@@ -3,14 +3,12 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 
 from ..event import event
 from ..types import TypeIterator, Page
-from ..path import File
 from . import feed, sitemap, opengraph
 
 
 class Post(Page):
     """this is a node in the Posts linked list, it holds all the information needed
     to output a Post in the input directory to the output directory"""
-
     def find_title(self, html):
         raise ValueError(f"Blog Posts should have a title, please add one or convert to {super().name}")
 
@@ -18,8 +16,6 @@ class Post(Page):
 @event("configure.plugins")
 def configure_blog(event, config):
     config.feed_iter = TypeIterator(config, [Post]).reverse()
-    #config.sitemap_iter = TypeIterator(config, [Post])
-
     config.add_type(Post)
 
 
