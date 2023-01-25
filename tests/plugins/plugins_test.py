@@ -4,7 +4,6 @@ from __future__ import unicode_literals, division, print_function, absolute_impo
 import testdata
 
 from bang.compat import *
-from bang.plugins.favicon import Favicons
 from bang.plugins import favicon
 from .. import TestCase
 
@@ -179,4 +178,29 @@ class BreadcrumbsTest(TestCase):
         self.assertTrue(">/foo/bar" in html)
         self.assertTrue(">/foo/boo" in html)
         self.assertTrue(">/foo/che" in html)
+
+
+class AssetsTest(TestCase):
+    plugins = "assets"
+
+    def test_assets(self):
+        p = self.get_project(
+            input_files={
+                "page.md": "",
+            },
+            project_files={
+                "assets/app1.css": "",
+                "assets/app2.css": "",
+                "assets/app1.js": "",
+                "assets/app2.js": "",
+            }
+        )
+        p.output()
+
+        self.assertEqual(2, len(p.output_dir.files().pattern(f"*/{p.config.assets.dirname}/*app?.css")))
+        self.assertEqual(2, len(p.output_dir.files().pattern(f"*/{p.config.assets.dirname}/*app?.js")))
+
+        html = p.output_dir.file_text("index.html")
+        self.assertRegex(html, r"app\d\.css")
+        self.assertRegex(html, r"app\d\.js")
 

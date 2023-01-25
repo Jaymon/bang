@@ -18,6 +18,15 @@ from .absolutelink import AbsoluteLinkTreeprocessor
 from . import Extension, Blockprocessor
 
 
+def lazyload(config, el):
+    """Will add the loading="lazy" attribute to el if configuration checks out"""
+    if config.get("lazyload_images", True):
+        # https://web.dev/browser-level-image-lazy-loading/
+        el.set("loading", "lazy")
+
+    return el
+
+
 class ImageTreeprocessor(AbsoluteLinkTreeprocessor):
     """support for ImageExtension, this just goes through and makes sure any img
     element in a figure element has a figcaption if the img element has a title
@@ -49,8 +58,7 @@ class ImagePattern(BaseImagePattern):
                 src = el.get("src")
                 el.set("alt", os.path.basename(src))
 
-            # https://web.dev/browser-level-image-lazy-loading/
-            el.set("loading", "lazy")
+            lazyload(self.md.config, el)
 
         return el, start_offset, stop_offset
 
@@ -65,8 +73,7 @@ class ImageReferencePattern(BaseImageReferencePattern):
 
         el = super(ImageReferencePattern, self).makeTag(href, title, text)
 
-        # https://web.dev/browser-level-image-lazy-loading/
-        el.set("loading", "lazy")
+        lazyload(self.md.config, el)
 
         return el
 
@@ -81,14 +88,14 @@ class ImageProcessor(Blockprocessor):
 
     BRK = (
         r'\[(' +
-        (NOBRACKET + r'(\[')*6 +
-        (NOBRACKET + r'\])*')*6 +
+        (NOBRACKET + r'(\[') * 6 +
+        (NOBRACKET + r'\])*') * 6 +
         NOBRACKET + r')\]'
     )
 
     NOIMG = r'(?<!\!)'
 
-    LINK_REGEX = NOIMG + BRK + r'''\(\s*(<.*?>|((?:(?:\(.*?\))|[^\(\)]))*?)\s*((['"])(.*?)\12\s*)?\)'''
+    LINK_REGEX = NOIMG + BRK + r"\(\s*(<.*?>|((?:(?:\(.*?\))|[^\(\)]))*?)\s*((['\"])(.*?)\12\s*)?\)"
 
     REFERENCE_REGEX = NOIMG + BRK + r'\s?\[([^\]]*)\]'
 

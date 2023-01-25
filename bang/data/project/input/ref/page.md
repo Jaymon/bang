@@ -2,6 +2,10 @@
 
 [TOC]
 
+-------------------------------------------------------------------------------
+
+## Titles
+
 What does each thing look like with my stylesheet.
 
 This is just a modified version of this [site](https://github.com/adam-p/markdown-here/wiki/Markdown-Cheatsheet)
@@ -25,7 +29,7 @@ This is just a modified version of this [site](https://github.com/adam-p/markdow
 
 -------------------------------------------------------------------------------
 
-## Emphasis
+## Font Styling
 
 ```no-highlight
 Emphasis, aka italics, with *asterisks* or _underscores_.
@@ -472,27 +476,6 @@ after text
 
 -------------------------------------------------------------------------------
 
-## Instagram
-
-You can [embed](https://www.instagram.com/developer/embedding/) [Instagram](http://blog.instagram.com/post/55095847329/introducing-instagram-web-embeds) by putting them on their own line:
-
-```no-highlight
-before text
-
-https://www.instagram.com/p/BNEweVYFVxq/
-
-after text
-```
-
-before text
-
-https://www.instagram.com/p/BNEweVYFVxq/
-
-after text
-
-
--------------------------------------------------------------------------------
-
 ## Vimeo
 
 ```no-highlight
@@ -533,3 +516,4 @@ This text has a footnote[^1]
 ## Table of Contents
 
 If you place `[TOC]` in your file somewhere, then a table of contents will be added at that location using the headers.
+

@@ -165,6 +165,20 @@ class MarkdownTest(TestCase):
         im = p.image
         self.assertTrue(im.endswith("images/che.jpg"))
 
+    def test_image_lazyload(self):
+        p = self.get_page({
+            "page.md": [
+                '![this is the file](images/che.jpg)',
+                "",
+                "images/che.jpg",
+            ],
+            'che.jpg': ""
+        })
+
+        p.output()
+        html = p.output_file.read_text()
+        self.assertEqual(2, html.count('loading="lazy"'))
+
     def test_href(self):
         p = self.get_page({
             'che.txt': testdata.get_words(),

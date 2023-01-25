@@ -235,6 +235,12 @@ def configure_context_amp(event, config):
         config.theme_name = "default"
     config.template_prefix = "amp"
 
+    # amp already lazyloads and doesn't like the attribute, so make sure it
+    # doesn't get added to image tags
+    # https://github.com/ampproject/amphtml/issues/22802
+    # https://stackoverflow.com/questions/50162825/
+    config.lazyload_images = False
+
     # amp components (eg, Twitter, Youtube, and iframe) will set components into
     # this so they can be added to the head of the html file
     config.amp_components = set()

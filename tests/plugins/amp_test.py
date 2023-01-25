@@ -84,9 +84,22 @@ class AmpTest(TestCase):
         p = self.get_page()
         p.config.project.output()
         html = p.output_dir.file_text("amp/index.html")
-        pout.v(html)
         self.assertTrue("<style amp-custom>" in html)
         self.assertTrue("<style amp-boilerplate>" in html)
+
+    def test_image_lazyload(self):
+        p = self.get_page({
+            "page.md": [
+                '![this is the file](che.jpg)',
+                "",
+                "che.jpg",
+            ],
+            'che.jpg': testdata.create_jpg
+        })
+
+        p.output()
+        html = p.output_dir.file_text("amp/index.html")
+        self.assertEqual(0, html.count('loading="lazy"'))
 
 
 class AmpEmbedTest(TestCase):

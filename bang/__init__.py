@@ -56,7 +56,6 @@ class Project(object):
         logger.debug(f"Project output_dir: {self.output_dir}")
         logger.debug(f"Project theme: {theme.name} ({theme.theme_dir})")
 
-
     def is_private_basename(self, basename):
         """This is used by the project to decide if a basename of a file/folder is
         considered private and therefore shouldn't be traversed

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Checks Assets.DIRNAME directory in project directory and theme directory and moves them
-to an output directory assets/ directory with versioned (md5 hash) filenames. It
-will automatically inject the javascript and css links into head
+to <PROJECT-OUTPUT-DIR>/assets/ with versioned (md5 hash) filenames. It will also 
+automatically inject the javascript and css links into head
 """
 from __future__ import unicode_literals, division, print_function, absolute_import
 from collections import OrderedDict, defaultdict
@@ -45,7 +45,7 @@ class Asset(object):
         else:
             self.input_file.copy_to(self.output_file)
 
-            relative = self.output_file.relative(self.output_dir.ancestor_dir)
+            relative = self.output_file.relative_to(self.config.output_dir)
             relative = relative.replace('\\', '/')
             self.url = Url("{}/{}".format(self.config.base_url, relative))
 
@@ -66,7 +66,7 @@ class Asset(object):
 
 
 class CSS(Asset):
-    """Hanldes CSS specific assets"""
+    """Handles CSS specific assets"""
     def html(self):
         return '<link rel="stylesheet" href="{}" type="text/css"{}>'.format(
             self.url,
@@ -75,7 +75,7 @@ class CSS(Asset):
 
 
 class JS(Asset):
-    """Hanldes javascript specific assets"""
+    """Handles javascript specific assets"""
     def html(self):
         return '<script src="{}"{}></script>'.format(
             self.url,
@@ -89,27 +89,29 @@ class Assets(object):
     Assets are stored by basename -> path, so, if you had <INPUT-DIR>/assets/app.css
     then you could grab it by doing `config.assets.get("app.css")`
     """
-    DIRNAME = "assets"
-    """this is the directory that is checked for input and the name of the output
-    directory also"""
-
     css_class = CSS
     js_class = JS
     asset_class = Asset
+
+    @property
+    def dirname(self):
+        """this is the directory that is checked for input and the name of the output
+        directory also"""
+        return self.config.get("assets_dir", "assets")
+
 
     def __init__(self, output_dir, config):
         self.css = {}
         self.js = {}
         self.other = {}
-        self._order = {}
         self._header_html = ""
         self._body_html = ""
         #self.lookup = defaultdict(dict)
 
-        self.output_dir = Dirpath(output_dir, self.DIRNAME)
-        self.output_dir.ancestor_dir = output_dir
-
         self.config = config
+        self.order()
+
+        self.output_dir = config.output_dir.child_dir(self.dirname)
 
     def add_dir(self, path):
         """Add a directory to check for a DIRNAME directory inside path
@@ -117,7 +119,7 @@ class Assets(object):
         :param path: str, this directory path will be checked for a .DIRNAME directory
         inside of it
         """
-        assets_dir = Dirpath(path, self.DIRNAME)
+        assets_dir = Dirpath(path, self.dirname)
         if assets_dir.exists():
             for path in assets_dir.files(depth=0):
                 self.add(path)
@@ -269,7 +271,7 @@ class Assets(object):
 
 
 @event('configure.theme')
-def configure_assets(event, config):
+def configure_assets(_, config):
     assets = Assets(config.project.output_dir, config)
     assets.add_dir(config.project.project_dir)
     assets.add_dir(config.theme.theme_dir)
