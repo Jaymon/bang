@@ -4,7 +4,6 @@ import logging
 
 from .config import Config, Bangfile
 from .event import event
-from .server import Server
 from .path import Dirpath
 from .event import event
 from .decorators import once

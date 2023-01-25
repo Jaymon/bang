@@ -10,8 +10,9 @@ import logging
 import logging.config
 import time
 
+from datatypes import PathServer
+
 from bang import __version__, Project
-from bang.server import Server
 from bang.path import Dirpath, DataDirpath
 from bang.utils import Profiler
 
@@ -66,7 +67,7 @@ def console_serve(args, project_dir, output_dir):
         logger.info("    http://localhost:{}".format(args.port))
         logger.info("")
         logger.info("* " * 40)
-        s = Server(str(output_dir), args.port)
+        s = PathServer(output_dir, server_address=("", args.port))
         try:
             s.serve_forever()
 

@@ -50,17 +50,18 @@ def output_breadcrumbs(event, config):
                 d[bc].append(p)
 
         theme = config.themes[config.breadcrumbs_theme_name]
+        basename = config.page_output_basename
 
         for breadcrumb, instances in d.items():
             path = config.output_dir.child_dir(breadcrumb)
 
             # we only want to add breadcrumb files to directories that don't
             # have any index files already
-            if not path.has_file(config.page_output_basename):
+            if not path.has_file(basename):
                 logger.debug("Generating breadcrumb for {}".format(breadcrumb))
                 theme.output_template(
                     "breadcrumbs",
-                    path.child_file("index.html"),
+                    path.child_file(basename),
                     breadcrumb=breadcrumb,
                     path=path,
                     instances=instances,

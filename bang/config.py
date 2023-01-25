@@ -128,12 +128,6 @@ class Config(ContextNamespace):
         """returns types of Page and above (any children of Page)"""
         return [t for t in self.types if issubclass(t, Page)]
 
-#     @property
-#     def types(self):
-#         ret = OrderedSubclasses(Type)
-#         ret.insert_modules()
-#         return ret
-
     def __init__(self, project):
         super().__init__("global")
 
