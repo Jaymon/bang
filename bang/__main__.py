@@ -103,6 +103,7 @@ def console_watch(args, project_dir, output_dir):
             elif output.find("Already up-to-date"):
                 # nothing has changed, so don't recompile
                 pass
+
             else:
                 raise RuntimeError(output)
 
@@ -310,15 +311,22 @@ def console():
 
     args = parser.parse_args()
 
-    project_dir = Dirpath(args.project_dir)
-    output_dir = args.output_dir
-    if output_dir:
-        output_dir = Dirpath(output_dir)
+    if "func" in args:
+        project_dir = Dirpath(args.project_dir)
+        output_dir = args.output_dir
+        if output_dir:
+            output_dir = Dirpath(output_dir)
+
+        else:
+            output_dir = Dirpath(args.project_dir, 'output')
+
+        ret_code = args.func(args, project_dir, output_dir)
 
     else:
-        output_dir = Dirpath(args.project_dir, 'output')
+        # https://stackoverflow.com/questions/4042452/
+        parser.print_help()
+        ret_code = 0
 
-    ret_code = args.func(args, project_dir, output_dir)
     sys.exit(ret_code)
 
 

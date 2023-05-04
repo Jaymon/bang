@@ -53,6 +53,11 @@ class Asset(object):
         """True if input_file was a url"""
         return isinstance(self.input_file, Url)
 
+    def is_private(self):
+        """Is this asset considered private?"""
+        basename = self.input_file.basename
+        return self.config.project.is_private_basename(basename)
+
     def html(self):
         """Generate url for the asset"""
         return self.url
@@ -124,33 +129,34 @@ class Assets(object):
             for path in assets_dir.files(depth=0):
                 self.add(path)
 
-    def add(self, path, **properties):
+    def add(self, path, ext="", **properties):
         """This will add an asset at path and when the html is generated it will
         have those properties
 
         :param path: str, a local path or URL for the asset
         :param **properties: dict, key/val of html tag properties
         """
-        ext = ""
         asset_class = self.asset_class
         if Url.is_url(path):
             f = Url(path)
             basename = f.basename
-            ext = f.ext
+            ext = ext or f.ext 
             d = getattr(self, f.ext, self.other)
 
         else:
             f = Filepath(path)
             basename = f.basename
-            ext = f.ext
+            ext = ext or f.ext
 
-        d = getattr(self, f.ext, self.other)
-        if ext == "css":
-            asset_class = self.css_class
-        elif ext == "js":
-            asset_class = self.js_class
+        if not self.config.project.is_private_basename(basename):
+            d = getattr(self, ext, self.other)
+            if ext == "css":
+                asset_class = self.css_class
 
-        d[basename] = asset_class(f, self.output_dir, self.config, **properties)
+            elif ext == "js":
+                asset_class = self.js_class
+
+            d[basename] = asset_class(f, self.output_dir, self.config, **properties)
 
     def add_script(self, s, body=False):
         """add a script body

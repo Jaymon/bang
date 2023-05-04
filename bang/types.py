@@ -345,13 +345,6 @@ class Page(Other):
     instances_class = Pages
 
     @property
-    def output_file(self):
-        """this is the path of the file that this page will be outputted to after it
-        is templated"""
-        output_basename = self.config.page_output_basename
-        return self.output_dir.child_file(output_basename)
-
-    @property
     def next_title(self):
         """returns the title of the next post"""
         p = self.next_instance
@@ -434,6 +427,19 @@ class Page(Other):
         return meta
 
     @property
+    def output_file(self):
+        """this is the path of the file that this page will be outputted to after it
+        is templated"""
+
+        # see if there is a slug we should add
+        input_basename = self.input_file.basename
+        m = re.match(self.regex(), input_basename, flags=re.I)
+        dname = m.group(1) or ""
+
+        output_basename = self.config.page_output_basename
+        return self.output_dir.child_file(dname, output_basename)
+
+    @property
     def template_name(self):
         theme = self.config.theme
         for template_name in self.template_names:
@@ -454,7 +460,7 @@ class Page(Other):
 
     @classmethod
     def regex(cls):
-        return rf'^{cls.name}\.(md|markdown)$'
+        return rf'^{cls.name}(?:[\s_-]([^\.]+))?\.(?:md|markdown)$'
 
     @classmethod
     def match(cls, basename):
@@ -542,7 +548,7 @@ class Page(Other):
             theme = self.config.theme
 
         logger.info(
-            'Templating input file {} with theme.template [{}.{}] to output file {}'.format(
+            'Templating input file [{}] with theme.template [{}.{}] to output file [{}]'.format(
                 self.input_file.relative_to(self.config.input_dir),
                 theme.name,
                 template_name,

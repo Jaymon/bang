@@ -123,8 +123,9 @@ class Project(object):
         # and easier readability of the intention of a callback in a bangfiles
         event.broadcast('output.clear')
 
-        logger.info("Clearing output directory")
-        self.output_dir.clear()
+        if self.output_dir.exists():
+            logger.info("Clearing output directory")
+            self.output_dir.clear()
 
         event.broadcast('output.start')
 

@@ -98,6 +98,22 @@ class PageTest(TestCase):
         self.assertEqual("title text", p.title)
         self.assertRegex(r, r"<p[^>]*>body text</p>")
 
+    def test_pages_same_directory(self):
+        """https://github.com/Jaymon/bang/issues/60"""
+        p = self.get_project({
+            "page.md": "Page 0",
+            "page-this-is-slug-1.md": "Page 1",
+            "page_this-is-slug-2.md": "Page 2",
+            "page this-is-slug-3.md": "Page 3",
+        })
+
+        p.output()
+
+        self.assertTrue("Page 0" in p.output_dir.file_text("index.html"))
+        self.assertTrue("Page 1" in p.output_dir.file_text("this-is-slug-1/index.html"))
+        self.assertTrue("Page 2" in p.output_dir.file_text("this-is-slug-2/index.html"))
+        self.assertTrue("Page 3" in p.output_dir.file_text("this-is-slug-3/index.html"))
+
     def test_description_1(self):
         p = self.get_page([
             'This is the sentence. This is the second one!!!! And the third. And the fourth.',
