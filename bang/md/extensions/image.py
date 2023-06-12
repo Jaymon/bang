@@ -133,6 +133,7 @@ class ImageProcessor(Blockprocessor):
     def run(self, parent, blocks):
         block = blocks.pop(0)
         figure = etree.SubElement(parent, 'figure')
+        figure.set("class", "image")
         figure.text = block.strip()
 
 
