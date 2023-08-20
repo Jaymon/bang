@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Checks Assets.DIRNAME directory in project directory and theme directory and moves them
-to <PROJECT-OUTPUT-DIR>/assets/ with versioned (md5 hash) filenames. It will also 
-automatically inject the javascript and css links into head
+Checks Assets.DIRNAME directory in project directory and theme directory and
+moves them to <PROJECT-OUTPUT-DIR>/assets/ with versioned (md5 hash) filenames.
+It will also automatically inject the javascript and css links into head
 """
-from __future__ import unicode_literals, division, print_function, absolute_import
 from collections import OrderedDict, defaultdict
 import itertools
 import re
@@ -34,7 +33,10 @@ class Asset(object):
         else:
             basename = self.input_file.basename
             checksum = self.input_file.checksum()
-            self.output_file = Filepath(self.output_dir, "{}.{}".format(checksum, basename))
+            self.output_file = Filepath(
+                self.output_dir,
+                "{}.{}".format(checksum, basename)
+            )
 
     def output(self):
         """output phase, go through all the assets and actually copy them over to
@@ -233,7 +235,8 @@ class Assets(object):
         return self._header_html
 
     def body_html(self):
-        """this generates the body javascript that will be injected right before </body>
+        """this generates the body javascript that will be injected right before
+        </body>
 
         :returns: str, the script tag to inject into the body
         """
@@ -246,10 +249,10 @@ class Assets(object):
     def order(self, order=None, before=None, after=None):
         """Handles ordering of the .head_html() output
 
-        This is kind of strange, and in a perfect world wouldn't be needed, but basically
-        this will place any assets that match regexes in before first, then put all
-        the regexes in order in the middle and then all the after regexes last, in the
-        order those regexes are in each of their lists.
+        This is kind of strange, and in a perfect world wouldn't be needed, but
+        basically this will place any assets that match regexes in before first,
+        then put all the regexes in order in the middle and then all the after
+        regexes last, in the order those regexes are in each of their lists.
 
         Let's say we had an asset directory like this:
 
@@ -264,7 +267,8 @@ class Assets(object):
 
             config.assets.order(before=[r"foo", r"baz"], after=["bar"])
 
-        :param order: list, a list of regexes, the middle order you want the assets to be in
+        :param order: list, a list of regexes, the middle order you want the
+            assets to be in
         :param before: list, a list of regexes, these will come before order
         :param after: list, a list of regexes, these will come after order
         """

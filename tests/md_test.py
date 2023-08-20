@@ -58,7 +58,7 @@ class MarkdownTest(TestCase):
             "![this is the caption](foo.jpg)",
         ])
         r = p.html
-        self.assertTrue('<figure><img alt="foo.jpg" ' in r)
+        self.assertRegex(r, '<figure[^>]*><img alt="foo.jpg"')
 
     def test_image_figure_mixed(self):
         p = self.get_page([
@@ -75,7 +75,7 @@ class MarkdownTest(TestCase):
             "![](baz.jpg) this text after an image with [link](http://baz.com)",
         ])
         r = p.html
-        self.assertTrue('<figure><img alt="foo.jpg" ' in r)
+        self.assertRegex(r, '<figure[^>]*><img alt="foo.jpg"')
         self.assertTrue('<p>This text has an image <img alt="bar.jpg" ' in r)
         self.assertTrue('<p><img alt="che.jpg" ' in r)
         self.assertTrue('<p><img alt="baz.jpg" ' in r)

@@ -72,13 +72,16 @@ class Favicons(object):
 
         return d
 
-    def __init__(self, input_dir, *paths, **kwargs):
+    def __init__(self, input_dirs, *paths, **kwargs):
         self.images = []
-        self.input_dir = input_dir
+        self.input_dirs = input_dirs
 
         regex = kwargs.get("regex", self.regex)
-        for f in input_dir.files().regex(regex, filename=True):
-            self.images.append(Imagepath(f))
+        for input_dir in self.input_dirs:
+            for f in input_dir.files().regex(regex, filename=True):
+                im = Imagepath(f)
+                im.input_dir = input_dir
+                self.images.append(im)
 
     def __str__(self):
         return self.__bytes__() if is_py2 else self.__unicode__()
@@ -123,7 +126,10 @@ class Favicons(object):
         if "favicon" in image_d:
             ret.append(OrderedDict([
                 ("rel", "icon"),
-                ("href", Url("/", image_d["favicon"].relative_to(self.input_dir))),
+                ("href", Url(
+                    "/",
+                    image_d["favicon"].relative_to(image_d["favicon"].input_dir)
+                )),
                 ("type", "image/x-icon"),
                 ("sizes", self.icon_sizes(image_d["favicon"])),
             ]))
@@ -133,7 +139,10 @@ class Favicons(object):
                 if size in image_d:
                     ret.append(OrderedDict([
                         ("rel", rel),
-                        ("href", Url("/", image_d[size].relative_to(self.input_dir))),
+                        ("href", Url(
+                            "/",
+                            image_d[size].relative_to(image_d[size].input_dir)
+                        )),
                         ("sizes", self.icon_sizes(image_d[size])),
                     ]))
 
@@ -153,7 +162,7 @@ class Favicons(object):
 
 @event("configure.plugins")
 def configure_favicon(event, config):
-    config.favicons = Favicons(config.project.input_dir)
+    config.favicons = Favicons(config.project.input_dirs)
     config.favicons_html = config.favicons.html()
 
 

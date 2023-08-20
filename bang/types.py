@@ -13,6 +13,7 @@ from datatypes import (
     HTML,
     ContextNamespace,
     AppendList,
+    OrderedList,
     property as cachedproperty
 )
 
@@ -62,8 +63,7 @@ class PageIterator(TypeIterator):
         super().__init__(config, config.page_types)
 
 
-class Types(AppendList):
-
+class Types(OrderedList):
     @classproperty
     def name(cls):
         return cls.__name__.lower()
@@ -71,6 +71,10 @@ class Types(AppendList):
     def __init__(self, config):
         self.config = config
         super().__init__()
+
+    def key(self, t):
+        """Used to keep order"""
+        return t.input_dir
 
     def append(self, t):
         t.instances = self
@@ -151,12 +155,15 @@ class Pages(Types):
 
             if page_index == 1:
                 page_output_dir = output_dir
+
             else:
                 page_output_dir = output_dir.child_dir("page", String(page_index))
 
             page_output_file = page_output_dir.child_file(output_basename)
 
-            base_url = self.config.base_url.child(page_output_dir.relative_to(self.config.output_dir))
+            base_url = self.config.base_url.child(
+                page_output_dir.relative_to(self.config.output_dir)
+            )
 
             kwargs["page"] = page_index
             # not sure which one I like more yet
@@ -291,12 +298,12 @@ class Type(object):
     def __init__(self, input_file, output_dir, config):
         """create an instance
 
-        :param input_dir: Directory, this is the input directory of the actual
-            type, not the project input dir
-        :param output_dir: Directory, the output directory of the actual type, not
-            the project output dir
-        :param config: Config instance, useful for being able to populate information
-            about the rest of the site on this page
+        :param input_file: Filepath, this is the input file (page.md) of the
+            actual type
+        :param output_dir: Directory, the output directory of the actual type,
+            not the project output dir
+        :param config: Config instance, useful for being able to populate
+            information about the rest of the site on this page
         """
         self.input_file = input_file
         self.output_dir = output_dir
@@ -320,9 +327,10 @@ class Type(object):
         return url
 
     def __str__(self):
-        input_relpath = self.input_file.relative_to(self.config.input_dir)
+        #input_relpath = self.input_file.relative_to(self.config.input_dir)
         output_relpath = self.output_file.relative_to(self.config.output_dir)
-        return f"{self.name}: {input_relpath} -> {output_relpath}"
+        #return f"{self.name}: {input_relpath} -> {output_relpath}"
+        return f"{self.name}: {self.input_file} -> {output_relpath}"
 
 
 class Other(Type):
@@ -443,7 +451,10 @@ class Page(Other):
     def template_name(self):
         theme = self.config.theme
         for template_name in self.template_names:
-            logger.debug("Attempting to use theme template [{}.{}]".format(theme.name, template_name))
+            logger.debug("Attempting to use theme template [{}.{}]".format(
+                theme.name,
+                template_name
+            ))
             if theme.has_template(template_name):
                 return template_name
 
@@ -521,7 +532,11 @@ class Page(Other):
         **kwargs -- dict -- these will be passed to the template
         """
         output_file = self.output_file
-        logger.info("output {} [{}] to {}".format(self.name, self.title, output_file))
+        logger.info("output {} [{}] to {}".format(
+            self.name,
+            self.title or "<NO TITLE>",
+            output_file
+        ))
 
         self.output_dir.touch()
 
@@ -549,7 +564,7 @@ class Page(Other):
 
         logger.info(
             'Templating input file [{}] with theme.template [{}.{}] to output file [{}]'.format(
-                self.input_file.relative_to(self.config.input_dir),
+                self.input_file,
                 theme.name,
                 template_name,
                 output_file.relative_to(self.config.output_dir)

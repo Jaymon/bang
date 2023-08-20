@@ -11,6 +11,12 @@ and opening a DevTools window on the Console tab
     https://amp.dev/documentation/guides-and-tutorials/start/converting/building-page/
     https://github.com/Jaymon/bang/issues/34
     https://amp.dev/documentation/guides-and-tutorials/start/converting/resolving-errors/?format=websites
+
+As of 2023 I'm not sure AMP is still a thing. I'm keeping this plugin updated
+for right now but it's more in maintenance mode with the idea that I will
+eventually remove it
+
+    https://www.theverge.com/23711172/google-amp-accelerated-mobile-pages-search-publishers-lawsuit
 """
 from __future__ import unicode_literals, division, print_function, absolute_import
 import logging
@@ -157,15 +163,19 @@ class AmpTreeprocessor(Treeprocessor):
 
             elem.tag = "amp-img"
             if u and (u.is_local() or u.hostname == config.host):
-                f = config.project.input_dir.child(u.path)
-                im = Imagepath(f)
-                elem.set("width", String(im.width))
-                elem.set("height", String(im.height))
-                elem.set("layout", "responsive")
+                for input_dir in config.project.input_dirs:
+                    f = input_dir.child(u.path)
+                    if f.isfile():
+                        im = Imagepath(f)
+                        elem.set("width", String(im.width))
+                        elem.set("height", String(im.height))
+                        elem.set("layout", "responsive")
 
-                # https://amp.dev/documentation/guides-and-tutorials/develop/media_iframes_3p/?format=websites#animated-images
-                if im.is_animated():
-                    elem.tag = "amp-anim"
+                        # https://amp.dev/documentation/guides-and-tutorials/develop/media_iframes_3p/?format=websites#animated-images
+                        if im.is_animated():
+                            elem.tag = "amp-anim"
+
+                        break
 
 
         # https://amp.dev/documentation/guides-and-tutorials/develop/media_iframes_3p/?format=websites#video

@@ -9,7 +9,7 @@ from .event import event
 from .decorators import once
 
 
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
 
 logger = logging.getLogger(__name__)
@@ -19,42 +19,21 @@ class Project(object):
 
     config_class = Config
 
+#     @property
+#     def input_dir(self):
+#         return self.input_dirs[0]
+
     def __init__(self, project_dir, output_dir):
         self.project_dir = Dirpath(project_dir)
         self.output_dir = Dirpath(output_dir)
-        self.input_dir = self.project_dir.child_dir('input')
+        #self.input_dir = self.project_dir.child_dir('input')
+        self.input_dirs = [
+            self.project_dir.child_dir('input'),
+        ]
         self.config = self.config_class(self)
         self.types = {}
 
         self.configure()
-
-    def configure(self):
-        event.bind_callback_params(config=self.config)
-
-        event.push("configure.start")
-
-        Bangfile("{}.bangfile".format(self.config.module_name))
-        Bangfile(self.project_dir),
-
-        event.push("configure.plugins")
-        event.push("configure.project")
-
-        theme = self.config.theme
-        Bangfile(theme.theme_dir)
-
-        # theme configuration comes after project configuration because project
-        # configuration will most likely set the theme to be used
-        event.push("configure.theme")
-        event.push("configure.theme.{}".format(theme.name))
-
-        # do any cleanup after finishing the configure phase, this should only
-        # be called by user edited bangfiles so they can do any final overriding
-        event.push("configure.finish")
-
-        logger.debug(f"Project project_dir: {self.project_dir}")
-        logger.debug(f"Project input_dir: {self.input_dir}")
-        logger.debug(f"Project output_dir: {self.output_dir}")
-        logger.debug(f"Project theme: {theme.name} ({theme.theme_dir})")
 
     def is_private_basename(self, basename):
         """This is used by the project to decide if a basename of a file/folder is
@@ -72,12 +51,20 @@ class Project(object):
             is the full path to the file and output_dir is the full folder path
             (subdir of self.output_dir) where the file should be copied.
         """
-        is_private_cb = self.config.get("is_private_callback", self.is_private_basename)
+        is_private_cb = self.config.get(
+            "is_private_callback",
+            self.is_private_basename
+        )
 
-        for input_file in self.input_dir.files().not_callback(is_private_cb, basenames=True):
-            relpath = input_file.relative_to(self.input_dir)
-            output_dir = self.output_dir.child_file(relpath).parent
-            yield relpath, input_file, output_dir
+        for input_dir in self.input_dirs:
+            input_files = input_dir.files().not_callback(
+                is_private_cb,
+                basenames=True
+            )
+            for input_file in input_files:
+                relpath = input_file.relative_to(input_dir)
+                output_dir = self.output_dir.child_file(relpath).parent
+                yield relpath, input_file, output_dir
 
     def get_types(self, type_name):
         """return the instances of type_name found during project compile"""
@@ -93,12 +80,44 @@ class Project(object):
 
         return types
 
+    def configure(self):
+        event.bind_callback_params(config=self.config)
+
+        event.push("configure.start")
+
+        Bangfile("{}.bangfile".format(self.config.module_name))
+        Bangfile(self.project_dir),
+
+        event.push("configure.plugins")
+        event.push("configure.project")
+
+        theme = self.config.theme
+        Bangfile(theme.theme_dir)
+
+        # theme configuration comes after project configuration because project
+        # configuration will most likely set the theme to be used
+        theme.configure()
+        event.push("configure.theme")
+        event.push("configure.theme.{}".format(theme.name))
+
+        # do any cleanup after finishing the configure phase, this should only
+        # be called by user edited bangfiles so they can do any final overriding
+        event.push("configure.finish")
+
+        logger.debug(f"Project project_dir: {self.project_dir}")
+        for i, input_dir in enumerate(self.input_dirs, 1):
+            logger.debug(f"Project input_dir {i}: {input_dir}")
+        logger.debug(f"Project output_dir: {self.output_dir}")
+        logger.debug(f"Project theme: {theme.name} ({theme.theme_dir})")
+
     def compile(self):
         """go through project's input/ directory and find all the different types
 
         This just populates self.types but doesn't do any actual outputting and is
         really only broken out from output() for easier testing"""
         event.broadcast("compile.start")
+
+        self.config.theme.compile()
 
         self.types = {}
         type_classes = self.config.types

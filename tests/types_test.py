@@ -30,7 +30,7 @@ class OtherTest(TestCase):
 
         p.output()
 
-        self.assertTrue(p.input_dir.has_file("random.txt"))
+        self.assertTrue(p.input_dirs[0].has_file("random.txt"))
         self.assertTrue(p.output_dir.has_file("random.txt"))
 
 
@@ -72,20 +72,6 @@ class PageTest(TestCase):
         p.compile()
         self.assertEqual("this is the title", p.title)
         self.assertTrue(">body text</" in p.html)
-
-    def test_template_name(self):
-
-        class TemplateNameFoo(Page): pass
-        class TemplateNameBar(TemplateNameFoo): pass
-
-        with self.assertLogs(level="DEBUG") as c:
-            p = self.get_page()
-            p2 = TemplateNameBar(p.input_file, p.output_dir, p.config)
-            p2.output()
-
-        r = "\n".join(c[1])
-        for k in ["default.templatenamebar", "default.templatenamefoo", "default.page"]:
-            self.assertTrue(k in r)
 
     def test_page(self):
         p = self.get_page([

@@ -91,9 +91,9 @@ class Config(ContextNamespace):
         """Returns the main module name of this package"""
         return __name__.split(".")[0]
 
-    @property
-    def input_dir(self):
-        return self.project.input_dir
+#     @property
+#     def input_dir(self):
+#         return self.project.input_dir
 
     @property
     def output_dir(self):
@@ -110,7 +110,9 @@ class Config(ContextNamespace):
         context = self.current_context()
         md = context.get("_markdown_instance", None)
         if not md:
-            logger.debug("Creating Markdown instance for context [{}]".format(self.context_name()))
+            logger.debug("Creating Markdown instance for context [{}]".format(
+                self.context_name()
+            ))
             extensions = self.get("markdown_extensions", None)
             md = Markdown.create_instance(self, extensions=extensions)
             context["_markdown_instance"] = md
@@ -223,13 +225,14 @@ class Theme(object):
             template/
                 *.html
 
-    The directory's basename will become .name. The input directory is copied over
-    to the output directory. Any .html files in the template directory are what
-    is used to template the markdown files. A page.md file would be templated with
-    the page.html file, etc.
+    The directory's basename will become .name. The input directory is processed
+    just like any other input directories and used to populate the output
+    directory. Any .html files in the template directory are what is used to
+    template the markdown files. A page.md file would be templated with the
+    page.html file, etc.
 
-    The template_name would be the .html file fileroot. So if you had a "page.html"
-    template file, then the template_name would be "page"
+    The template_name would be the .html file's fileroot. So if you had a
+    "page.html" template file, then the template_name would be "page"
 
     http://jinja.pocoo.org/docs/dev/
     https://jinja.palletsprojects.com/en/master/api/
@@ -265,13 +268,24 @@ class Theme(object):
         template_name = self.get_template_name(template_name)
         return (template_name, f"{template_name}.html")
 
-    def output(self):
+    def configure(self):
+        """Called during project.configure but before configure.theme events"""
         if self.input_dir.exists():
-            logger.info("output theme [{}] input/ directory to {}".format(
-                self.name,
-                self.config.output_dir
-            ))
-            self.input_dir.copy_to(self.config.output_dir)
+            self.config.project.input_dirs.append(self.input_dir)
+
+    def compile(self):
+        """Called during project.compile"""
+        pass
+
+    def output(self):
+        """Called during project.output"""
+        pass
+#         if self.input_dir.exists():
+#             logger.info("output theme [{}] input/ directory to {}".format(
+#                 self.name,
+#                 self.config.output_dir
+#             ))
+#             self.input_dir.copy_to(self.config.output_dir)
 
     def render_template(self, template_name, **kwargs):
         """

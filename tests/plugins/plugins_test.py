@@ -106,7 +106,7 @@ class FaviconTest(TestCase):
 
     def get_favicons(self):
         p = self.get_project()
-        f = favicon.Favicons(p.input_dir)
+        f = favicon.Favicons(p.input_dirs)
         return f
 
     def test_get_info(self):
@@ -203,4 +203,21 @@ class AssetsTest(TestCase):
         html = p.output_dir.file_text("index.html")
         self.assertRegex(html, r"app\d\.css")
         self.assertRegex(html, r"app\d\.js")
+
+
+class RefTest(TestCase):
+    plugins = "ref"
+
+    def test_ref(self):
+        p = self.get_project(
+            input_files={
+                "page.md": "",
+            },
+            project_files={}
+        )
+        p.output()
+
+        self.assertTrue(p.output_dir.child_dir("ref").isdir())
+        self.assertTrue(p.output_dir.child_file("ref", "index.html").isfile())
+        self.assertEqual(2, len(p.output_dir.child_dir("ref").files()))
 

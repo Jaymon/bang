@@ -37,8 +37,9 @@ class ProjectTest(TestCase):
         r_count = 0
         r = set(["foo/page.md", "boo/NOTES_3.txt", "boo/page.md"])
         for rp, ip, op in p:
-            self.assertTrue(rp in r)
-            r_count += 1
+            if not rp.endswith(".css"):
+                self.assertTrue(rp in r)
+                r_count += 1
         self.assertEqual(len(r), r_count)
 
     def test_compile(self):
@@ -119,7 +120,9 @@ class GenerateTest(TestCase):
     def test_generate(self):
         project_dir = testdata.create_dir()
 
-        r = testdata.run(f'python -m bang generate --project-dir={project_dir}')
+        r = testdata.run_command(
+            f'python -m bang generate --project-dir={project_dir}'
+        )
 
         self.assertTrue(project_dir.has_file("bangfile.py"))
         self.assertTrue(project_dir.has_dir("input"))

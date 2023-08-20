@@ -25,8 +25,6 @@ class AmpTest(TestCase):
 
         p.config.project.output()
 
-        #pout.v(p.output_dir.file_contents("index.html"))
-
         self.assertTrue(p.output_dir.has_dir("amp"))
         self.assertTrue(p.output_dir.has_file("amp", "index.html"))
 

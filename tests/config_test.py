@@ -19,7 +19,7 @@ class ThemeTest(TestCase):
         project_files = {
             'bangfile.py': [
                 "from bang import event",
-                "@event('configure.finish')",
+                "@event('configure.project')",
                 "def theme_config(event_name, config):",
                 "    config.theme_name = '{}'".format(theme_name),
                 ""
@@ -40,8 +40,7 @@ class ThemeTest(TestCase):
 
         self.assertEqual(theme_name, s.config.theme_name)
 
-        t = s.config.theme
-        t.output()
+        s.output()
 
         self.assertTrue(s.config.output_dir.has_file("assets/app.css"))
         self.assertTrue(s.config.output_dir.has_file("assets/app.js"))

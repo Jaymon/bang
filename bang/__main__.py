@@ -33,7 +33,7 @@ def console_compile(args, project_dir, output_dir):
 #                 s.output_dir
 #             ))
 #         else:
-        logger.info("Compiling directory {} to {}".format(s.input_dir, s.output_dir))
+#         logger.info("Compiling directory {} to {}".format(s.input_dir, s.output_dir))
 
 #         s.output(regex)
         s.output()
@@ -58,7 +58,6 @@ def console_serve(args, project_dir, output_dir):
         ret_code = 0
         logger.info("* " * 40)
         logger.info("serving directory")
-        logger.info("serving directory")
         logger.info("")
         logger.info("    {}".format(output_dir))
         logger.info("")
@@ -72,7 +71,7 @@ def console_serve(args, project_dir, output_dir):
             s.serve_forever()
 
         except KeyboardInterrupt:
-            pass
+            s.server_close()
 
     logger.info("serve done in {}".format(total))
     return ret_code
