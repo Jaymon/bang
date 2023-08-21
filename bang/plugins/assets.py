@@ -106,7 +106,6 @@ class Assets(object):
         directory also"""
         return self.config.get("assets_dir", "assets")
 
-
     def __init__(self, output_dir, config):
         self.css = {}
         self.js = {}
@@ -143,7 +142,6 @@ class Assets(object):
             f = Url(path)
             basename = f.basename
             ext = ext or f.ext 
-            d = getattr(self, f.ext, self.other)
 
         else:
             f = Filepath(path)
@@ -158,83 +156,140 @@ class Assets(object):
             elif ext == "js":
                 asset_class = self.js_class
 
-            d[basename] = asset_class(f, self.output_dir, self.config, **properties)
+            d[basename] = asset_class(
+                f,
+                self.output_dir,
+                self.config,
+                **properties
+            )
 
     def add_script(self, s, body=False):
         """add a script body
 
-        NOTE -- currently you can only have one script, so if this is called twice
-        then the second call will overwrite the first, I got it working for my needs
-        right now with the idea I would come in and make it more robust later (5-10-2022)
+        NOTE -- currently you can only have one script, so if this is called
+        twice then the second call will overwrite the first, I got it working
+        for my needs right now with the idea I would come in and make it more
+        robust later (5-10-2022)
 
         :param s: str, this will be wrapped by <script></script>
-        :param body: bool, True if you want this script injected right before </body>
+        :param body: bool, True if you want this script injected right before
+            </body>
         """
         if body:
             self._body_html = s
+
         else:
             raise ValueError("Operation not currently supported")
 
-    def get(self, name):
+    def get(self, basename):
         """Get an asset
 
-        :param name: str, the name of the asset you want
+        :param basename: str, the name of the asset you want
         """
         for d in [self.css, self.js, self.other]:
-            if name in d:
-                return d[name]
-        raise NameError(name)
+            if basename in d:
+                return d[basename]
+
+        raise NameError(basename)
+
+    def ordered(self, css=True, js=True, other=True):
+        """This will order the CSS and JS and yield the Asset instances in the
+        order specified in the last .order() call
+
+        :param css: bool, True if you want to order CSS assets
+        :param js: bool, True if you want to order JS assets
+        :param other: bool, True if you want to order other assets
+        """
+        ret = OrderedDict()
+        ret["before"] = OrderedDict()
+        ret["order"] = OrderedDict()
+        ret["order"][""] = []
+        ret["after"] = OrderedDict()
+
+        chained = []
+        if css:
+            chained.append(self.css.items())
+
+        if js:
+            chained.append(self.js.items())
+
+        if other:
+            chained.append(self.other.items())
+
+        #it = itertools.chain(self.css.items(), self.js.items())
+        it = itertools.chain(*chained)
+
+        for name, a in it:
+            found = False
+            for k in ret:
+                regexes = self._order[k]
+                for regex in regexes:
+                    ret[k].setdefault(regex, [])
+                    if re.search(regex, name):
+                        ret[k][regex].append(a)
+                        found = True
+                        break
+
+                if found:
+                    break
+
+            if not found:
+                ret["order"][""].append(a)
+
+        for k in ret:
+            for regex in ret[k]:
+                for a in ret[k][regex]:
+                    yield a
 
     def __iter__(self):
-        for a in itertools.chain(self.css.items(), self.js.items(), self.other.items()):
+        it = itertools.chain(
+            self.css.values(),
+            self.js.values(),
+            self.other.values()
+        )
+
+        for a in it:
             yield a
+#         for a in self.ordered(css=True, js=True, other=True):
+#             yield a
 
     def compile(self):
         """The compile phase"""
-        for name, asset in self:
+        for asset in self:
             asset.compile()
 
     def output(self):
         """the output phase"""
-        for name, asset in self:
+        for asset in self:
             asset.output()
 
-    def head_html(self):
-        """This generates the head html that will be injected right before </head>
+    def css_inline(self):
+        """Generates all the css as a body that can go between a <style></style>
+        html tag. This is basically the raw css
+
+        :returns: str, the CSS code that is suitable to be placed in the body
+            of a <style> tag
+        """
+        ret = []
+        for a in self.ordered(css=True, js=False, other=False):
+            if not isinstance(a.input_file, Url):
+                ret.append(a.input_file.read_text())
+
+        return "\n".join(ret)
+
+    def html_links(self):
+        """This generates the head html that will be injected right before
+        </head>
 
         :returns: str, the html to inject into the head
         """
-        if not self._header_html:
-            for name, asset in itertools.chain(self.css.items(), self.js.items()):
-                found = False
-                for k in ["before", "order", "after"]:
-                    order = self._order[k]
-                    for regex in order:
-                        for i in range(len(order)):
-                            regex = order[i]
-                            if not isinstance(regex, (self.css_class, self.js_class)):
-                                if re.search(regex, name):
-                                    found = True
-                                    order[i] = asset
+        ret = []
+        for a in self.ordered(css=True, js=True, other=False):
+            ret.append(a.html())
 
-                        if found:
-                            break
+        return "\n".join(ret)
 
-                    if found:
-                        break
-
-                if not found:
-                    self._order["order"].append(asset)
-
-            html = []
-            for k in ["before", "order", "after"]:
-                for row in self._order[k]:
-                    if isinstance(row, (self.css_class, self.js_class)):
-                        html.append(row.html())
-            self._header_html = "\n".join(html)
-        return self._header_html
-
-    def body_html(self):
+    def html_body(self):
         """this generates the body javascript that will be injected right before
         </body>
 
@@ -283,8 +338,8 @@ class Assets(object):
 @event('configure.theme')
 def configure_assets(_, config):
     assets = Assets(config.project.output_dir, config)
-    assets.add_dir(config.project.project_dir)
     assets.add_dir(config.theme.theme_dir)
+    assets.add_dir(config.project.project_dir)
     config.assets = assets
 
     event.broadcast("configure.assets")
@@ -302,6 +357,14 @@ def context_html(event, config):
 
 @event("output.template")
 def template_output_favicon(event, config):
-    event.html = event.html.inject_into_head(config.assets.head_html())
-    event.html = event.html.inject_into_body(config.assets.body_html())
+    if config.is_context("amp"):
+        event.html = event.html.inject_into_head("\n".join([
+            "<style amp-custom>",
+            config.assets.css_inline(),
+            "</style>",
+        ]))
+
+    else:
+        event.html = event.html.inject_into_head(config.assets.html_links())
+        event.html = event.html.inject_into_body(config.assets.html_body())
 

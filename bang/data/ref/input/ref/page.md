@@ -1,10 +1,12 @@
 # Markdown reference
 
+
 [TOC]
 
 -------------------------------------------------------------------------------
 
 ## Titles
+
 
 What does each thing look like with my stylesheet.
 
@@ -30,6 +32,7 @@ This is just a modified version of this [site](https://github.com/adam-p/markdow
 -------------------------------------------------------------------------------
 
 ## Font Styling
+
 
 ```no-highlight
 Emphasis, aka italics, with *asterisks* or _underscores_.
@@ -57,6 +60,7 @@ Addition uses two plus signs ++add this.++
 -------------------------------------------------------------------------------
 
 ## Lists
+
 
 (In this example, leading and trailing spaces are shown with with dots: ⋅)
 
@@ -100,6 +104,7 @@ Addition uses two plus signs ++add this.++
 -------------------------------------------------------------------------------
 
 ## Links
+
 
 There are two ways to create links.
 
@@ -145,6 +150,7 @@ Some text to show that the reference links can follow later.
 -------------------------------------------------------------------------------
 
 ## Images
+
 
 The example images was [generated](https://dummyimage.com/750x600/7c68ee/fff.png&text=Example+Image) using [this dummy image generator](https://dummyimage.com/).
 
@@ -192,6 +198,7 @@ static.png
 
 ## Code and Syntax Highlighting
 
+
 Code Highlighting uses Highlight.js format. To see what languages are available for highlighting, and how to write those language names, see the [highlight.js demo page](http://softwaremaniacs.org/media/soft/highlight/test.html).
 
 ```no-highlight
@@ -237,7 +244,30 @@ But let's throw in a <b>tag</b>.
 
 -------------------------------------------------------------------------------
 
+## Blockquotes
+
+
+```no-highlight
+> Blockquotes are very handy in email to emulate reply text.
+> This line is part of the same quote.
+
+Quote break.
+
+> This is a very long line that will still be quoted properly when it wraps. Oh boy let's keep writing to make sure this is long enough to actually wrap for everyone. Oh, you can *put* **Markdown** into a blockquote. 
+```
+
+> Blockquotes are very handy in email to emulate reply text.
+> This line is part of the same quote.
+
+Quote break.
+
+> This is a very long line that will still be quoted properly when it wraps. Oh boy let's keep writing to make sure this is long enough to actually wrap for everyone. Oh, you can *put* **Markdown** into a blockquote. 
+
+
+-------------------------------------------------------------------------------
+
 ## Tables
+
 
 ```no-highlight
 Colons can be used to align columns.
@@ -272,30 +302,29 @@ Markdown | Less | Pretty
 1 | 2 | 3
 
 
--------------------------------------------------------------------------------
+__NOTE__ - You can't create tables without headers. If you need tables without headers you would need to do that using [raw html tables](https://developer.mozilla.org/en-US/docs/Web/HTML/Element/table).
 
-## Blockquotes
 
-```no-highlight
-> Blockquotes are very handy in email to emulate reply text.
-> This line is part of the same quote.
-
-Quote break.
-
-> This is a very long line that will still be quoted properly when it wraps. Oh boy let's keep writing to make sure this is long enough to actually wrap for everyone. Oh, you can *put* **Markdown** into a blockquote. 
+```html
+<table>
+  <tbody>
+    <tr>
+      <td>1.1</td>
+      <td>1.2</td>
+    </tr>
+    <tr>
+      <td>2.1</td>
+      <td>2.2</td>
+    </tr>
+  </tbody>
+</table>
 ```
-
-> Blockquotes are very handy in email to emulate reply text.
-> This line is part of the same quote.
-
-Quote break.
-
-> This is a very long line that will still be quoted properly when it wraps. Oh boy let's keep writing to make sure this is long enough to actually wrap for everyone. Oh, you can *put* **Markdown** into a blockquote. 
 
 
 -------------------------------------------------------------------------------
 
 ## Inline HTML
+
 
 You can also use raw HTML in your Markdown, and it'll mostly work pretty well. 
 
@@ -321,6 +350,7 @@ You can also use raw HTML in your Markdown, and it'll mostly work pretty well.
 -------------------------------------------------------------------------------
 
 ## Horizontal Rule
+
 
 ```
 Three or more...
@@ -357,6 +387,7 @@ Underscores
 
 ## Line Breaks
 
+
 Line breaks are interpreted literally.
 
 ```
@@ -379,6 +410,7 @@ This line is only separated by a single newline, so it's a separate line in the 
 -------------------------------------------------------------------------------
 
 ## Admonition
+
 
 [Syntax Documentation](https://pythonhosted.org/Markdown/extensions/admonition.html). The admonition classes are:
 
@@ -425,6 +457,7 @@ which are based off of the [Blueprint CSS notice classes](http://www.blueprintcs
 
 ## Youtube videos
 
+
 ```no-highlight
 <a href="http://www.youtube.com/watch?feature=player_embedded&v=YOUTUBE_VIDEO_ID_HERE
 " target="_blank"><img src="http://img.youtube.com/vi/YOUTUBE_VIDEO_ID_HERE/0.jpg" 
@@ -457,6 +490,7 @@ after text
 
 ## Twitter
 
+
 You can embed twitter tweets by putting them on their own line:
 
 ```no-highlight
@@ -478,6 +512,7 @@ after text
 
 ## Vimeo
 
+
 ```no-highlight
 before text
 
@@ -497,6 +532,7 @@ after text
 
 ## Footnotes
 
+
 [python markdown footnote documentation](http://pythonhosted.org/Markdown/extensions/footnotes.html)
 
 ```no-highlight
@@ -514,6 +550,7 @@ This text has a footnote[^1]
 -------------------------------------------------------------------------------
 
 ## Table of Contents
+
 
 If you place `[TOC]` in your file somewhere, then a table of contents will be added at that location using the headers.
 

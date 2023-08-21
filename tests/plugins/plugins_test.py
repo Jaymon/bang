@@ -189,20 +189,91 @@ class AssetsTest(TestCase):
                 "page.md": "",
             },
             project_files={
-                "assets/app1.css": "",
-                "assets/app2.css": "",
-                "assets/app1.js": "",
-                "assets/app2.js": "",
+                "assets/app1.css": "/* app1.css */",
+                "assets/app2.css": "/* app2.css */",
+                "assets/app1.js": "/* app1.js */",
+                "assets/app2.js": "/* app2.js */",
             }
         )
         p.output()
 
-        self.assertEqual(2, len(p.output_dir.files().pattern(f"*/{p.config.assets.dirname}/*app?.css")))
-        self.assertEqual(2, len(p.output_dir.files().pattern(f"*/{p.config.assets.dirname}/*app?.js")))
+        self.assertEqual(
+            2,
+            len(p.output_dir.files().pattern(
+                f"*/{p.config.assets.dirname}/*app?.css"
+            ))
+        )
+        self.assertEqual(
+            2,
+            len(p.output_dir.files().pattern(
+                f"*/{p.config.assets.dirname}/*app?.js"
+            ))
+        )
 
         html = p.output_dir.file_text("index.html")
         self.assertRegex(html, r"app\d\.css")
         self.assertRegex(html, r"app\d\.js")
+
+    def test_order(self):
+        p = self.get_project(
+            input_files={
+                "page.md": "",
+            },
+            project_files={
+                "assets/bar.css": "/* bar.css */",
+                "assets/baz.css": "/* baz.css */",
+                "assets/che.css": "/* che.css */",
+                "assets/foo.css": "/* foo.css */",
+            }
+        )
+
+        p.config.assets.order(before=[r"foo", r"baz"], after=[r"bar"])
+
+        basenames = ["foo.css", "baz.css", "project.css", "che.css", "bar.css"]
+        for a in p.config.assets.ordered(css=True, js=False, other=False):
+            basename = basenames.pop(0)
+            self.assertTrue(a.input_file.endswith(basename), basename)
+
+        basenames = ["foo.css", "baz.css", "project.css", "che.css", "bar.css"]
+        for a in p.config.assets.ordered(css=True, js=False, other=False):
+            basename = basenames.pop(0)
+            self.assertTrue(a.input_file.endswith(basename), basename)
+
+    def test_css_inline(self):
+        p = self.get_project(
+            input_files={
+                "page.md": "",
+            },
+            project_files={
+                "assets/bar.css": "/* bar.css */",
+                "assets/baz.css": "/* baz.css */",
+                "assets/che.css": "/* che.css */",
+                "assets/foo.css": "/* foo.css */",
+            }
+        )
+
+        r = p.config.assets.css_inline()
+        self.assertTrue("baz.css" in r)
+        self.assertTrue("foo.css" in r)
+
+    def test_html_links(self):
+        p = self.get_project(
+            input_files={
+                "page.md": "",
+            },
+            project_files={
+                "assets/bar.css": "/* bar.css */",
+                "assets/baz.css": "/* baz.css */",
+                "assets/che.css": "/* che.css */",
+                "assets/foo.css": "/* foo.css */",
+            }
+        )
+
+        p.config.assets.compile()
+        p.config.assets.output()
+        r = p.config.assets.html_links()
+        self.assertTrue(".baz.css" in r)
+        self.assertTrue(".foo.css" in r)
 
 
 class RefTest(TestCase):

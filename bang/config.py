@@ -130,6 +130,10 @@ class Config(ContextNamespace):
         """returns types of Page and above (any children of Page)"""
         return [t for t in self.types if issubclass(t, Page)]
 
+    @property
+    def types(self):
+        return Type.classes
+
     def __init__(self, project):
         super().__init__("global")
 
@@ -149,8 +153,8 @@ class Config(ContextNamespace):
 
         self.project = project
 
-        self.add_type(Other)
-        self.add_type(Page)
+        #self.add_type(Other)
+        #self.add_type(Page)
 
     @contextmanager
     def context(self, name, **kwargs):
@@ -176,11 +180,11 @@ class Config(ContextNamespace):
             # be called multiple times in a run and so if something used a finish
             # event it could end up doing the same work over and over
 
-    def add_type(self, type_class):
-        # we always add Types to the global context
-        context = self.get_context(self._context_names[0])
-        context.setdefault("types", OrderedSubclasses(Type))
-        context.types.insert(type_class)
+#     def add_type(self, type_class):
+#         # we always add Types to the global context
+#         context = self.get_context(self._context_names[0])
+#         context.setdefault("types", OrderedSubclasses(Type))
+#         context.types.insert(type_class)
 
     def add_themes(self, themes_dir):
         """a themes directory is a directory that contains themes, each theme in

@@ -236,6 +236,18 @@ class Type(object):
     to the container. This makes it possible for any Type instance to get the rest
     of the Type instances that were found"""
 
+    classes = None
+
+    def __init_subclass__(cls, *args, **kwargs):
+        # https://github.com/Jaymon/bang/issues/61
+        #pout.v(cls.__name__)
+        super().__init_subclass__(*args, **kwargs)
+
+        if not Type.classes:
+            Type.classes = OrderedSubclasses(Type)
+
+        Type.classes.insert(cls)
+
     @classproperty
     def name(cls):
         return cls.__name__.lower()

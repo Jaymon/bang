@@ -44,7 +44,7 @@ class BlogTest(TestCase):
         self.assertTrue(s.output_dir.has_file("page2", "post2", "index.html"))
 
         self.assertEqual(2, len(s.get_types("post")))
-        self.assertEqual(4, len(s.get_types("other")))
+        self.assertEqual(3, len(s.get_types("other")))
         self.assertEqual(4, len(s.get_types("page")))
 
     def test_config_types(self):
