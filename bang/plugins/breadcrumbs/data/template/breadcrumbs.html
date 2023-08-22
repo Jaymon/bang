@@ -6,7 +6,7 @@
 <meta name="description" content="Pages in {{ breadcrumb }}">
 {% endblock %}
 
-{% block content %}
+{% block body %}
     <ul>
     {% for instance in instances %}
         <li><a href="{{instance.url}}">{{ instance.heading }}</a></li>

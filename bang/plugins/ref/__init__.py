@@ -13,12 +13,11 @@ You can use this by importing it into your project's bangfile:
     from bang.plugins import ref
 """
 
-from ..event import event
-from ..types import Page
-from ..path import DataDirpath
+from ...event import event
+from ...path import DataDirpath
 
 
 @event("configure.plugins")
 def compile_ref(event, config):
-    config.project.input_dirs.append(DataDirpath().child_dir("ref", "input"))
+    config.project.input_dirs.append(DataDirpath(__name__).child_dir("input"))
 
