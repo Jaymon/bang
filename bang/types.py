@@ -127,11 +127,10 @@ class Types(OrderedList):
 
 
 class Pages(Types):
-    """this is a simple container of Type instances, the Type instances have next_page
-    and prev_type pointers that this class takes advantage of to build the list"""
-    #output_basename = 'index.html'
-    """this is the name of the file that will be outputted when templated"""
-
+    """this is a simple container of Type instances, the Type instances have
+    next_page and prev_type pointers that this class takes advantage of to build
+    the list
+    """
     @classproperty
     def template_names(cls):
         """this is the template that will be used to compile the post into html"""
@@ -146,7 +145,10 @@ class Pages(Types):
     def template_name(self):
         theme = self.config.theme
         for template_name in self.template_names:
-            logger.debug("Attempting to use template [{}.{}]".format(theme.name, template_name))
+            logger.debug("Attempting to use template [{}.{}]".format(
+                theme.name,
+                template_name
+            ))
             if theme.has_template(template_name):
                 return template_name
 
@@ -154,7 +156,8 @@ class Pages(Types):
         """This will output an index.html file in the root directory
 
         :param output_dir: Dirpath, this is the directory to output index files
-            to. If this isn't passed in then it will default to self.config.output_dir
+            to. If this isn't passed in then it will default to
+            self.config.output_dir
         :param **kwargs: dict, these will be passed to the template
         """
         output_basename = self.config.page_output_basename
@@ -415,18 +418,16 @@ class Page(Other):
     @property
     def description(self):
         """Returns a nice description of the post, first 2 sentences"""
-        #desc = getattr(self, "_description", None)
-        desc = None
-        if desc is None:
-            plain = self.html.strip_tags(remove_tags=["figcaption", "sup", "div.footnote"])
-            #plain = self.html.plain()
-            ms = re.split("(?<=\S[\.\?!])(?:\s|$)", plain, maxsplit=2, flags=re.M)
-            sentences = []
-            for sentence in ms[0:2]:
-                sentences.extend((s.strip() for s in sentence.splitlines() if s))
-            desc = " ".join(sentences)
-            self._description = desc
+        plain = self.html.strip_tags(
+            remove_tags=["figcaption", "sup", "div.footnote"]
+        )
+        ms = re.split("(?<=\S[\.\?!])(?:\s|$)", plain, maxsplit=2, flags=re.M)
 
+        sentences = []
+        for sentence in ms[0:2]:
+            sentences.extend((s.strip() for s in sentence.splitlines() if s))
+
+        desc = " ".join(sentences)
         return desc
 
     @property
@@ -453,12 +454,9 @@ class Page(Other):
 
     @property
     def html(self):
-        """
-        return html of the post
+        """return html of the post
 
-        base_url -- string -- if passed in, file links will be changed to base_url + post_url + filename
-
-        return -- string -- rendered html
+        :return: str, rendered html
         """
         title, html, meta = self.compile()
         return HTML(html)
@@ -474,8 +472,8 @@ class Page(Other):
 
     @property
     def output_file(self):
-        """this is the path of the file that this page will be outputted to after it
-        is templated"""
+        """this is the path of the file that this page will be outputted to
+        after it is templated"""
 
         # see if there is a slug we should add
         input_basename = self.input_file.basename
@@ -531,7 +529,11 @@ class Page(Other):
 
                 title = meta.get("title", "")
                 if not title:
-                    m = re.match(r"^\s*<h1[^>]*>([^<]*)</h1>\s*", html, flags=re.I | re.M)
+                    m = re.match(
+                        r"^\s*<h1[^>]*>([^<]*)</h1>\s*",
+                        html,
+                        flags=re.I | re.M
+                    )
                     if m:
                         title = m.group(1).strip()
 

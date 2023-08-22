@@ -125,7 +125,6 @@ class Config(ContextNamespace):
 
         else:
             return Url()
-        #return Url(scheme=self.scheme, hostname=self.host) if self.host else ""
 
     @property
     def page_types(self):
@@ -253,16 +252,7 @@ class Theme(object):
         self.name = self.theme_dir.basename
         self.config = config
         self.input_dir = self.theme_dir.child_dir("input")
-        #self.template_dir = self.theme_dir.child_dir("template")
         self.template_dirs = [self.theme_dir.child_dir("template")]
-
-        # https://jinja.palletsprojects.com/en/latest/api/#jinja2.Environment
-#         self.template = Environment(
-#             loader=FileSystemLoader(template_dirs),
-#             #extensions=['jinja2.ext.with_'] # http://jinja.pocoo.org/docs/dev/templates/#with-statement
-#             lstrip_blocks=True,
-#             trim_blocks=True,
-#         )
 
     def get_template_name(self, template_name):
         parts = []
