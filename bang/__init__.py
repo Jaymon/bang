@@ -19,10 +19,6 @@ class Project(object):
 
     config_class = Config
 
-#     @property
-#     def input_dir(self):
-#         return self.input_dirs[0]
-
     def __init__(self, project_dir, output_dir):
         self.project_dir = Dirpath(project_dir)
         self.output_dir = Dirpath(output_dir)

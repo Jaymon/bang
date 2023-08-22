@@ -77,15 +77,32 @@ class Types(OrderedList):
         """Used to keep order"""
         return t.input_dir
 
+    def inserted(self, i, t):
+        if i is None:
+            try:
+                t.prev_instance = self[-2]
+                self[-2].next_instance = t
+
+            except IndexError:
+                pass
+
+        else:
+            try:
+                t.next_instance = self[i + 1]
+                self[i + 1].prev_instance = t
+
+            except IndexError:
+                pass
+
+            try:
+                t.prev_instance = self[i - 1]
+                self[i - 1].next_instance = t
+
+            except IndexError:
+                pass
+
     def append(self, t):
         t.instances = self
-
-        if self:
-            last = self[-1]
-
-            t.prev_instance = last
-            last.next_instance = t
-
         super().append(t)
 
     def chunk(self, limit, reverse=False):
@@ -142,6 +159,9 @@ class Pages(Types):
         """
         output_basename = self.config.page_output_basename
         output_dir = Dirpath(output_dir or self.config.output_dir)
+        base_url = self.config.base_url.child(
+            output_dir.relative_to(self.config.output_dir)
+        )
 
         if output_dir.has_file(output_basename):
             logger.warning(
@@ -155,18 +175,16 @@ class Pages(Types):
             logger.info(f"output page {page_index}")
 
             if page_index == 1:
-                page_output_dir = output_dir
+                page_output_file = output_dir.child_file(output_basename)
 
             else:
-                page_output_dir = output_dir.child_dir("page", String(page_index))
+                page_output_file = output_dir.child_file(
+                    "page",
+                    page_index,
+                    output_basename
+                )
 
-            page_output_file = page_output_dir.child_file(output_basename)
-
-            base_url = self.config.base_url.child(
-                page_output_dir.relative_to(self.config.output_dir)
-            )
-
-            kwargs["page"] = page_index
+            kwargs["page_index"] = page_index
             # not sure which one I like more yet
             kwargs["pages"] = pages
             kwargs["instances"] = pages
@@ -186,7 +204,7 @@ class Pages(Types):
             # the previous url
             if page_index - 1:
                 if page_index - 1 == 1:
-                    kwargs["next_url"] = base_url
+                    kwargs["next_url"] = base_url or "/"
                     kwargs["next_title"] = "Go Home"
 
                 else:

@@ -12,9 +12,11 @@ http://jinja.pocoo.org/docs/dev/templates/#import
 
   #}
   <article class="body" itemscope itemtype="https://schema.org/BlogPosting" itemid="{{instance.url}}">
-    <header>
-      <h1 itemprop="name"><a itemprop="url" href="{{instance.url}}">{{ instance.title }}</a></h1>
-    </header>
+    {% if instance.title %}
+      <header>
+        <h1 itemprop="name"><a itemprop="url" href="{{instance.url}}">{{ instance.title }}</a></h1>
+      </header>
+    {% endif %}
 
     <section itemprop="articleBody">
       {{ instance.html }}
