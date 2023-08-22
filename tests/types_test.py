@@ -198,4 +198,22 @@ class PagesTest(TestCase):
         self.assertTrue(pages.config.output_dir.child_dir("page", "3").has_file("index.html"))
         self.assertFalse(pages.config.output_dir.child_dir("page", "4").has_file("index.html"))
 
+    def test_random(self):
+        pages = self.get_count_pages(10)
+
+        with self.assertRaises(ValueError):
+            next(pages.random(100))
+
+        count = 5
+        for i, p in enumerate(pages.random(count), 1):
+            self.assertTrue(isinstance(p, Page))
+        self.assertEqual(count, i)
+
+        pages = self.get_count_pages(2)
+        p1 = pages[0]
+        p2 = next(pages.random(1, ignore=p1))
+        self.assertNotEqual(p1, p2)
+
+        with self.assertRaises(ValueError):
+            next(pages.random(2, ignore=p1))
 

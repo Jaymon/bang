@@ -6,6 +6,7 @@ import datetime
 import re
 import logging
 import inspect
+import random
 
 from datatypes.reflection import OrderedSubclasses
 from datatypes import (
@@ -124,6 +125,41 @@ class Types(OrderedList):
                 instances = []
             instances.append(p)
         yield instances
+
+    def random(self, count, ignore=None):
+        """Choose random count entries in this list
+
+        :param count: int, how many random entries you want
+        :param ignore: set|Type, entries that should be ignored when finding
+            entries to return
+        :returns: generator
+        """
+        found = 0
+        if ignore:
+            if isinstance(ignore, list):
+                ignore = set(ignore)
+
+            elif isinstance(ignore, set):
+                pass
+
+            else:
+                ignore = set([ignore])
+
+        else:
+            ignore = set()
+
+        if count > (len(self) - len(ignore)):
+            raise ValueError("Too many random values to choose")
+
+        while found < count:
+            for p in random.choices(self, k=count):
+                if p not in ignore:
+                    found += 1
+                    ignore.add(p)
+                    yield p
+
+                    if found >= count:
+                        break
 
 
 class Pages(Types):
