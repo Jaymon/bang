@@ -1,17 +1,13 @@
-<!-- render a group of posts -->
+{# render a list of pages #}
 {% extends "master.html" %}
-{% from 'macros.html' import article %}
 
 {% block title %}{{ config.title }}{% endblock %}
 
 {% block description %}
-<meta name="description" content="{{ config.description }}">
+  <meta name="description" content="{{ config.description }}">
 {% endblock %}
 
-{% block content %}
-  {% for instance in instances %}
-    {{ article(instance) }}
-    <hr>
-  {% endfor %}
+{% block body %}
+  {% include 'body/pages.html' %}
 {% endblock %}
 

@@ -24,7 +24,6 @@ class Post(Page):
 @event("configure.plugins")
 def configure_blog(event, config):
     config.feed_iter = TypeIterator(config, [Post]).reverse()
-    #config.add_type(Post)
 
 
 @event("output.finish.post")

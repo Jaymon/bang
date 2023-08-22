@@ -14,7 +14,8 @@ from datatypes import (
     ContextNamespace,
     AppendList,
     OrderedList,
-    property as cachedproperty
+    property as cachedproperty,
+    Datetime,
 )
 
 from .compat import *
@@ -237,16 +238,8 @@ class Type(object):
     of the Type instances that were found"""
 
     classes = None
-
-    def __init_subclass__(cls, *args, **kwargs):
-        # https://github.com/Jaymon/bang/issues/61
-        #pout.v(cls.__name__)
-        super().__init_subclass__(*args, **kwargs)
-
-        if not Type.classes:
-            Type.classes = OrderedSubclasses(Type)
-
-        Type.classes.insert(cls)
+    """Holds the deifned Type subclasses that have been loaded into memory. See
+    .__init_subclasses__() and self.config.types"""
 
     @classproperty
     def name(cls):
@@ -289,10 +282,13 @@ class Type(object):
         return p.url if p else ""
 
     @property
+    def created(self):
+        return self.input_file.created()
+
+    @property
     def modified(self):
-        t = os.path.getmtime(self.input_file)
-        modified = datetime.datetime.fromtimestamp(t)
-        return modified
+        return self.input_file.modified()
+        #return Datetime(os.path.getmtime(self.input_file))
 
     @property
     def heading(self):
@@ -320,6 +316,18 @@ class Type(object):
         self.input_file = input_file
         self.output_dir = output_dir
         self.config = config
+
+    def __init_subclass__(cls, *args, **kwargs):
+        """
+        https://peps.python.org/pep-0487/
+        """
+        super().__init_subclass__(*args, **kwargs)
+
+        if not Type.classes:
+            Type.classes = OrderedSubclasses(Type)
+
+        # https://github.com/Jaymon/bang/issues/61
+        Type.classes.insert(cls)
 
     def absolute_url(self, url):
         """normalizes the url into a full url using this Type as a base"""

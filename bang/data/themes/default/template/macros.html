@@ -1,14 +1,38 @@
+{#
+Hold common templating functionality for all the templates
+
+http://jinja.pocoo.org/docs/dev/templates/#import
+
+#}
+
 {% macro article(instance) %}
-  <article class="body">
-    {% if instance.title %}
-      <h1><a href="{{instance.url}}">{{ instance.title }}</a></h1>
-    {% endif %}
+  {#
 
-    {{ instance.html }}
+  https://schema.org/Blog
 
-    <time datetime="{{ instance.modified.strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}" class="metadata">
-      {{ instance.modified.strftime('%b %d %Y') }}
-    </time>
+  #}
+  <article class="body" itemscope itemtype="https://schema.org/BlogPosting" itemid="{{instance.url}}">
+    <header>
+      <h1 itemprop="name"><a itemprop="url" href="{{instance.url}}">{{ instance.title }}</a></h1>
+    </header>
+
+    <section itemprop="articleBody">
+      {{ instance.html }}
+    </section>
+
+    <footer>
+      <meta itemprop="dateModified" content="{{ instance.modified.strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}">
+      <time datetime="{{ instance.created.strftime('%Y-%m-%dT%H:%M:%S.%fZ') }}" class="metadata" itemprop="dateCreated">
+          {{ instance.created.strftime('%b %d %Y') }}
+      </time>
+    </footer>
   </article>
+{% endmacro %}
+
+
+{% macro articles(instances) %}
+  {% for instance in instances %}
+    {{ article(instance) }}
+  {% endfor %}
 {% endmacro %}
 

@@ -112,7 +112,6 @@ class Assets(object):
         self.other = {}
         self._header_html = ""
         self._body_html = ""
-        #self.lookup = defaultdict(dict)
 
         self.config = config
         self.order()
@@ -250,8 +249,6 @@ class Assets(object):
 
         for a in it:
             yield a
-#         for a in self.ordered(css=True, js=True, other=True):
-#             yield a
 
     def compile(self):
         """The compile phase"""

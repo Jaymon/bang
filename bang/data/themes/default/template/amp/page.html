@@ -1,9 +1,13 @@
+{# render an amp page #}
 {% extends "amp/master.html" %}
-{% from 'macros.html' import article %}
 
 {% block title %}{{ instance.title }}{% endblock %}
 
+{% block description %}
+  <meta name="description" content="{{ instance.description }}">
+{% endblock %}
+
 {% block content %}
-  {{ article(instance) }}
+  {% include 'body/page.html' %}
 {% endblock %}
 

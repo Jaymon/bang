@@ -91,10 +91,6 @@ class Config(ContextNamespace):
         """Returns the main module name of this package"""
         return __name__.split(".")[0]
 
-#     @property
-#     def input_dir(self):
-#         return self.project.input_dir
-
     @property
     def output_dir(self):
         return self.project.output_dir
@@ -120,10 +116,16 @@ class Config(ContextNamespace):
 
     @property
     def base_url(self):
-        """Return the base url with scheme (scheme) and host and everything, if scheme
-        is unknown this will use // (instead of http://). If host is empty, then
-        it will just return empty string regardless of the scheme setting"""
-        return Url(scheme=self.scheme, hostname=self.host) if self.host else ""
+        """Return the base url with scheme (scheme) and host and everything, if
+        scheme is unknown this will use // (instead of http://). If host is
+        empty, then it will just return empty string regardless of the scheme
+        setting"""
+        if self.host:
+            return Url(scheme=self.scheme, hostname=self.host)
+
+        else:
+            return Url()
+        #return Url(scheme=self.scheme, hostname=self.host) if self.host else ""
 
     @property
     def page_types(self):
@@ -153,9 +155,6 @@ class Config(ContextNamespace):
 
         self.project = project
 
-        #self.add_type(Other)
-        #self.add_type(Page)
-
     @contextmanager
     def context(self, name, **kwargs):
         """This is meant to be used with the "with ..." command, its purpose is to
@@ -179,12 +178,6 @@ class Config(ContextNamespace):
             # we do not want to do a context.*.finish event because contexts could
             # be called multiple times in a run and so if something used a finish
             # event it could end up doing the same work over and over
-
-#     def add_type(self, type_class):
-#         # we always add Types to the global context
-#         context = self.get_context(self._context_names[0])
-#         context.setdefault("types", OrderedSubclasses(Type))
-#         context.types.insert(type_class)
 
     def add_themes(self, themes_dir):
         """a themes directory is a directory that contains themes, each theme in
@@ -245,20 +238,31 @@ class Theme(object):
     template documentation:
         https://jinja.palletsprojects.com/en/2.10.x/templates/
     """
+    @property
+    def template(self):
+        # https://jinja.palletsprojects.com/en/latest/api/#jinja2.Environment
+        return Environment(
+            loader=FileSystemLoader(self.template_dirs),
+            #extensions=['jinja2.ext.with_'] # http://jinja.pocoo.org/docs/dev/templates/#with-statement
+            lstrip_blocks=True,
+            trim_blocks=True,
+        )
+
     def __init__(self, theme_dir, config, **kwargs):
         self.theme_dir = theme_dir
         self.name = self.theme_dir.basename
         self.config = config
         self.input_dir = self.theme_dir.child_dir("input")
-        self.template_dir = self.theme_dir.child_dir("template")
+        #self.template_dir = self.theme_dir.child_dir("template")
+        self.template_dirs = [self.theme_dir.child_dir("template")]
 
-        # https://jinja.palletsprojects.com/en/master/api/#jinja2.Environment
-        self.template = Environment(
-            loader=FileSystemLoader(self.template_dir),
-            #extensions=['jinja2.ext.with_'] # http://jinja.pocoo.org/docs/dev/templates/#with-statement
-            lstrip_blocks=True,
-            trim_blocks=True,
-        )
+        # https://jinja.palletsprojects.com/en/latest/api/#jinja2.Environment
+#         self.template = Environment(
+#             loader=FileSystemLoader(template_dirs),
+#             #extensions=['jinja2.ext.with_'] # http://jinja.pocoo.org/docs/dev/templates/#with-statement
+#             lstrip_blocks=True,
+#             trim_blocks=True,
+#         )
 
     def get_template_name(self, template_name):
         parts = []
@@ -284,12 +288,6 @@ class Theme(object):
     def output(self):
         """Called during project.output"""
         pass
-#         if self.input_dir.exists():
-#             logger.info("output theme [{}] input/ directory to {}".format(
-#                 self.name,
-#                 self.config.output_dir
-#             ))
-#             self.input_dir.copy_to(self.config.output_dir)
 
     def render_template(self, template_name, **kwargs):
         """
@@ -321,8 +319,26 @@ class Theme(object):
 
         logger.debug(f"Rendered HTML written to: {f}")
 
+    def has_templates(self, dirname):
+        """Return True if there is a directory in any of the template
+        directories with dirname
+
+        :param dirname: str, the directory that must be in one of the template
+            directories. Directories are used to bundle specific templates
+            together
+        :returns: bool
+        """
+        for template_dir in self.template_dirs:
+            if template_dir.has_dir(dirname):
+                return True
+        return False
+
     def has_template(self, template_name):
         """Return True if the theme contains template_name"""
         template_name, template_relpath = self.get_template_info(template_name)
-        return self.template_dir.has_file(template_relpath)
+        for template_dir in self.template_dirs:
+            if template_dir.has_file(template_relpath):
+                return True
+        return False
+        #return self.template_dir.has_file(template_relpath)
 

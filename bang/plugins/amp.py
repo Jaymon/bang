@@ -241,7 +241,7 @@ def configure_context_amp(event, config):
     # amp will first check if current theme has amp support, if it doesn't then it
     # will fallback to the default theme
     theme = config.theme
-    if not theme.template_dir.has_dir("amp"):
+    if not theme.has_templates("amp"):
         config.theme_name = "default"
     config.template_prefix = "amp"
 

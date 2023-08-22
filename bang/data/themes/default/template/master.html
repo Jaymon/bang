@@ -3,18 +3,17 @@
 <html lang="{{ config.lang }}">
   <head>
     <meta charset="{{ config.encoding }}" />
+
     <title>{% block title %}{% endblock %}</title>
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
 
     {% block description %}{% endblock %}
 
-    <link rel="stylesheet" href="/assets/project.css" type="text/css" media="screen, projection">
-
   </head>
 
   <body>
-    {% block content %}{% endblock %}
+    {% block body %}{% endblock %}
   </body>
 </html>
 
