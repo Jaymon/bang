@@ -2,7 +2,7 @@
 
 Events are callbacks that are fired at specific times. As bang outputs a project it runs various events at certain times.
 
-Most main events are broadcast from the `.configure()`, `.compile()`, and `.output()` methods in the `bang.Project` class.
+Most main events are broadcast from the `.configure()`, `.compile()`, and `.output()` methods in the `bang.Project` class, but plugins often broadcast specific events also.
 
 
 ## Hooking into an event

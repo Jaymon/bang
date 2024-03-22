@@ -24,15 +24,15 @@ from bang.plugins import blog
 
 Blog posts are created using the same folder structure as vanilla bang but the markdown file names become the title
 
-If bang finds a markdown file with any other name than `index.md`, then it is considered a blog post with the file's name being the title. So, if you have this file structure:
+If bang finds a markdown file with the name `post.md`, then it is considered a blog post. So, if you have this file structure:
 
     project-dir/
       input/
         2014/
           001-this-is-the-slug/
-            This is the title of the blog post.md
+            post.md
 
-It would compile down to a blog post with a title *This is the title of the blog post* available at the uri:
+It would compile down to a blog post with the title defined in the file using the top level hash (eg, `# This is the title`) available at the uri:
 
     /2014/001-this-is-the-slug
 

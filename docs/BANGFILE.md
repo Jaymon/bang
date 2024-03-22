@@ -12,7 +12,7 @@ Bangfiles are called in a certain order and their configuration and effects stac
 
 1. Bang's default `bangfile.py`
 2. `<PROJECT-DIR>/bangfile.py`
-3. `<THEME-DIR>/bangfile.py`
+3. `<THEME-DIR>/bangfile.py` - This comes after project configuration because the project configuration usually sets the the theme that will be used.
 
 You can also import plugins into your bangfile which will activate those plugins, for example, to turn your project into a blog, in your bangfile you would import the [blog plugin](https://github.com/Jaymon/bang/blob/master/bang/plugins/blog.py):
 
@@ -42,6 +42,7 @@ def configure(event_name, conf):
     if env == "prod":
         conf.host = "example.com"
         conf.scheme = "https"
+        
     else:
         conf.host = "localhost"
         conf.scheme = "http"

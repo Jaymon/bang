@@ -1,12 +1,12 @@
 # Themes
 
-A theme is what your project looks like, bang has a default theme that is used if no theme is specified, you can set your theme using the configuration:
+A theme is what your project looks like. Bang has a default theme that is used if no theme is specified, you can set your theme using the configuration:
 
 ```python
 config.theme_name = "THEME_NAME"
 ```
 
-The [default themes directory](https://github.com/Jaymon/bang/tree/master/bang/data/themes) can be used as an example of how you can structure your own project's `themes` directory.
+The [default themes directory](https://github.com/Jaymon/bang/tree/master/bang/data/themes) can be used as an example for how you can structure your own project's `themes` directory.
 
 A theme directory is structured like this:
 
@@ -28,7 +28,7 @@ The `input` directory in a theme's directory is similar to the project's `input`
 
 ## Template
 
-The `template` directory is where all your [Jinja](http://jinja.pocoo.org/) templates go, they are used to compile your blog posts to their final form. Bang looks for a few template files by default for blog posts:
+The `template` directory is where all your [Jinja](http://jinja.pocoo.org/) templates go, they are used to compile your blog posts to their final form. Bang looks for a few template files by default for pages (blog posts will fallback to using these same files if `post.html` or `posts.html` aren't defined in the theme):
 
 * `page.html` - This contains the html for rendering a page's permalink page.
 * `pages.html` - This contains the html for rendering a list of pages.

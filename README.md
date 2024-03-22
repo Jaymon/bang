@@ -4,7 +4,7 @@ A static site generator built in Python with support for things like sitemaps, O
 
 You run bang from the command line:
 
-    $ bang command --project-dir=...
+    $ bang <COMMAND> --project-dir=...
 
 [Documentation](https://github.com/Jaymon/bang/tree/master/docs)
 
@@ -42,17 +42,17 @@ Now, open a browser and load `localhost:8000` to see your masterpiece, that's it
 
 ## Setup and Configuration
 
-A bang project will check each folder in the project directory for an `index.md` markdown file, if it finds one it will compile it to an `index.html` file. 
+A bang project will check each folder in the project directory for an `page.md` markdown file, if it finds one it will compile it to an `index.html` file. 
 
 So, if you have this file structure in your `project-dir`:
 
     project-dir/
       input/
         foo/
-        	index.md
+        	page.md
         	image.png
         bar/
-        	index.md
+        	page.md
 
 Would compile down to this file structure:
 

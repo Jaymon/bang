@@ -1,8 +1,8 @@
 # Markdown
 
-Bang uses Markdown version 3.1.1 or greater, you can install it using pip:
+Bang uses Markdown version 3.4.3 or greater, you can install it using pip:
 
-    $ pip install Markdown==3.1.1
+    $ pip install Markdown==3.4.3
 
 The [ref](https://github.com/Jaymon/bang/blob/master/bang/data/project/input/ref/index.md) markdown file gives an overview of supported markdown syntax and should always be up to date.
 
