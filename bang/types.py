@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
 import os
 import re
 import datetime
@@ -60,7 +59,8 @@ class TypeIterator(object):
 
 
 class PageIterator(TypeIterator):
-    """like TypeIterator but will iterate through all config defined page_types"""
+    """like TypeIterator but will iterate through all config defined
+    page_types"""
     def __init__(self, config):
         super().__init__(config, config.page_types)
 
@@ -164,12 +164,13 @@ class Types(OrderedList):
 
 class Pages(Types):
     """this is a simple container of Type instances, the Type instances have
-    next_page and prev_type pointers that this class takes advantage of to build
-    the list
+    next_page and prev_type pointers that this class takes advantage of to
+    build the list
     """
     @classproperty
     def template_names(cls):
-        """this is the template that will be used to compile the post into html"""
+        """this is the template that will be used to compile the post into
+        html"""
         ret = []
         for c in inspect.getmro(cls):
             if c is object: continue
@@ -208,7 +209,9 @@ class Pages(Types):
             )
             return
 
-        chunks = list(self.chunk(self.config.get("page_limit", 10), reverse=True))
+        chunks = list(
+            self.chunk(self.config.get("page_limit", 10), reverse=True)
+        )
         for page_index, pages in enumerate(chunks, 1):
 
             logger.info(f"output page {page_index}")
@@ -247,11 +250,11 @@ class Pages(Types):
                     kwargs["next_title"] = "Go Home"
 
                 else:
-                    kwargs["next_url"] = base_url.child("page", page_index - 1)
+                    kwargs["next_url"] = base_url.host("page", page_index - 1)
                     kwargs["next_title"] = "Page {}".format(page_index - 1)
 
             if len(chunks) > page_index:
-                kwargs["prev_url"] = base_url.child("page", page_index + 1)
+                kwargs["prev_url"] = base_url.host("page", page_index + 1)
                 kwargs["prev_title"] = "Page {}".format(page_index + 1)
 
             self.output_template(page_output_file, **kwargs)

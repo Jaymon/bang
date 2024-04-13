@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
 import logging
 
 from .config import Config, Bangfile
@@ -32,8 +31,8 @@ class Project(object):
         self.configure()
 
     def is_private_basename(self, basename):
-        """This is used by the project to decide if a basename of a file/folder is
-        considered private and therefore shouldn't be traversed
+        """This is used by the project to decide if a basename of a file/folder
+        is considered private and therefore shouldn't be traversed
 
         This is here in config so it could be overridden if needed
         """
@@ -42,10 +41,14 @@ class Project(object):
     def __iter__(self):
         """Iterate through the files found in self.input_dir
 
+        This is used in .compile to find all the files that need to eventually
+        be output using .output
+
         :returns: yields tuples of (relpath, input_file, output_dir) where
-            relpath is the relative path of the file to self.input_dir, input_file
-            is the full path to the file and output_dir is the full folder path
-            (subdir of self.output_dir) where the file should be copied.
+            relpath is the relative path of the file to self.input_dir,
+            input_file is the full path to the file and output_dir is the full
+            folder path (subdir of self.output_dir) where the file should be
+            copied.
         """
         is_private_cb = self.config.get(
             "is_private_callback",
@@ -53,10 +56,9 @@ class Project(object):
         )
 
         for input_dir in self.input_dirs:
-            input_files = input_dir.files().not_callback(
-                is_private_cb,
-                basenames=True
-            )
+            input_files = input_dir.files()
+            input_files.ne_basename(callback=is_private_cb)
+            input_files.nin_basename(callback=is_private_cb)
             for input_file in input_files:
                 relpath = input_file.relative_to(input_dir)
                 output_dir = self.output_dir.child_file(relpath).parent
@@ -72,7 +74,9 @@ class Project(object):
                     self.types[type_name] = types
 
             if types is None:
-                raise ValueError(f"No defined pages class for type [{type_name}]")
+                raise ValueError(
+                    f"No defined pages class for type [{type_name}]"
+                )
 
         return types
 
@@ -97,7 +101,8 @@ class Project(object):
         event.push("configure.theme.{}".format(theme.name))
 
         # do any cleanup after finishing the configure phase, this should only
-        # be called by user edited bangfiles so they can do any final overriding
+        # be called by user edited bangfiles so they can do any final
+        # overriding
         event.push("configure.finish")
 
         logger.debug(f"Project project_dir: {self.project_dir}")
@@ -107,10 +112,11 @@ class Project(object):
         logger.debug(f"Project theme: {theme.name} ({theme.theme_dir})")
 
     def compile(self):
-        """go through project's input/ directory and find all the different types
+        """go through project's input/ directory and find all the different
+        types
 
-        This just populates self.types but doesn't do any actual outputting and is
-        really only broken out from output() for easier testing"""
+        This just populates self.types but doesn't do any actual outputting and
+        is really only broken out from output() for easier testing"""
         event.broadcast("compile.start")
 
         self.config.theme.compile()
@@ -131,11 +137,13 @@ class Project(object):
         event.broadcast("compile.finish")
 
     def output(self):
-        """go through input/ dir and compile the files and move them to output/ dir"""
+        """go through input/ dir and compile the files and move them to output/
+        dir"""
         self.compile()
 
-        # conceptually the same event as compile.finish but here for completeness
-        # and easier readability of the intention of a callback in a bangfiles
+        # conceptually the same event as compile.finish but here for
+        # completeness and easier readability of the intention of a callback in
+        # a bangfiles
         event.broadcast('output.clear')
 
         if self.output_dir.exists():
