@@ -460,7 +460,7 @@ class Page(Other):
         plain = self.html.strip_tags(
             remove_tags=["figcaption", "sup", "div.footnote"]
         )
-        ms = re.split("(?<=\S[\.\?!])(?:\s|$)", plain, maxsplit=2, flags=re.M)
+        ms = re.split(r"(?<=\S[\.\?!])(?:\s|$)", plain, maxsplit=2, flags=re.M)
 
         sentences = []
         for sentence in ms[0:2]:
@@ -475,9 +475,9 @@ class Page(Other):
         to rely on third party libraries to do this"""
         ret = ""
         html = self.html
-        m = re.search("<img\s+[^>]+>", html, flags=re.M | re.I)
+        m = re.search(r"<img\s+[^>]+>", html, flags=re.M | re.I)
         if m:
-            m = re.search("src=[\"\']([^\"\']+)", m.group(0), flags=re.I)
+            m = re.search(r"src=[\"\']([^\"\']+)", m.group(0), flags=re.I)
             if m:
                 ret = m.group(1)
         return ret
