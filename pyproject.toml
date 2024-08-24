@@ -21,6 +21,10 @@ dependencies = [
   "requests",
   "datatypes"
 ]
+name = "bangtext"
+dynamic = [
+  "version"
+]
 readme = "README.md"
 license = { file = "LICENSE.txt" }
 
@@ -43,5 +47,20 @@ exclude = [
   "example*",
   "*_test*",
   "docs*"
+]
+include = [
+  "bang*"
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "bang.__version__" }
+
+# https://setuptools.pypa.io/en/latest/userguide/datafiles.html#subdirectory-for-data-files
+[tool.setuptools.package-data]
+"bang.data" = [
+  "data/*",
+]
+"bang.plugins.breadcrumbs.data" = [
+  "plugins/breadcrumbs/data/*"
 ]
 
