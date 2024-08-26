@@ -1,16 +1,15 @@
 # -*- coding: utf-8 -*-
 import os
-import imp
 from contextlib import contextmanager
-from collections import defaultdict
-import importlib
 import logging
 
 from jinja2 import Environment, FileSystemLoader
-from datatypes.reflection import OrderedSubclasses
 from datatypes import (
+    OrderedSubclasses,
     Url,
-    ContextNamespace
+    ContextNamespace,
+    ReflectPath,
+    ReflectModule,
 )
 
 from .compat import *
@@ -35,8 +34,8 @@ class Bangfile(object):
     def get_dir(self, dirpath, basename="bangfile.py"):
         """get the bangfile in the given directory with the given basename
 
-        directory -- Directory|string -- usually the project_dir, the directory that
-            contains the bangfile to be loaded
+        directory -- Directory|string -- usually the project_dir, the directory
+            that contains the bangfile to be loaded
         basename -- string -- the basename of the bangfile
         """
         return self.get_file(Filepath(dirpath, basename))
@@ -46,12 +45,11 @@ class Bangfile(object):
             # http://stackoverflow.com/questions/67631/how-to-import-a-module-given-the-full-path
             h = "bangfile_{}".format(String(filepath).md5())
             logger.debug(f"Running bangfile with file path: {filepath}")
-            return imp.load_source(h, filepath)
+            return ReflectPath(filepath).exec_module(h)
 
     def get_module(self, modpath):
         logger.debug("Running bangfile with module path: {}".format(modpath))
-        module = importlib.import_module(modpath)
-        return module
+        return ReflectModule(modpath).get_module()
 
     def __init__(self, path, **kwargs):
         """
@@ -71,15 +69,16 @@ class Bangfile(object):
 
 
 class Config(ContextNamespace):
-    """A context aware configuration class, really this is a glorified getter/setter
-    but you can change the context using with .context(name) which means you can
-    change values and then when you switch contexts the values will reset to what
-    they were, this is handy for having a little different configuration in your
-    feed as opposed to your web
+    """A context aware configuration class, really this is a glorified
+    getter/setter but you can change the context using with .context(name)
+    which means you can change values and then when you switch contexts the
+    values will reset to what they were, this is handy for having a little
+    different configuration in your feed as opposed to your web
 
-    How this works is config keeps a history of the context changes, so when you request
-    a value it will check the current context, if there is no value there it will
-    check for that value in the previous context, all the way down the line
+    How this works is config keeps a history of the context changes, so when
+    you request a value it will check the current context, if there is no value
+    there it will check for that value in the previous context, all the way
+    down the line
     """
     @property
     def theme(self):
@@ -137,8 +136,8 @@ class Config(ContextNamespace):
     def __init__(self, project):
         super().__init__("global")
 
-        # we set support properties directly on the __dict__ so __setattr__ doesn't
-        # infinite loop, context properties can just be set normally
+        # we set support properties directly on the __dict__ so __setattr__
+        # doesn't infinite loop, context properties can just be set normally
 
         # initial settings for the themes
         self.theme_name = "default"
@@ -155,9 +154,9 @@ class Config(ContextNamespace):
 
     @contextmanager
     def context(self, name, **kwargs):
-        """This is meant to be used with the "with ..." command, its purpose is to
-        make it easier to change the context and restore it back to the previous context
-        when it is done
+        """This is meant to be used with the "with ..." command, its purpose is
+        to make it easier to change the context and restore it back to the
+        previous context when it is done
 
         :Example:
             with config.context("foo"):
@@ -166,22 +165,22 @@ class Config(ContextNamespace):
             # anything outside this block will *NOT* use the foo configuration
         """
         with super().context(name, **kwargs):
-            # we use .once() here because if this context is used again we will just
-            # pull the values from the already configured instance, so no reason to
-            # go though and set everything again
+            # we use .once() here because if this context is used again we will
+            # just pull the values from the already configured instance, so no
+            # reason to go though and set everything again
             event.once(f"context.{self.context_name()}")
 
             yield self
 
-            # we do not want to do a context.*.finish event because contexts could
-            # be called multiple times in a run and so if something used a finish
-            # event it could end up doing the same work over and over
+            # we do not want to do a context.*.finish event because contexts
+            # could be called multiple times in a run and so if something used
+            # a finish event it could end up doing the same work over and over
 
     def add_themes(self, themes_dir):
-        """a themes directory is a directory that contains themes, each theme in
-        its own subdirectory (which is the name of the theme) so this will create
-        Theme instances for all the immediate subdirectories of the passed in 
-        themes_dir
+        """a themes directory is a directory that contains themes, each theme
+        in its own subdirectory (which is the name of the theme) so this will
+        create Theme instances for all the immediate subdirectories of the
+        passed in themes_dir
 
         :param themes_dir: Directory, a directory where themes can be found
         """
@@ -220,11 +219,11 @@ class Theme(object):
             template/
                 *.html
 
-    The directory's basename will become .name. The input directory is processed
-    just like any other input directories and used to populate the output
-    directory. Any .html files in the template directory are what is used to
-    template the markdown files. A page.md file would be templated with the
-    page.html file, etc.
+    The directory's basename will become .name. The input directory is
+    processed just like any other input directories and used to populate the
+    output directory. Any .html files in the template directory are what is
+    used to template the markdown files. A page.md file would be templated with
+    the page.html file, etc.
 
     The template_name would be the .html file's fileroot. So if you had a
     "page.html" template file, then the template_name would be "page"
