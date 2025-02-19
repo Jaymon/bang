@@ -4,7 +4,6 @@ a plugin to generate a sitemap
 
 http://en.wikipedia.org/wiki/Sitemaps
 """
-from __future__ import unicode_literals, division, print_function, absolute_import
 import os
 import codecs
 import logging
@@ -18,13 +17,17 @@ logger = logging.getLogger(__name__)
 
 
 @event("configure.plugins")
-def configure_sitemap(event, config):
+def configure_sitemap(event):
+    config = event.config
     config.setdefault("sitemap_iter", PageIterator(config))
 
 
 @event('output.finish')
-def output_sitemap(event, config):
-    if not config.sitemap_iter.has(): return
+def output_sitemap(event):
+    config = event.config
+
+    if not config.sitemap_iter.has():
+        return
 
     with config.context("sitemap") as config:
         if "sitemap_iter" not in config:

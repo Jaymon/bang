@@ -22,12 +22,14 @@ class Post(Page):
 
 
 @event("configure.plugins")
-def configure_blog(event, config):
+def configure_blog(event):
+    config = event.config
     config.feed_iter = TypeIterator(config, [Post]).reverse()
 
 
 @event("output.finish.post")
-def compile_root_index_files(event, config):
+def compile_root_index_files(event):
     # this compiles the root index.html
+    config = event.config
     config.project.get_types(Post.name).output()
 

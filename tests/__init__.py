@@ -93,7 +93,8 @@ class TestCase(testdata.TestCase):
         bangfile_lines.extend([
             "",
             "@event('configure.project')",
-            "def configure_project(event, config):",
+            "def configure_project(event):",
+            "    config = event.config",
             "    config.host = 'example.com'",
             "    config.name = 'example site'",
             ""

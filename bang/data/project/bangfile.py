@@ -7,7 +7,6 @@ from bang import event
 # from bang.plugins import (
 #     blog, # is this website a blog?
 #     favicon, # autodiscover favicons
-#     amp, # support Google's amp
 #     sitemap, # enable sitemap support
 #     feed, # enable rss feed support
 #     googleanalytics, # enable Google Analytics
@@ -18,7 +17,8 @@ from bang import event
 
 # main configuration for your project
 @event("configure.project")
-def configure_project(event, config):
+def configure_project(event):
+    config = event.config
     config.load_environ()
 
     config.scheme = "http"
@@ -28,14 +28,15 @@ def configure_project(event, config):
 
 # any theme specific configuration can go here
 @event("configure.theme")
-def configure_plugins(event, config):
-    pass
+def configure_plugins(event):
+    config = event.config
 
 
 # handle output context exclusive configuration
 @event('context.output')
-def context_output(event_name, config):
+def context_output(event_name):
     # for support of both https and http on html pages, this results in //host/path/ urls
+    config = event.config
     config.scheme = ""
 
 

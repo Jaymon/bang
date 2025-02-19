@@ -22,13 +22,15 @@ logger = logging.getLogger(__name__)
 
 
 @event("configure.plugins")
-def configure_plugins_breadcrumbs(event, config):
+def configure_plugins_breadcrumbs(event):
+    config = event.config
     config.setdefault("breadcrumbs_iter", PageIterator(config))
 
 
 @event('configure.theme')
-def configure_context_breadcrumbs(event, config):
+def configure_context_breadcrumbs(event):
     # we do this here so the project has a chance to set a theme
+    config = event.config
     theme = config.theme
     if not theme.has_template("breadcrumbs"):
         dd = DataDirpath(__name__)
@@ -36,7 +38,9 @@ def configure_context_breadcrumbs(event, config):
 
 
 @event('output.finish')
-def output_breadcrumbs(event, config):
+def output_breadcrumbs(event):
+    config = event.config
+
     with config.context("breadcrumbs") as config:
 
         d = defaultdict(list)

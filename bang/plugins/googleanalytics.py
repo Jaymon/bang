@@ -14,7 +14,6 @@ You can find your GA_TRACKING_ID by:
 
     https://support.google.com/analytics/answer/1008080#trackingID
 """
-from __future__ import unicode_literals, division, print_function, absolute_import
 import logging
 
 from ..compat import *
@@ -25,7 +24,8 @@ logger = logging.getLogger(__name__)
 
 
 @event("output.template")
-def template_output_ga(event, config):
+def template_output_ga(event):
+    config = event.config
 
     ga_tracking_id = config.get("ga_tracking_id", None)
     if not ga_tracking_id:

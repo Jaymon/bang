@@ -18,6 +18,8 @@ from ...path import DataDirpath
 
 
 @event("configure.plugins")
-def compile_ref(event, config):
-    config.project.input_dirs.append(DataDirpath(__name__).child_dir("input"))
+def compile_ref(event):
+    event.config.project.input_dirs.append(
+        DataDirpath(__name__).child_dir("input")
+    )
 

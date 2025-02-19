@@ -11,7 +11,6 @@ http://cyber.law.harvard.edu/rss/rss.html
 validator: http://validator.w3.org/feed/
 big list of namespaces: http://validator.w3.org/feed/docs/howto/declare_namespaces.html
 """
-from __future__ import unicode_literals, division, print_function, absolute_import
 import datetime
 import os
 from xml.sax.saxutils import escape
@@ -43,13 +42,16 @@ def get_datestr(dt):
 
 
 @event("configure.plugins")
-def configure_feed(event, config):
+def configure_feed(event):
+    config = event.config
     config.setdefault("feed_filename", "feed.rss")
     config.setdefault("feed_url", Url("/", config.feed_filename))
 
 
 @event('output.finish')
-def output_rss(event, config):
+def output_rss(event):
+    config = event.config
+
     with config.context("feed") as config:
         if "feed_iter" not in config:
             logger.error("feed plugin not running because no config.feed_iter found")
@@ -108,7 +110,9 @@ def output_rss(event, config):
 
 
 @event("output.template")
-def template_output_favicon(event, config):
+def template_output_favicon(event):
+    config = event.config
+
     s = '<link rel="alternate" type="application/rss+xml" title="RSS feed" href="{}" />'.format(
         config.feed_url
     )

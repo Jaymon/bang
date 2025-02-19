@@ -333,27 +333,31 @@ class Assets(object):
 
 
 @event('configure.theme')
-def configure_assets(_, config):
+def configure_assets(event):
+    config = event.config
     assets = Assets(config.project.output_dir, config)
     assets.add_dir(config.theme.theme_dir)
     assets.add_dir(config.project.project_dir)
     config.assets = assets
 
-    event.broadcast("configure.assets")
+    event.event.broadcast("configure.assets")
 
 
 @event('compile.finish')
-def compile_assets(event, config):
+def compile_assets(event):
+    config = event.config
     config.assets.compile()
 
 
 @event('output.start')
-def context_html(event, config):
+def context_html(event):
+    config = event.config
     config.assets.output()
 
 
 @event("output.template")
-def template_output_favicon(event, config):
+def template_output_favicon(event):
+    config = event.config
     if config.is_context("amp"):
         event.html = event.html.inject_into_head("\n".join([
             "<style amp-custom>",

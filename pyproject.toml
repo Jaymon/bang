@@ -16,9 +16,9 @@ classifiers = [
   "Programming Language :: Python :: 3"
 ]
 dependencies = [
-  "Jinja2",
-  "Markdown",
-  "requests",
+  "Jinja2==3.1.2",
+  "Markdown==3.4.3",
+  "requests==2.29.0",
   "datatypes"
 ]
 name = "bangtext"

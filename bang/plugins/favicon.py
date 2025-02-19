@@ -27,7 +27,6 @@ These are the links I used to figure out what to support:
     https://www.emergeinteractive.com/insights/detail/the-essentials-of-favicons/
     https://github.com/audreyr/favicon-cheat-sheet
 """
-from __future__ import unicode_literals, division, print_function, absolute_import
 from collections import OrderedDict
 
 from ..compat import *
@@ -161,12 +160,14 @@ class Favicons(object):
 
 
 @event("configure.plugins")
-def configure_favicon(event, config):
+def configure_favicon(event):
+    config = event.config
     config.favicons = Favicons(config.project.input_dirs)
     config.favicons_html = config.favicons.html()
 
 
 @event("output.template")
-def template_output_favicon(event, config):
+def template_output_favicon(event):
+    config = event.config
     event.html = event.html.inject_into_head(config.favicons_html)
 

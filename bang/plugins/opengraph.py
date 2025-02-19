@@ -4,14 +4,13 @@ Open Graph
 
 http://ogp.me/
 """
-from __future__ import unicode_literals, division, print_function, absolute_import
 
 from ..compat import *
 from ..event import event
 
 
 @event("output.template.page")
-def template_output_ga(event, config):
+def template_output_ga(event):
 
     instance = event.instance
 
