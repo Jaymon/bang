@@ -429,7 +429,8 @@ class Other(Type):
 
 
 class Page(Other):
-    """This is the generic page type, any index.md files will be this page type"""
+    """This is the generic page type, any page.md files will be this page
+    type"""
     instances_class = Pages
 
     @property
@@ -457,8 +458,8 @@ class Page(Other):
     @property
     def description(self):
         """Returns a nice description of the post, first 2 sentences"""
-        plain = self.html.strip_tags(
-            remove_tags=["figcaption", "sup", "div.footnote"]
+        plain = self.html.plain(
+            strip_tagnames=["figcaption", "sup", "div.footnote"]
         )
         ms = re.split(r"(?<=\S[\.\?!])(?:\s|$)", plain, maxsplit=2, flags=re.M)
 

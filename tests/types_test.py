@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
-import re
 
 import testdata
 
@@ -96,21 +94,37 @@ class PageTest(TestCase):
         p.output()
 
         self.assertTrue("Page 0" in p.output_dir.file_text("index.html"))
-        self.assertTrue("Page 1" in p.output_dir.file_text("this-is-slug-1/index.html"))
-        self.assertTrue("Page 2" in p.output_dir.file_text("this-is-slug-2/index.html"))
-        self.assertTrue("Page 3" in p.output_dir.file_text("this-is-slug-3/index.html"))
+        self.assertTrue(
+            "Page 1" in p.output_dir.file_text("this-is-slug-1/index.html")
+        )
+        self.assertTrue(
+            "Page 2" in p.output_dir.file_text("this-is-slug-2/index.html")
+        )
+        self.assertTrue(
+            "Page 3" in p.output_dir.file_text("this-is-slug-3/index.html")
+        )
 
     def test_description_1(self):
         p = self.get_page([
-            'This is the sentence. This is the second one!!!! And the third. And the fourth.',
+            (
+                "This is the sentence."
+                " This is the second one!!!!"
+                " And the third. And the fourth."
+            ),
             ""
         ])
 
         desc = p.description
-        self.assertEqual("This is the sentence. This is the second one!!!!", desc)
+        self.assertEqual(
+            "This is the sentence. This is the second one!!!!",
+            desc
+        )
 
         desc = p.description
-        self.assertEqual("This is the sentence. This is the second one!!!!", desc)
+        self.assertEqual(
+            "This is the sentence. This is the second one!!!!",
+            desc
+        )
 
         p = self.get_page([
             "This is the sentence.",
@@ -121,7 +135,10 @@ class PageTest(TestCase):
         ])
 
         desc = p.description
-        self.assertEqual("This is the sentence. This is the second one?!?!?!", desc)
+        self.assertEqual(
+            "This is the sentence. This is the second one?!?!?!",
+            desc
+        )
 
         p = self.get_page([
             "This is the first line",
@@ -142,8 +159,9 @@ class PageTest(TestCase):
             "",
             "after",
             "",
-            "[^1]: http://example.com",
+            "[^1]: http://example.com foo",
         ])
+
         self.assertFalse("footnote1" in p.description)
         self.assertEqual("before footnote after", p.description)
 
@@ -163,10 +181,16 @@ class PageTest(TestCase):
                 ""
             ]
         })
-        self.assertEqual(p.absolute_url("/images/che.jpg"), p.absolute_url("images/che.jpg"))
+        self.assertEqual(
+            p.absolute_url("/images/che.jpg"),
+            p.absolute_url("images/che.jpg")
+        )
 
         p = self.get_page('![this is the file](images/che.jpg)')
-        self.assertNotEqual(p.absolute_url("/images/che.jpg"), p.absolute_url("images/che.jpg"))
+        self.assertNotEqual(
+            p.absolute_url("/images/che.jpg"),
+            p.absolute_url("images/che.jpg")
+        )
         self.assertTrue(p.uri in p.absolute_url("images/che.jpg"))
         self.assertFalse(p.uri in p.absolute_url("/images/che.jpg"))
 
@@ -193,10 +217,11 @@ class PagesTest(TestCase):
         pages = self.get_count_pages(21)
 
         pages.output()
-        self.assertTrue(pages.config.output_dir.has_file("index.html"))
-        self.assertTrue(pages.config.output_dir.child_dir("page", "2").has_file("index.html"))
-        self.assertTrue(pages.config.output_dir.child_dir("page", "3").has_file("index.html"))
-        self.assertFalse(pages.config.output_dir.child_dir("page", "4").has_file("index.html"))
+        od = pages.config.output_dir
+        self.assertTrue(od.has_file("index.html"))
+        self.assertTrue(od.child_dir("page", "2").has_file("index.html"))
+        self.assertTrue(od.child_dir("page", "3").has_file("index.html"))
+        self.assertFalse(od.child_dir("page", "4").has_file("index.html"))
 
     def test_random(self):
         pages = self.get_count_pages(10)

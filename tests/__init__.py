@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
 import unittest
 import os
 import codecs
@@ -78,7 +77,12 @@ class TestCase(testdata.TestCase):
         return bangfile_lines
 
     @classmethod
-    def get_project_files(cls, input_files=None, project_files=None, bangfile=None):
+    def get_project_files(
+        cls,
+        input_files=None,
+        project_files=None,
+        bangfile=None
+    ):
         input_files = input_files or {}
         project_files = project_files or {}
 
@@ -123,7 +127,11 @@ class TestCase(testdata.TestCase):
 
     @classmethod
     def get_project(cls, input_files=None, project_files=None, bangfile=None):
-        project_files = cls.get_project_files(input_files, project_files, bangfile)
+        project_files = cls.get_project_files(
+            input_files,
+            project_files,
+            bangfile
+        )
         project_dir, output_dir = cls.get_dirs(project_files)
         p = Project(project_dir, output_dir)
         return p
@@ -181,11 +189,20 @@ class TestCase(testdata.TestCase):
     @classmethod
     def get_type(cls, type_class, relpath):
         project_input_dir = testdata.create_dir()
-        input_file = testdata.create_file(path=relpath, tmpdir=project_input_dir)
+        input_file = testdata.create_file(
+            path=relpath,
+            tmpdir=project_input_dir
+        )
 
         project_output_dir = testdata.create_dir()
-        output_file = testdata.get_file(path=relpath, tmpdir=project_output_dir)
-        config = testdata.mock(input_dir=project_input_dir, output_dir=project_output_dir)
+        output_file = testdata.get_file(
+            path=relpath,
+            tmpdir=project_output_dir
+        )
+        config = testdata.mock(
+            input_dir=project_input_dir,
+            output_dir=project_output_dir
+        )
 
         return type_class(
             input_file,
@@ -202,12 +219,13 @@ class TestCase(testdata.TestCase):
         # clear any loaded bangfiles
         for k in list(sys.modules.keys()):
             if k.startswith("bangfile_"):
-                # we don't want any rogue bangfiles hanging around in memory, just in case
+                # we don't want any rogue bangfiles hanging around in memory,
+                # just in case
                 sys.modules.pop(k, None)
 
             elif k.startswith("bang.plugins"):
-                # plugins usually bind to events, so we clear those so they can
-                # be rebound
+                # plugins usually bind to events, so we clear those so they
+                # can be rebound
                 sys.modules.pop(k, None)
 
             elif k.startswith("bang.bangfile"):

@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
 import re
 
 from markdown.preprocessors import Preprocessor
@@ -25,34 +24,28 @@ class RefPositionFixPreprocessor(Preprocessor):
 
 
 class RefPositionFixExtension(Extension):
-    """reference definitions need a line between each definition, this enforces
-    that norm
+    """reference definitions need a line between each definition, this
+    enforces that norm
 
-    :Example:
+    a blank line would be placed between the `[^n]` and `[n]` lines using this
+    extension
+
+    .. Example:
         [^n]: this is the footnote
         [n]: http://link.com
 
-    a blank line would be placed between the `[^n]` and `[n]` lines using this extension
+        # would become:
+
+        [^n]: this is the footnote
+
+        [n]: http://link.com
     """
     def extendMarkdown(self, md):
-        # it's best we run this before any other extension that messes with references
+        # it's best we run this before any other extension that messes with
+        # references
         md.register(
             self,
             RefPositionFixPreprocessor(md),
             ["<MagicRefPreprocessor", "<footnote", "<reference"]
         )
-
-
-
-#         priority = self.find_priority(md.preprocessors, ["magicref", "footnote", "reference"])
-#         md.preprocessors.register(RefPositionFixPreprocessor(md), "refpositionfix", priority)
-
-        # it's best we run this before any other extension that messes with references
-#         position = '<reference'
-#         if "footnote" in md.preprocessors:
-#             position = '<footnote'
-#         if "magicref" in md.preprocessors:
-#             position = '<magicref'
-# 
-#         md.preprocessors.add('refpositionfix', RefPositionFixPreprocessor(md), position)
 

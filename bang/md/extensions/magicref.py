@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
 import re
 
 from markdown.preprocessors import Preprocessor
@@ -7,8 +6,9 @@ from . import Extension
 
 
 class Sub(object):
-    """where all the magic happens, the other classes are mainly boilerplate and
-    configuration, this class does the actual searching and replacing of the refs
+    """where all the magic happens, the other classes are mainly boilerplate
+    and configuration, this class does the actual searching and replacing of
+    the refs
     """
     def __init__(self, placeholder):
         self.index = 1
@@ -81,9 +81,9 @@ class Sub(object):
 
 
 class MagicRefPreprocessor(Preprocessor):
-    """This is the preprocessor extension class that will look through the lines
-    passed into run and munge them to have unique references if it finds magic
-    references in the line"""
+    """This is the preprocessor extension class that will look through the
+    lines passed into run and munge them to have unique references if it finds
+    magic references in the line"""
     def __init__(self, md, config):
         super(MagicRefPreprocessor, self).__init__(md)
         self.config = config
@@ -98,6 +98,7 @@ class MagicRefPreprocessor(Preprocessor):
 
         if len(s.footnote_placeholders) > 0:
             raise RuntimeError("Mismatched magic footnotes")
+
         if len(s.link_placeholders) > 0:
             raise RuntimeError("Mismatched magic links")
 
@@ -105,14 +106,15 @@ class MagicRefPreprocessor(Preprocessor):
 
 
 class MagicRefExtension(Extension):
-    """
-    creates an easy footnote where you can just use [^n] for each of the footnotes
-    and if you just make sure your definitions are in order then everything will work.
-    While this isn't compatible with other markdown it makes it easier for me to write
-    posts, and I'm all about removing friction in blog posts
+    """creates an easy footnote where you can just use [^n] for each of the
+    footnotes and if you just make sure your definitions are in order then
+    everything will work.  While this isn't compatible with other markdown it
+    makes it easier for me to write posts, and I'm all about removing friction
+    in blog posts
 
-    this also allows all reference links to just be a placeholder (eg, [n]) and as
-    long as they are in order the correct link will be associated with the correct <a> tag
+    this also allows all reference links to just be a placeholder (eg, [n]) and
+    as long as they are in order the correct link will be associated with the
+    correct <a> tag
     """
     def __init__(self, *args, **kwargs):
         super(MagicRefExtension, self).__init__(*args, **kwargs)

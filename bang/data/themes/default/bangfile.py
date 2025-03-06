@@ -5,6 +5,6 @@ from bang.plugins import assets
 
 
 # @event('configure.theme')
-# def theme_config(event_name, config):
+# def theme_config(event):
 #     pass
 

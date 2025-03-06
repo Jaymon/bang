@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
 
 from bang.compat import *
 from bang.config import (
@@ -20,13 +19,15 @@ class ThemeTest(TestCase):
             'bangfile.py': [
                 "from bang import event",
                 "@event('configure.project')",
-                "def theme_config(event_name, config):",
-                "    config.theme_name = '{}'".format(theme_name),
+                "def theme_config(event):",
+                "    event.config.theme_name = '{}'".format(theme_name),
                 ""
             ],
             'themes/{}/input/assets/app.css'.format(theme_name): "",
             'themes/{}/input/assets/app.js'.format(theme_name): "",
-            'themes/{}/template/page.html'.format(theme_name): "{{ instance.title }}\n{{ instance.html }}\n",
+            'themes/{}/template/page.html'.format(theme_name): (
+                "{{ instance.title }}\n{{ instance.html }}\n"
+            ),
             'themes/{}/template/pages.html'.format(theme_name): "\n".join([
                 "{% for instance in instances %}",
                 "{% include 'page.html' %}",

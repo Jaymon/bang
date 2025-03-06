@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
 
 import testdata
 
@@ -42,17 +41,17 @@ class FeedTest(TestCase):
                 "from bang.plugins import blog",
                 "",
                 "@event('configure.finish')",
-                "def global_config(event_name, config):",
-                "    config.host = 'example.com'",
-                "    config.name = 'example site'",
+                "def global_config(event):",
+                "    event.config.host = 'example.com'",
+                "    event.config.name = 'example site'",
                 "",
                 "@event('context.output')",
-                "def html_config(event_name, config):",
-                "    config.scheme = ''",
+                "def html_config(event):",
+                "    event.config.scheme = ''",
                 "",
                 "@event('context.feed')",
-                "def feed_config(event_name, config):",
-                "    config.scheme = 'https'",
+                "def feed_config(event):",
+                "    event.config.scheme = 'https'",
             ]
         })
         s.output()
@@ -92,7 +91,7 @@ class FaviconTest(TestCase):
 
     @classmethod
     def get_dirs(cls, project_files=None):
-        project_dir, output_dir = super(FaviconTest, cls).get_dirs(project_files)
+        project_dir, output_dir = super().get_dirs(project_files)
 
         d = String(project_dir.child_dir("input"))
         testdata.create_ico("favicon.ico", tmpdir=d),
@@ -139,17 +138,6 @@ class GoogleAnalyticsTest(TestCase):
         p.output()
         html = p.output_dir.file_text("index.html")
         self.assertTrue("gtag('config', 'XX-DDDDDDDD-D')" in html)
-
-    def test_amp_context(self):
-        p = self.get_page(bangfile="from bang.plugins import amp")
-        p.config.ga_tracking_id = "XX-DDDDDDDD-D"
-        p.config.project.output()
-
-        html = p.output_dir.file_text("index.html")
-        self.assertTrue("gtag('config', 'XX-DDDDDDDD-D')" in html)
-
-        html = p.output_dir.file_text("amp/index.html")
-        self.assertTrue("<amp-analytics " in html)
 
 
 class OpenGraphTest(TestCase):

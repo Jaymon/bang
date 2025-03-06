@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
 import re
 import tempfile
 import json
@@ -11,7 +10,7 @@ import requests
 
 from ...path import Dirpath
 from . import Extension, Postprocessor, Blockprocessor as BaseBlockprocessor
-from ...utils import UnlinkedTagTokenizer
+from ...utils import HTML
 
 
 logger = logging.getLogger(__name__)
@@ -20,52 +19,55 @@ logger = logging.getLogger(__name__)
 class LinkifyPostprocessor(Postprocessor):
     """This goes through and links any plain links in the body of the html
 
-    other linkify example: https://github.com/Jaymon/Montage/blob/master/plugins/Utilities/src/Str.php
+    other linkify example:
+        https://github.com/Jaymon/Montage/blob/master/plugins/Utilities/src/Str.php
     """
 
     # http://daringfireball.net/2010/07/improved_regex_for_matching_urls
     LINKIFY_RE = re.compile(r'''\b
-      (                           # Capture 1: entire matched URL
+      (                              # Capture 1: entire matched URL
         (?:
-          [a-z][\w-]+:                # URL protocol and colon
+          [a-z][\w-]+:               # URL protocol and colon
           (?:
-            /{1,3}                        # 1-3 slashes
-            |                             #   or
-            [a-z0-9%]                     # Single letter or digit or %
-                                          # (Trying not to match e.g. "URI::Escape")
+            /{1,3}                   # 1-3 slashes
+            |                        #   or
+            [a-z0-9%]                # Single letter or digit or %
+                                     # (Trying not to match e.g. "URI::Escape")
           )
-          |                           #   or
-          www\d{0,3}[.]               # "www.", "www1.", "www2." … "www999."
-          |                           #   or
-          [a-z0-9.\-]+[.][a-z]{2,4}/  # looks like domain name followed by a slash
+          |                          #   or
+          www\d{0,3}[.]              # "www.", "www1.", "www2." … "www999."
+          |                          #   or
+          [a-z0-9.\-]+[.][a-z]{2,4}/ # looks like domain name ending with slash
         )
-        (?:                           # One or more:
-          [^\s()<>]+                      # Run of non-space, non-()<>
-          |                               #   or
+        (?:                          # One or more:
+          [^\s()<>]+                 # Run of non-space, non-()<>
+          |                          #   or
           \(([^\s()<>]+|(\([^\s()<>]+\)))*\)  # balanced parens, up to 2 levels
         )+
-        (?:                           # End with:
-          \(([^\s()<>]+|(\([^\s()<>]+\)))*\)  # balanced parens, up to 2 levels
-          |                                   #   or
-          [^\s`!()\[\]{};:\'".,<>?«»“”‘’]        # not a space or one of these punct chars
+        (?:                          # End with:
+          \(([^\s()<>]+|(\([^\s()<>]+\)))*\) # balanced parens, up to 2 levels
+          |                                  #   or
+          [^\s`!()\[\]{};:\'".,<>?«»“”‘’]    # not one of these chars
         )
       )''', re.I | re.X)
 
     def run(self, text):
+        def subn_callback(m):
+            return '<a class="embed" href="{}">{}</a>'.format(
+                m.group(0),
+                m.group(0)
+            )
 
-        def repl(m):
-            return '<a class="embed" href="{}">{}</a>'.format(m.group(0), m.group(0))
-
-        bits = []
-        s = UnlinkedTagTokenizer(text)
-        for tag, plain in s:
+        text_linked = ""
+        s = HTML(text)
+        for tag, plain in s.blocks(ignore_tagnames=["a", "pre"]):
             plain_linked, made = self.LINKIFY_RE.subn(
-                repl, # r'<a class="embed" href="\0">\0</a>',
+                subn_callback, # r'<a class="embed" href="\0">\0</a>',
                 plain
             )
-            bits.extend([tag, plain_linked])
+            text_linked += tag
+            text_linked += plain_linked
 
-        text_linked = "".join(bits)
         return text_linked
 
 

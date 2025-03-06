@@ -5,5 +5,4 @@ from datatypes import (
     HTML,
     Profiler,
 )
-from datatypes import UnlinkedTagTokenizer
 
