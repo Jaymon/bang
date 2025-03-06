@@ -159,7 +159,7 @@ class PageTest(TestCase):
             "",
             "after",
             "",
-            "[^1]: http://example.com foo",
+            "[^1]: http://example.com",
         ])
 
         self.assertFalse("footnote1" in p.description)
@@ -175,7 +175,7 @@ class PageTest(TestCase):
         self.assertFalse("figcaption" in p.description)
 
     def test_absolute_url(self):
-        p = self.get_page({
+        p = self.get_page("", {
             'page.md': [
                 '![this is the file](images/che.jpg)',
                 ""

@@ -6,11 +6,11 @@ import os
 import logging
 
 import xml.etree.ElementTree as etree
-import requests
+#import requests
 
 from ...path import Dirpath
 from . import Extension, Postprocessor, Blockprocessor as BaseBlockprocessor
-from ...utils import HTML
+from ...utils import HTML, HTTPClient
 
 
 logger = logging.getLogger(__name__)
@@ -97,8 +97,8 @@ class Blockprocessor(BaseBlockprocessor):
 class YoutubeProcessor(Blockprocessor):
     """This will convert a plain youtube link to an embedded youtube video
 
-    fun fact, this is based on some super old php code I wrote for noopsi.com 11
-    years ago
+    fun fact, this is based on some super old php code I wrote for noopsi.com
+    in the mid 2000s
     """
     test_regex = re.compile(r"^https?:\/\/(?:www\.)?youtube\.", re.I)
 
@@ -106,8 +106,14 @@ class YoutubeProcessor(Blockprocessor):
 
     def get_embed_code(self, url):
         ytid = self.get_id(url)
-        attrs = 'width="{}" height="{}" frameborder="0" allowfullscreen'.format(560, 315)
-        embed_html = '<iframe {} src="https://www.youtube.com/embed/{}"></iframe>'.format(attrs, ytid)
+        vid_url = f"https://www.youtube.com/embed/{ytid}"
+        attrs = (
+            'width="{}"'
+            ' height="{}"'
+            ' frameborder="0"'
+            ' allowfullscreen'
+        ).format(560, 315)
+        embed_html = f'<iframe {attrs} src="{vid_url}"></iframe>'
         return embed_html
 
     def run(self, parent, blocks):
@@ -128,7 +134,10 @@ class TwitterProcessor(Blockprocessor):
 
     base_url = "https://publish.twitter.com/oembed"
 
-    test_regex = re.compile(r"^https?:\/\/(?:[^\.]+\.)?twitter\.[^\/]+\/.+$", flags=re.I)
+    test_regex = re.compile(
+        r"^https?:\/\/(?:[^\.]+\.)?twitter\.[^\/]+\/.+$",
+        flags=re.I
+    )
 
     id_regex = re.compile(r"/(\d+)/?$")
 
@@ -174,14 +183,17 @@ class TwitterProcessor(Blockprocessor):
         body = {}
 
         params["url"] = url
-        res = requests.get(self.base_url, params=params)
+        res = HTTPClient().get(self.base_url, params)
 
         if res.status_code >= 200 and res.status_code < 400:
             body = res.json()
             html = self.get_html(url, body)
 
         else:
-            logger.error("Embed for {} failed with code {}".format(url, res.status_code))
+            logger.error("Embed for {} failed with code {}".format(
+                url,
+                res.status_code
+            ))
 
         return html, body
 
@@ -196,93 +208,11 @@ class TwitterProcessor(Blockprocessor):
             figure.text = placeholder
 
 
-class InstagramProcessor(TwitterProcessor):
-    """
-    https://www.instagram.com/developer/embedding/
-
-    https://help.instagram.com/513918941996087
-    http://blog.instagram.com/post/55095847329/introducing-instagram-web-embeds
-
-    https://api.instagram.com/oembed?hidecaption=true&url=https://www.instagram.com/p/BNEweVYFVxq/
-
-    Update 1-22-2023
-
-        It doesn't look like FB supports IG embedding anymore without an "app" so I'm
-        going to disable this plugin 
-
-        https://developers.facebook.com/blog/post/2020/08/04/Introducing-graph-v8-marketing-api-v8/
-
-        Sept 7, 2021: https://developers.facebook.com/docs/instagram/oembed/
-            If you implemented the oEmbed product before June 8, 2021, you have until
-            September 7, 2021 to complete App Review for the oEmbed Read feature.
-            If you have not been approved for the oEmbed Read feature by September 7, 2021,
-            your oEmbed implementations will fail to load.
-    """
-
-    filename = "instagram.json"
-
-    base_url = "https://api.instagram.com/oembed"
-
-    name = "instagram"
-
-    test_regex = re.compile(r"""
-        ^https?:\/\/
-            (?:
-                (?:[^\.]+\.)?instagram\.[^\/]+
-                |
-                instagr\.am
-            )
-            \/.+
-        $
-        """,
-        re.I | re.X
-    )
-
-    id_regex = re.compile(r"\/p\/([^\/\?]+)")
-
-    def test(self, *args, **kwargs):
-        return False
-
-    def get_response(self, url, **params):
-        params.setdefault("hidecaption", "true")
-        html, body = super(InstagramProcessor, self).get_response(url, **params)
-
-        if html:
-            # let's grab the raw image and cache that also
-            igid = self.get_id(url)
-            if igid:
-                d = self.get_cache_directory()
-
-                cached_image = d.files(r"^{}".format(igid))
-                if cached_image:
-                    logger.info("Image cached at {}".format(cached_image[0]))
-
-                else:
-                    raw_url = "https://instagram.com/p/{}/media/".format(igid)
-                    res = requests.get(raw_url, params={"size": "l"})
-
-                    if res.status_code >= 200 and res.status_code < 400:
-                        ext = "jpg"
-                        content_type = res.headers.get("content-type", "")
-                        if content_type:
-                            # ugh, mimetypes.guess_extension() returned "jpe", ugh
-                            ext = content_type.split("/")[-1].lower()
-                            if ext == "jpeg":
-                                ext = "jpg"
-
-                        d.add_file("{}.{}".format(igid, ext), res.content, encoding="")
-
-                    else:
-                        logger.error("Raw cache for {} failed with code {}".format(url, res.status_code))
-
-        return html, body
-
-
 class VimeoProcessor(Blockprocessor):
     """This will convert a plain vimeo link to an embedded vimeo video
 
-    fun fact, this is based on some super old php code I wrote for noopsi.com 11
-    years ago
+    fun fact, this is based on some super old php code I wrote for noopsi.com
+    in the mid 2000s
     """
     test_regex = re.compile(r"^https?:\/\/([a-z0-9._-]+\.)?vimeo\.", re.I)
 
@@ -290,6 +220,7 @@ class VimeoProcessor(Blockprocessor):
 
     def get_embed_code(self, url):
         vid = self.get_id(url)
+        vid_url = f"https://player.vimeo.com/video/{vid}"
         attrs = [
             'class="vimeo-media"',
             'width="{}"'.format(640),
@@ -301,7 +232,7 @@ class VimeoProcessor(Blockprocessor):
         ]
 
         embed_html = "\n".join([
-            '<iframe src="https://player.vimeo.com/video/{}" {}>'.format(vid, " ".join(attrs)),
+            '<iframe src="vid_url" {}>'.format(" ".join(attrs)),
             '</iframe>'
         ])
 
@@ -317,11 +248,16 @@ class VimeoProcessor(Blockprocessor):
 
 
 class EmbedImageProcessor(Blockprocessor):
-    """This will take a plain link to an image and convert it into an <img> tag
+    """This will take a plain link to an image and convert it into an
+    <img> tag
 
     it only works on links that end with an image extension like .jpg
     """
-    test_regex = re.compile(r"^(?:[^\s\]\[\:<>]+|https?\:\/\/\S+?)\.(?:jpe?g|gif|bmp|png|ico|tiff)$", re.I)
+    test_regex = re.compile(
+        r"^(?:[^\s\]\[\:<>]+|https?\:\/\/\S+?)"
+        r"\.(?:jpe?g|gif|bmp|png|ico|tiff)$",
+        re.I
+    )
 
     def get_id(self, url):
         return True
@@ -330,7 +266,6 @@ class EmbedImageProcessor(Blockprocessor):
         block = blocks.pop(0).strip()
         figure = self.get_figure(parent, "image")
         figure.text = '![{}]({} "")'.format(os.path.basename(block), block)
-        # $ret_html = '<a href="'.$url.'"><img src="'.$url.'"'.$dimension_attr.' alt="'.$url.'" /></a>';
 
 
 class EmbedExtension(Extension):
@@ -344,8 +279,8 @@ class EmbedExtension(Extension):
 
         text after
 
-    Any link that isn't already wrapped in an <a> tag will be wrapped in an <a> tag
-    automatically
+    Any link that isn't already wrapped in an <a> tag will be wrapped in an
+    <a> tag automatically
     """
     def extendMarkdown(self, md):
         md.register(self, LinkifyPostprocessor(md))
@@ -353,7 +288,6 @@ class EmbedExtension(Extension):
         plugins = [
             YoutubeProcessor(md),
             TwitterProcessor(md),
-            InstagramProcessor(md),
             VimeoProcessor(md),
             EmbedImageProcessor(md),
         ]

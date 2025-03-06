@@ -7,6 +7,7 @@ import json
 import re
 
 import testdata
+from datatypes import Path
 
 from bang.compat import *
 from bang.decorators import deprecated
@@ -39,12 +40,12 @@ class TestCase(testdata.TestCase):
         output_dir = testdata.create_dir("output", tmpdir=project_dir)
 
         if project_files:
-            for fp, contents in project_files.items():
-                m = re.search(r"\.(jpg|gif|png)$", fp, re.I)
+            for fp, contents in Path.normpaths(project_files):
+                m = re.search(r"\.(jpg|gif|png)$", fp[-1], re.I)
                 if m:
                     testdata.create_image(
                         image_type=m.group(1),
-                        path=fp,
+                        path=os.path.join(*fp),
                         tmpdir=project_dir
                     )
 
@@ -137,39 +138,52 @@ class TestCase(testdata.TestCase):
         return p
 
     @classmethod
-    def get_pages(cls, page_files, bangfile=None):
-        p = cls.get_project(page_files, bangfile=bangfile)
+    def get_pages(cls, input_files, **kwargs):
+        p = cls.get_project(input_files, **kwargs)
         p.compile()
         return p.types["page"]
 
     @classmethod
-    def get_count_pages(cls, count, bangfile=None):
-        page_files = {}
+    def get_count_pages(cls, count, **kwargs):
+        input_files = {}
         for x in range(count):
-            name = testdata.get_ascii(8)
-            page_files["{}/page.md".format(name)] = testdata.get_words()
+            prefix = testdata.get_ascii(8)
+            input_files[f"{prefix}/page.md"] = testdata.get_words()
 
-        return cls.get_pages(page_files, bangfile=bangfile)
+        return cls.get_pages(input_files, **kwargs)
 
     @classmethod
-    def get_page(cls, page_file="", page_files=None, bangfile=None):
-        if not page_file:
-            page_file = [
-                "# title text",
-                "",
-                "body text",
-            ]
+    def get_page(cls, input_file="", input_files=None, **kwargs):
+        input_files = input_files or {}
+        prefix = kwargs.pop("prefix", testdata.get_ascii(8))
 
-        page_files = page_files or {}
-
-        if isinstance(page_file, dict):
-            page_files.update(page_file)
+        if isinstance(input_file, dict):
+            input_files[prefix] = input_file
 
         else:
-            name = "{}/page.md".format(testdata.get_ascii(8))
-            page_files[name] = page_file
+            if not input_file:
+                input_file = [
+                    "# title text",
+                    "",
+                    "body text",
+                ]
 
-        return cls.get_pages(page_files, bangfile=bangfile)[0]
+            input_files[f"{prefix}/page.md"] = input_file
+
+        return cls.get_pages(input_files, **kwargs)[0]
+
+#         else:
+#             prefix = testdata.get_ascii(8)
+#             name = "{}/page.md".format(prefix)
+# 
+#             #page_files[name] = page_file
+#             pf = {
+#                 prefix: page_files,
+#                 name: page_file
+#             }
+#             page_files = pf
+# 
+#         return cls.get_pages(page_files, bangfile=bangfile)[0]
 
     @classmethod
     def get_body(cls, filepath):

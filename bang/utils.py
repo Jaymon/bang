@@ -4,5 +4,6 @@ from datatypes import (
     Url,
     HTML,
     Profiler,
+    HTTPClient,
 )
 

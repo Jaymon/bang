@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals, division, print_function, absolute_import
 import os
 import json
 import re
@@ -51,7 +50,10 @@ class MarkdownTest(TestCase):
 
     def test_image_full_path(self):
         p = self.get_page('![this is the file](images/che.jpg)')
-        self.assertRegexpMatches(p.html, r'//{}/[^/]+/images/che.jpg'.format(p.config.host))
+        self.assertRegexpMatches(
+            p.html,
+            r'//{}/[^/]+/images/che.jpg'.format(p.config.host)
+        )
 
     def test_image_figure_only(self):
         p = self.get_page([
@@ -166,35 +168,29 @@ class MarkdownTest(TestCase):
         self.assertTrue(im.endswith("images/che.jpg"))
 
     def test_image_lazyload(self):
-        p = self.get_page({
-            "page.md": [
-                '![this is the file](images/che.jpg)',
-                "",
-                "images/che.jpg",
-            ],
-            'che.jpg': ""
-        })
+        p = self.get_page([
+            '![this is the file](images/che.jpg)',
+            "",
+            "images/che.jpg",
+        ])
 
         p.output()
         html = p.output_file.read_text()
         self.assertEqual(2, html.count('loading="lazy"'))
 
     def test_href(self):
-        p = self.get_page({
-            'che.txt': testdata.get_words(),
-            'page.md': [
-                "full [link](http://foo.com)",
-                "full [path](/bar)",
-                "file [path](che.txt)",
-                "file [relative link](//bar.com)",
-                ""
-            ]
-        })
+        p = self.get_page([
+            "full [link](http://foo.com)",
+            "full [path](/bar)",
+            "file [path](che.txt)",
+            "file [relative link](//bar.com)",
+            ""
+        ])
 
         html = p.html
         self.assertRegex(html, r'\"http://foo.com\"')
-        self.assertRegex(html, r'\"//{}/bar\"'.format(p.config.host))
-        self.assertRegex(html, r'\"//{}/che.txt\"'.format(p.config.host))
+        self.assertRegex(html, rf'\"//{p.config.host}/bar\"')
+        self.assertRegex(html, rf'\"{p.url}/che.txt\"')
         self.assertRegex(html, r'\"//bar.com\"')
 
     def test_codeblocks_1(self):
@@ -632,36 +628,12 @@ class MarkdownTest(TestCase):
             self.assertTrue(v in r)
 
 
-class EmbedPluginTest(TestCase):
-
-    def setUp(self):
-        """This makes sure these tests only run when they are run specifically, so
-        these will be skipped when all tests are run, we do this because these tests
-        can ping external networks"""
-        if 'PYT_TEST_CLASS_COUNT' in os.environ:
-            skip = True
-            pyt_cls_count = int(os.environ['PYT_TEST_CLASS_COUNT'])
-            pyt_test_count = int(os.environ['PYT_TEST_COUNT'])
-            pyt_mod_count = int(os.environ['PYT_TEST_MODULE_COUNT'])
-            #pout.v(pyt_cls_count, pyt_test_count, pyt_mod_count)
-
-            if pyt_cls_count == 1:
-                skip = False
-
-            elif pyt_test_count == 1:
-                skip = False
-
-            elif pyt_mod_count == 1:
-                skip = False
-
-            if skip:
-                raise self.skipTest("takes too long")
-
-        super(EmbedPluginTest, self).setUp()
-
+class EmbedLocalPluginTest(TestCase):
+    """Embed plugins that don't make any network requests or rely on any
+    third party service requests"""
     def test_embed_link(self):
         p = self.get_page([
-            "This is some [text](http://bar.com) < and then there > is just a url",
+            "Before [text](http://bar.com) < and then there > after",
             "",
             "http://foo.com",
             "",
@@ -669,64 +641,23 @@ class EmbedPluginTest(TestCase):
         ])
 
         r = p.html
-        self.assertTrue('<a class="embed" href="http://foo.com">http://foo.com</a>' in r)
+        self.assertTrue(
+            '<a class="embed" href="http://foo.com">http://foo.com</a>' in r
+        )
         self.assertEqual(1, r.count("embed"))
 
-    def test_embed_youtube_1(self):
+    def test_no_embed_link_in_codeblock(self):
+        """Make sure link embedding doesn't work in codeblocks"""
         p = self.get_page([
-            "before",
+            "```",
             "",
-            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+            "https://foo.com",
             "",
-            "after",
+            "```",
         ])
 
         r = p.html
-        self.assertTrue("<figure" in r)
-
-    def test_embed_youtube_2(self):
-        p = self.get_page(" ".join([
-            "12 notes, that's all you get! These 12 notes give us everything from",
-            "[Beethoven's 5th symphony](https://www.youtube.com/watch?v=_4IRMYuE1hI)",
-            "to [Hanson's MMMBop](https://www.youtube.com/watch?v=NHozn0YXAeE),"
-            "and everything in between. They all use the same set of 12 notes"
-        ]))
-
-        r = p.html
-        self.assertFalse("<iframe" in r)
-
-    def test_embed_twitter(self):
-        p = self.get_page(
-            [
-                "before",
-                "",
-                "https://twitter.com/JohnKirk/status/801086441325375491",
-                "",
-                "middle",
-                "",
-                "https://twitter.com/foo/status/100",
-                "",
-                "after",
-            ],
-            {
-                "twitter.json": json.dumps({
-                    "https://twitter.com/foo/status/100": {
-                        'html': "".join([
-                            '<blockquote class="twitter-tweet">',
-                            '<p lang="en" dir="ltr">foo</p>',
-                            '&mdash; foo <a href="https://twitter.com/foo/status/100">month DD, YYYY</a>',
-                            '</blockquote>',
-                        ]),
-                    },
-                })
-            }
-        )
-
-        r = p.html
-        self.assertEqual(2, r.count("<figure"))
-
-        contents = json.loads(p.input_dir.child_dir("_embed").file_bytes("twitter.json"))
-        self.assertEqual(2, len(contents))
+        self.assertFalse("embed" in r)
 
     def test_no_embed_twitter_links(self):
         p = self.get_page([
@@ -735,23 +666,6 @@ class EmbedPluginTest(TestCase):
 
         r = p.html
         self.assertTrue("a href" in r)
-
-    def test_embed_instagram(self):
-        self.skip_test("FB disabled oembed without an app key in Oct 2020 so I've disabled IG")
-        p = self.get_page([
-            "before text",
-            "",
-            "https://www.instagram.com/p/BNEweVYFVxq/",
-            "",
-            "after text",
-        ])
-
-        r = p.html
-        self.assertEqual(1, r.count("<figure"))
-
-        contents = json.loads(p.input_dir.child_directory("_embed").file_contents("instagram.json"))
-        self.assertEqual(1, len(contents))
-        self.assertTrue(p.input_dir.child_directory("_embed").has_file("BNEweVYFVxq.jpg"))
 
     def test_embed_vimeo(self):
         p = self.get_page([
@@ -798,15 +712,96 @@ class EmbedPluginTest(TestCase):
         self.assertTrue('title=""' in r)
         self.assertTrue('src="http://embedded.com/full/url/bogus.jpg"' in r)
 
-    def test_embed_highlight(self):
+    def test_embed_youtube_1(self):
         p = self.get_page([
-            "```",
+            "before",
             "",
-            "https://foo.com",
+            "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
             "",
-            "```",
+            "after",
         ])
 
         r = p.html
-        self.assertFalse("embed" in r)
+        self.assertTrue("<figure" in r)
+
+    def test_embed_youtube_2(self):
+        p = self.get_page(
+            "12 notes, that's all you get! These 12 notes give us everything"
+            " from [Beethoven's 5th symphony]"
+            "(https://www.youtube.com/watch?v=_4IRMYuE1hI)"
+            " to [Hanson's MMMBop]"
+            "(https://www.youtube.com/watch?v=NHozn0YXAeE),"
+            "and everything in between. They all use the same set of 12 notes"
+        )
+
+        r = p.html
+        self.assertFalse("<iframe" in r)
+
+
+class EmbedRemotePluginTest(TestCase):
+    """Emboed plugins that make requests"""
+    def setUp(self):
+        """This makes sure these tests only run when they are run specifically,
+        so these will be skipped when all tests are run, we do this because
+        these tests can ping external networks"""
+        if 'PYT_TEST_CLASS_COUNT' in os.environ:
+            skip = True
+            pyt_cls_count = int(os.environ['PYT_TEST_CLASS_COUNT'])
+            pyt_test_count = int(os.environ['PYT_TEST_COUNT'])
+            pyt_mod_count = int(os.environ['PYT_TEST_MODULE_COUNT'])
+            #pout.v(pyt_cls_count, pyt_test_count, pyt_mod_count)
+
+            if pyt_cls_count == 1:
+                skip = False
+
+            elif pyt_test_count == 1:
+                skip = False
+
+            elif pyt_mod_count == 1:
+                skip = False
+
+            if skip:
+                raise self.skipTest("takes too long")
+
+        super(EmbedPluginTest, self).setUp()
+
+    def test_embed_twitter(self):
+        p = self.get_page(
+            {
+                "page.md": [
+                    "before",
+                    "",
+                    "https://twitter.com/JohnKirk/status/801086441325375491",
+                    "",
+                    "middle",
+                    "",
+                    "https://twitter.com/foo/status/100",
+                    "",
+                    "after",
+                ],
+                "_embed/twitter.json": json.dumps({
+                    "https://twitter.com/foo/status/100": {
+                        'html': (
+                            '<blockquote class="twitter-tweet">'
+                            '<p lang="en" dir="ltr">foo</p>'
+                            '&mdash;'
+                            ' <a href="https://twiiter.com/foo/status/100">'
+                            'month DD, YYYY</a>'
+                            '</blockquote>'
+                        ),
+                    },
+                })
+            }
+        )
+
+        r = p.html
+        self.assertEqual(2, r.count("<figure"))
+
+        contents = json.loads(
+            p.input_dir.child_dir("_embed").file_bytes("twitter.json")
+        )
+        self.assertEqual(2, len(contents))
+
+        foo_html = contents["https://twitter.com/foo/status/100"]["html"]
+        self.assertTrue("month DD, YYYY" in foo_html)
 
