@@ -205,7 +205,8 @@ class Pages(Types):
 
         if output_dir.has_file(output_basename):
             logger.warning(
-                "Pages.output() cannot generate a root index.html file because one already exists"
+                "Pages.output() cannot generate a root index.html file"
+                " because one already exists"
             )
             return
 
@@ -263,7 +264,10 @@ class Pages(Types):
         theme = self.config.theme
 
         logger.debug(
-            'Templating Pages[{}] with theme.template [{}.{}] to output file {}'.format(
+            (
+                "Templating Pages[{}] with theme.template [{}.{}]"
+                " to output file {}"
+            ).format(
                 kwargs.get("page", "unknown"),
                 theme.name,
                 self.template_name,
@@ -279,10 +283,9 @@ class Pages(Types):
 
 
 class Type(object):
-    """Generic base class for types, a site is composed of different types, the 
-    compile phase should check all the configured types's .match() method and the
-    first .match() that returns True, that's what type the file is
-    """
+    """Generic base class for types, a site is composed of different types, the
+    compile phase should check all the configured types's .match() method and
+    the first .match() that returns True, that's what type the file is """
     next_instance = None
     """holds a pointer to the next Post"""
 
@@ -294,8 +297,8 @@ class Type(object):
 
     instances = None
     """contains a reference to the container class if the instance was appended
-    to the container. This makes it possible for any Type instance to get the rest
-    of the Type instances that were found"""
+    to the container. This makes it possible for any Type instance to get the
+    rest of the Type instances that were found"""
 
     classes = None
     """Holds the deifned Type subclasses that have been loaded into memory. See
@@ -352,9 +355,9 @@ class Type(object):
 
     @property
     def heading(self):
-        """this will return something for a title no matter what, so even if the
-        page doesn't have a title this will return something that is descriptive
-        of the page
+        """this will return something for a title no matter what, so even if
+        the page doesn't have a title this will return something that is
+        descriptive of the page
 
         :returns: string, some title
         """
@@ -472,8 +475,8 @@ class Page(Other):
 
     @property
     def image(self):
-        """Return the image for the post, yes, this uses regex because I didn't want
-        to rely on third party libraries to do this"""
+        """Return the image for the post, yes, this uses regex because I didn't
+        want to rely on third party libraries to do this"""
         ret = ""
         html = self.html
         m = re.search(r"<img\s+[^>]+>", html, flags=re.M | re.I)
@@ -536,7 +539,8 @@ class Page(Other):
 
     @classproperty
     def template_names(cls):
-        """this is the template that will be used to compile the post into html"""
+        """this is the template that will be used to compile the post
+        into html"""
         ret = []
         subclasses = OrderedSubclasses(Page)
         subclasses.insert(cls)
@@ -560,7 +564,10 @@ class Page(Other):
         cache.switch_context(context_name)
 
         if "html" not in cache:
-            logger.debug("Rendering html[{}]: {}".format(context_name, self.uri))
+            logger.debug("Rendering html[{}]: {}".format(
+                context_name,
+                self.uri
+            ))
 
             try:
                 md = self.markdown
@@ -577,8 +584,8 @@ class Page(Other):
                     if m:
                         title = m.group(1).strip()
 
-                        # we actually remove the title from the html since it will
-                        # be available in .title
+                        # we actually remove the title from the html since it
+                        # will be available in .title
                         html = html[:m.start()] + html[m.end():]
 
                     else:
@@ -598,9 +605,9 @@ class Page(Other):
         return cache["title"], cache["html"], cache["meta"]
 
     def find_title(self, html):
-        """Find an appropriate title for this page, this is called in the .compile()
-        method when a suitable title can't be found and it's a separate method
-        call so children can override it
+        """Find an appropriate title for this page, this is called in the
+        .compile() method when a suitable title can't be found and it's a
+        separate method call so children can override it
 
         :param html: string, the html of this page
         :returns: string, the title that will go into the .title property
@@ -643,7 +650,10 @@ class Page(Other):
             theme = self.config.theme
 
         logger.info(
-            'Templating input file [{}] with theme.template [{}.{}] to output file [{}]'.format(
+            (
+                "Templating input file [{}] with theme.template"
+                " [{}.{}] to output file [{}]"
+            ).format(
                 self.input_file,
                 theme.name,
                 template_name,
