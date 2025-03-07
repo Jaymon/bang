@@ -25,8 +25,8 @@ class Asset(object):
         self.properties = properties
 
     def compile(self):
-        """The compile phase, go through all the assets and figure out what their
-        output path will be"""
+        """The compile phase, go through all the assets and figure out what
+        their output path will be"""
         if self.is_url():
             self.output_file = self.input_file
 
@@ -39,8 +39,8 @@ class Asset(object):
             )
 
     def output(self):
-        """output phase, go through all the assets and actually copy them over to
-        the output directory"""
+        """output phase, go through all the assets and actually copy them over
+        to the output directory"""
         if self.is_url():
             self.url = self.output_file
 
@@ -93,8 +93,9 @@ class JS(Asset):
 class Assets(object):
     """An instance of this class will be available at config.assets.
 
-    Assets are stored by basename -> path, so, if you had <INPUT-DIR>/assets/app.css
-    then you could grab it by doing `config.assets.get("app.css")`
+    Assets are stored by basename -> path, so, if you had
+    <INPUT-DIR>/assets/app.css then you could grab it by doing
+    `config.assets.get("app.css")`
     """
     css_class = CSS
     js_class = JS
@@ -102,8 +103,8 @@ class Assets(object):
 
     @property
     def dirname(self):
-        """this is the directory that is checked for input and the name of the output
-        directory also"""
+        """this is the directory that is checked for input and the name of the
+        output directory also"""
         return self.config.get("assets_dir", "assets")
 
     def __init__(self, output_dir, config):
@@ -121,8 +122,8 @@ class Assets(object):
     def add_dir(self, path):
         """Add a directory to check for a DIRNAME directory inside path
 
-        :param path: str, this directory path will be checked for a .DIRNAME directory
-        inside of it
+        :param path: str, this directory path will be checked for a
+        .DIRNAME directory inside of it
         """
         assets_dir = Dirpath(path, self.dirname)
         if assets_dir.exists():
@@ -130,8 +131,8 @@ class Assets(object):
                 self.add(path)
 
     def add(self, path, ext="", **properties):
-        """This will add an asset at path and when the html is generated it will
-        have those properties
+        """This will add an asset at path and when the html is generated it
+        will have those properties
 
         :param path: str, a local path or URL for the asset
         :param **properties: dict, key/val of html tag properties
@@ -261,8 +262,8 @@ class Assets(object):
             asset.output()
 
     def css_inline(self):
-        """Generates all the css as a body that can go between a <style></style>
-        html tag. This is basically the raw css
+        """Generates all the css as a body that can go between a
+        <style></style> html tag. This is basically the raw css
 
         :returns: str, the CSS code that is suitable to be placed in the body
             of a <style> tag
@@ -287,8 +288,8 @@ class Assets(object):
         return "\n".join(ret)
 
     def html_body(self):
-        """this generates the body javascript that will be injected right before
-        </body>
+        """this generates the body javascript that will be injected right
+        before </body>
 
         :returns: str, the script tag to inject into the body
         """
@@ -302,9 +303,10 @@ class Assets(object):
         """Handles ordering of the .head_html() output
 
         This is kind of strange, and in a perfect world wouldn't be needed, but
-        basically this will place any assets that match regexes in before first,
-        then put all the regexes in order in the middle and then all the after
-        regexes last, in the order those regexes are in each of their lists.
+        basically this will place any assets that match regexes in before
+        first, then put all the regexes in order in the middle and then all the
+        after regexes last, in the order those regexes are in each of their
+        lists.
 
         Let's say we had an asset directory like this:
 
@@ -314,8 +316,8 @@ class Assets(object):
                 che.css
                 foo.css
 
-        and we want them to be in this order: foo.css, baz.css, che.css, bar.css,
-        then we could do:
+        and we want them to be in this order: foo.css, baz.css, che.css,
+        bar.css, then we could do:
 
             config.assets.order(before=[r"foo", r"baz"], after=["bar"])
 
@@ -350,22 +352,14 @@ def compile_assets(event):
 
 
 @event('output.start')
-def context_html(event):
+def output_assets(event):
     config = event.config
     config.assets.output()
 
 
 @event("output.template")
-def template_output_favicon(event):
+def template_output_assets(event):
     config = event.config
-    if config.is_context("amp"):
-        event.html = event.html.inject_into_head("\n".join([
-            "<style amp-custom>",
-            config.assets.css_inline(),
-            "</style>",
-        ]))
-
-    else:
-        event.html = event.html.inject_into_head(config.assets.html_links())
-        event.html = event.html.inject_into_body(config.assets.html_body())
+    event.html = event.html.inject_into_head(config.assets.html_links())
+    event.html = event.html.inject_into_body(config.assets.html_body())
 

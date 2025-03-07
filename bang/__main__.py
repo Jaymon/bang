@@ -23,21 +23,16 @@ logger = logging.getLogger(__name__)
 def console_compile(args, project_dir, output_dir):
 
     with Profiler() as total:
-#         regex = args.regex
         s = Project(project_dir, output_dir)
 
-#         if regex:
-#             logger.info("Compiling directories matching {} in {} to {}".format(
-#                 regex,
-#                 s.input_dir,
-#                 s.output_dir
-#             ))
-#         else:
-#         logger.info("Compiling directory {} to {}".format(s.input_dir, s.output_dir))
+        with Profiler() as compile_total:
+            s.compile()
 
-#         s.output(regex)
-        s.output()
+        with Profiler() as output_total:
+            s.output()
 
+    logger.info("Compiling done in {}".format(compile_total))
+    logger.info("Outputting done in {}".format(output_total))
     logger.info("Compile done in {}".format(total))
     return 0
 
@@ -188,8 +183,8 @@ def configure_logging(val):
                 'handlers': ['stdout', 'stderr'],
             },
             'incremental': False,
-            # Don't want to disable existing loggers (like endpoints) that exist
-            # before this config is loaded.
+            # Don't want to disable existing loggers (like endpoints) that
+            # exist before this config is loaded.
             'disable_existing_loggers': False,
         }
         logging.config.dictConfig(d)
@@ -213,8 +208,9 @@ def console():
     return -- integer -- the exit code
     '''
     # this is the main parser that will do the actual parsing of arguments
-    #parser = argparse.ArgumentParser(description="Bang - Static site generator", add_help=False)
-    parser = argparse.ArgumentParser(description="Bang - Static site generator")
+    parser = argparse.ArgumentParser(
+        description="Bang - Static site generator"
+    )
     parser.add_argument(
         "-v", "-V", "--version",
         action='version',
@@ -243,11 +239,13 @@ def console():
         const='DIWEC',
         default='',
         type=configure_logging,
-        help=''.join([
-            'Selectively turn off [D]ebug, [I]nfo, [W]arning, [E]rror, or [C]ritical, ',
-            '(--quiet=DI means suppress Debug and Info), ',
-            'use - to invert (--quiet=-E means suppress everything but Error)',
-        ])
+        help=''.join(
+            "Selectively turn off:"
+            " [D]ebug, [I]nfo, [W]arning, [E]rror, or [C]ritical,"
+            " (--quiet=DI means suppress Debug and Info),"
+            " use - to invert"
+            " (--quiet=-E means suppress everything but Error)"
+        )
     )
 
     subparsers = parser.add_subparsers(dest="command", help="a sub command")
@@ -258,12 +256,6 @@ def console():
         help="Compile your site",
         add_help=False
     )
-#     compile_parser.add_argument(
-#         '--pattern', '--regex',
-#         dest="regex",
-#         required=False,
-#         help='Only directories matching this pattern will be compiled'
-#     )
     compile_parser.set_defaults(func=console_compile)
 
     serve_parser = subparsers.add_parser(
@@ -292,7 +284,10 @@ def console():
     generate_parser = subparsers.add_parser(
         "generate",
         parents=[parent_parser],
-        help="Generate a skeleton site that is a great starting point to customize",
+        help=(
+            "Generate a skeleton site that is a"
+            " great starting point to customize"
+        ),
         add_help=False
     )
     generate_parser.set_defaults(func=console_generate)
@@ -300,7 +295,6 @@ def console():
     test_parser = subparsers.add_parser(
         "test",
         parents=[serve_parser],
-        #parents=[compile_parser, serve_parser], # this didn't work, it made project and output dirs positional args
         help="Compile and serve a project",
         add_help=False,
         conflict_handler="resolve",

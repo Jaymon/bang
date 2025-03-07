@@ -2,6 +2,7 @@
 import os
 from contextlib import contextmanager
 import logging
+from functools import cached_property
 
 from jinja2 import Environment, FileSystemLoader
 from datatypes import (
@@ -235,7 +236,7 @@ class Theme(object):
     template documentation:
         https://jinja.palletsprojects.com/en/2.10.x/templates/
     """
-    @property
+    @cached_property
     def template(self):
         # https://jinja.palletsprojects.com/en/latest/api/#jinja2.Environment
         return Environment(
@@ -261,6 +262,10 @@ class Theme(object):
         return "/".join(parts)
 
     def get_template_info(self, template_name):
+        """
+        :returns: tuple[str, str], a tuple containing the normalized template
+        name and the template_relpath
+        """
         template_name = self.get_template_name(template_name)
         return (template_name, f"{template_name}.html")
 

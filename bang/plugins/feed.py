@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-Why do I render the feed myself? Because every library I found needed too many other
-dependencies and some were a real pain to install (you need lxml? Seriously?). So
-I just render the feed raw
+Why do I render the feed myself? Because every library I found needed too many
+other dependencies and some were a real pain to install (you need lxml?
+Seriously?). So I just render the feed raw
 
 http://en.wikipedia.org/wiki/RSS
 https://github.com/lkiesow/python-feedgen
 http://cyber.law.harvard.edu/rss/rss.html
 
 validator: http://validator.w3.org/feed/
-big list of namespaces: http://validator.w3.org/feed/docs/howto/declare_namespaces.html
+big list of namespaces:
+    http://validator.w3.org/feed/docs/howto/declare_namespaces.html
 """
 import datetime
 import os
@@ -33,7 +34,7 @@ def get_safe(text):
 
 def get_cdata(text):
     """wrap the text in cdata escaping"""
-    return '<![CDATA[{}]]>'.format(text)
+    return "<![CDATA[{}]]>".format(text)
 
 
 def get_datestr(dt):
@@ -48,13 +49,15 @@ def configure_feed(event):
     config.setdefault("feed_url", Url("/", config.feed_filename))
 
 
-@event('output.finish')
-def output_rss(event):
+@event("output.finish")
+def output_feed(event):
     config = event.config
 
     with config.context("feed") as config:
         if "feed_iter" not in config:
-            logger.error("feed plugin not running because no config.feed_iter found")
+            logger.error(
+                "feed plugin not running because no config.feed_iter found"
+            )
             return
 
         host = config.host
@@ -62,7 +65,10 @@ def output_rss(event):
             logger.error("RSS feed not generated because no config host set")
             return
 
-        feedpath = os.path.join(String(config.output_dir), config.feed_filename)
+        feedpath = os.path.join(
+            String(config.output_dir),
+            config.feed_filename
+        )
         logger.info("writing feed to {}".format(feedpath))
 
         main_url = config.base_url
@@ -80,25 +86,43 @@ def output_rss(event):
             #fp.write("  xmlns:georss=\"http://www.georss.org/georss\">\n")
 
             fp.write("  <channel>\n")
-            fp.write("    <title>{}</title>\n".format(get_safe(config.get('name', host))))
-            fp.write("    <description>{}</description>\n".format(get_safe(config.get('description', host))))
+            fp.write("    <title>{}</title>\n".format(
+                get_safe(config.get('name', host))
+            ))
+            fp.write("    <description>{}</description>\n".format(
+                get_safe(config.get('description', host))
+            ))
 
             fp.write("    <link>{}</link>\n".format(get_safe(main_url)))
-            fp.write("    <atom:link href=\"{}\" rel=\"self\"/>\n".format(get_safe(feed_url)))
+            fp.write("    <atom:link href=\"{}\" rel=\"self\"/>\n".format(
+                get_safe(feed_url)
+            ))
             #fp.write(u"    <atom:link href=\"{}\" rel=\"alternate\"/>\n".format(main_url))
 
             dt = datetime.datetime.utcnow()
             fp.write("    <pubDate>{}</pubDate>\n".format(get_datestr(dt)))
-            fp.write("    <lastBuildDate>{}</lastBuildDate>\n".format(get_datestr(dt)))
+            fp.write("    <lastBuildDate>{}</lastBuildDate>\n".format(
+                get_datestr(dt)
+            ))
             fp.write("    <generator>github.com/Jaymon/bang</generator>\n")
 
             for p in config.feed_iter:
                 fp.write("    <item>\n")
-                fp.write("      <title>{}</title>\n".format(get_cdata(p.title)))
-                fp.write("      <description>{}</description>\n".format(get_cdata(p.html)))
+                fp.write("      <title>{}</title>\n".format(
+                    get_cdata(p.title)
+                ))
+                fp.write("      <description>{}</description>\n".format(
+                    get_cdata(p.html)
+                ))
                 fp.write("      <link>{}</link>\n".format(get_safe(p.url)))
-                fp.write("      <guid isPermaLink=\"false\">{}</guid>\n".format(get_safe(p.uri)))
-                fp.write("      <pubDate>{}</pubDate>\n".format(get_datestr(p.modified)))
+                fp.write(
+                    "      <guid isPermaLink=\"false\">{}</guid>\n".format(
+                        get_safe(p.uri)
+                    )
+                )
+                fp.write("      <pubDate>{}</pubDate>\n".format(
+                    get_datestr(p.modified)
+                ))
                 fp.write("    </item>\n")
 
                 count += 1
@@ -110,10 +134,17 @@ def output_rss(event):
 
 
 @event("output.template")
-def template_output_favicon(event):
+def template_output_feed(event):
     config = event.config
 
-    s = '<link rel="alternate" type="application/rss+xml" title="RSS feed" href="{}" />'.format(
+    s = (
+        '<link '
+        ' rel="alternate"'
+        ' type="application/rss+xml"'
+        ' title="RSS feed"'
+        ' href="{}"'
+        ' />'
+    ).format(
         config.feed_url
     )
 

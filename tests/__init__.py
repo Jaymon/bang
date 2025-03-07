@@ -135,12 +135,14 @@ class TestCase(testdata.TestCase):
         )
         project_dir, output_dir = cls.get_dirs(project_files)
         p = Project(project_dir, output_dir)
+
+        p.compile()
+
         return p
 
     @classmethod
     def get_pages(cls, input_files, **kwargs):
         p = cls.get_project(input_files, **kwargs)
-        p.compile()
         return p.types["page"]
 
     @classmethod

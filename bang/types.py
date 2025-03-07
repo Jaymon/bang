@@ -558,7 +558,13 @@ class Page(Other):
         return bool(re.search(cls.regex(), basename, flags=re.I))
 
     def compile(self):
-        cache = getattr(self, "_cache", ContextNamespace(cascade=False))
+        """Compile this type instance
+
+        This is called implicitely internally (eg, see the `.html` property)
+        """
+        cache = getattr(self, "_cache", None)
+        if not cache:
+            cache = ContextNamespace(cascade=False)
 
         context_name = self.config.context_name()
         cache.switch_context(context_name)

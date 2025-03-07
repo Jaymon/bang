@@ -67,7 +67,6 @@ class PageTest(TestCase):
             "body text",
         ])
 
-        p.compile()
         self.assertEqual("this is the title", p.title)
         self.assertTrue(">body text</" in p.html)
 

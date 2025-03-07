@@ -94,8 +94,8 @@ class Project(object):
         theme = self.config.theme
         Bangfile(theme.theme_dir)
 
-        # theme configuration comes after project configuration because project
-        # configuration will most likely set the theme to be used
+        # theme configuration comes after project configuration because
+        # project configuration will most likely set the theme to be used
         theme.configure()
         event.push("configure.theme")
         event.push("configure.theme.{}".format(theme.name))
@@ -115,8 +115,8 @@ class Project(object):
         """go through project's input/ directory and find all the different
         types
 
-        This just populates self.types but doesn't do any actual outputting and
-        is really only broken out from output() for easier testing"""
+        This just populates self.types but doesn't do any actual outputting
+        and is really only broken out from output() for easier testing"""
         event.broadcast("compile.start")
 
         self.config.theme.compile()
@@ -137,13 +137,11 @@ class Project(object):
         event.broadcast("compile.finish")
 
     def output(self):
-        """go through input/ dir and compile the files and move them to output/
-        dir"""
-        self.compile()
-
+        """go through input/ dir and compile the files and move them to
+        output/ dir"""
         # conceptually the same event as compile.finish but here for
-        # completeness and easier readability of the intention of a callback in
-        # a bangfiles
+        # completeness and easier readability of the intention of a callback
+        # in bangfiles
         event.broadcast('output.clear')
 
         if self.output_dir.exists():
