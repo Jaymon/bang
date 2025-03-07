@@ -176,6 +176,7 @@ class MarkdownTest(TestCase):
 
         p.output()
         html = p.output_file.read_text()
+        pout.v(html)
         self.assertEqual(2, html.count('loading="lazy"'))
 
     def test_href(self):

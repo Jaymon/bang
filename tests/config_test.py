@@ -58,6 +58,16 @@ class ThemeTest(TestCase):
         self.assertTrue(t.has_template("che"))
         self.assertTrue(t.has_template("bar/baz"))
 
+    def test_render_template(self):
+        theme_dir = testdata.create_files({
+            "template/foo.html": "hello {{ name }}",
+        })
+
+        t = Theme(theme_dir, testdata.mock(get=""))
+
+        html = t.render_template("foo", name="world")
+        self.assertEqual("hello world", html)
+
 
 class ConfigTest(TestCase):
     def test_base_url(self):
@@ -65,7 +75,11 @@ class ConfigTest(TestCase):
         with config.context("web", scheme="", host="example.com") as conf:
             self.assertEqual("//example.com", conf.base_url)
 
-        with config.context("feed", scheme="https", host="example.com") as conf:
+        with config.context(
+            "feed",
+            scheme="https",
+            host="example.com"
+        ) as conf:
             self.assertEqual("https://example.com", conf.base_url)
 
         with config.context("no_host_no_scheme", scheme="", host="") as conf:
@@ -74,9 +88,17 @@ class ConfigTest(TestCase):
         with config.context("no_host_scheme", scheme="http", host="") as conf:
             self.assertEqual("", conf.base_url)
 
-        with config.context("host_none_scheme", scheme="http", host=None) as conf:
+        with config.context(
+            "host_none_scheme",
+            scheme="http",
+            host=None
+        ) as conf:
             self.assertEqual("", conf.base_url)
 
-        with config.context("none_host_and_scheme", scheme=None, host=None) as conf:
+        with config.context(
+            "none_host_and_scheme",
+            scheme=None,
+            host=None
+        ) as conf:
             self.assertEqual("", conf.base_url)
 

@@ -2,8 +2,11 @@
 import os
 from contextlib import contextmanager
 import logging
+from functools import cached_property
 
-from jinja2 import Environment, FileSystemLoader
+#from jinja2 import Environment, FileSystemLoader
+from jinja2 import FileSystemLoader
+from minijinja import Environment
 from datatypes import (
     OrderedSubclasses,
     Url,
@@ -235,14 +238,17 @@ class Theme(object):
     template documentation:
         https://jinja.palletsprojects.com/en/2.10.x/templates/
     """
-    @property
+    #@property
+    @cached_property
     def template(self):
         # https://jinja.palletsprojects.com/en/latest/api/#jinja2.Environment
         return Environment(
-            loader=FileSystemLoader(self.template_dirs),
+            loader=self.get_template_body,
+            #loader=FileSystemLoader(self.template_dirs),
             #extensions=['jinja2.ext.with_'] # http://jinja.pocoo.org/docs/dev/templates/#with-statement
             lstrip_blocks=True,
             trim_blocks=True,
+            auto_escape_callback=lambda x: False
         )
 
     def __init__(self, theme_dir, config, **kwargs):
@@ -260,7 +266,14 @@ class Theme(object):
         parts.append(template_name.strip("/"))
         return "/".join(parts)
 
+    def get_template_body(self, template_relpath):
+        for template_dir in self.template_dirs:
+            if template_dir.has_file(template_relpath):
+                return template_dir.get_file(template_relpath).read_text()
+
     def get_template_info(self, template_name):
+        """Returns the normalized template name and the template file path
+        relative to the template directory"""
         template_name = self.get_template_name(template_name)
         return (template_name, f"{template_name}.html")
 
@@ -282,8 +295,14 @@ class Theme(object):
         https://jinja.palletsprojects.com/en/master/api/#jinja2.Template.render
         """
         template_name, template_relpath = self.get_template_info(template_name)
-        tmpl = self.template.get_template(template_relpath)
-        html = tmpl.render(config=self.config, **kwargs)
+        html = self.template.render_template(
+            template_relpath,
+            config=self.config,
+            **kwargs
+        )
+
+        #tmpl = self.template.get_template(template_relpath)
+        #html = tmpl.render(config=self.config, **kwargs)
 
         logger.debug(f"Rendering HTML with template: {template_name}")
 
