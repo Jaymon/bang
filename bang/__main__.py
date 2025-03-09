@@ -21,7 +21,6 @@ logger = logging.getLogger(__name__)
 
 
 def console_compile(args, project_dir, output_dir):
-
     with Profiler() as total:
         s = Project(project_dir, output_dir)
 
@@ -73,42 +72,10 @@ def console_serve(args, project_dir, output_dir):
 
 
 def console_test(args, project_dir, output_dir):
+    os.environ.setdefault("BANG_ENV", "test")
+
     console_compile(args, project_dir, output_dir)
     console_serve(args, project_dir, output_dir)
-
-
-def console_watch(args, project_dir, output_dir):
-    ret_code = 0
-    logger.info("running watch")
-    d = Dirpath(project_dir, '.git')
-    if d.exists():
-        try:
-            git_path = subprocess.check_output(['which', 'git']).strip()
-            output = subprocess.check_output(
-                [git_path, "pull", "origin", "master"],
-                stderr=subprocess.STDOUT,
-                cwd=str(project_dir)
-            )
-            if (output.find("Updating") >= 0) or not output_dir.exists():
-                # there are new changes, let's recompile the project
-                s = Project(project_dir, output_dir)
-                s.output()
-
-            elif output.find("Already up-to-date"):
-                # nothing has changed, so don't recompile
-                pass
-
-            else:
-                raise RuntimeError(output)
-
-        except subprocess.CalledProcessError as e:
-            raise
-
-    else:
-        ret_code = 1
-
-    logger.info("watch done")
-    return ret_code
 
 
 def configure_logging(val):
@@ -272,14 +239,6 @@ def console():
         help='The port for the webserver'
     )
     serve_parser.set_defaults(func=console_serve)
-
-    watch_parser = subparsers.add_parser(
-        "watch",
-        parents=[parent_parser],
-        help="Watch for changes in a repo",
-        add_help=False
-    )
-    watch_parser.set_defaults(func=console_watch)
 
     generate_parser = subparsers.add_parser(
         "generate",

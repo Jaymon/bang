@@ -174,19 +174,6 @@ class TestCase(testdata.TestCase):
 
         return cls.get_pages(input_files, **kwargs)[0]
 
-#         else:
-#             prefix = testdata.get_ascii(8)
-#             name = "{}/page.md".format(prefix)
-# 
-#             #page_files[name] = page_file
-#             pf = {
-#                 prefix: page_files,
-#                 name: page_file
-#             }
-#             page_files = pf
-# 
-#         return cls.get_pages(page_files, bangfile=bangfile)[0]
-
     @classmethod
     def get_body(cls, filepath):
         v = u''
