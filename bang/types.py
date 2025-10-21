@@ -7,7 +7,6 @@ import logging
 import inspect
 import random
 
-from datatypes.reflection import OrderedSubclasses
 from datatypes.reflection import ClassKeyFinder
 from datatypes import (
     Url,
@@ -28,8 +27,13 @@ from .event import event
 logger = logging.getLogger(__name__)
 
 
-
 class ClassKeyFinder(ClassKeyFinder):
+    """Holds all the Type classes.
+
+    See `Types.classes` and `Type.__init_subclass__`.
+
+    The class keys correspond to `Type.name`
+    """
     def __init__(self, cutoff_class=None):
         super().__init__()
 
@@ -405,19 +409,6 @@ class Type(object):
         # https://github.com/Jaymon/bang/issues/61
         Type.classes.add_class(cls)
 
-
-#     def __init_subclass__(cls, *args, **kwargs):
-#         """
-#         https://peps.python.org/pep-0487/
-#         """
-#         super().__init_subclass__(*args, **kwargs)
-# 
-#         if not Type.classes:
-#             Type.classes = OrderedSubclasses(Type)
-# 
-#         # https://github.com/Jaymon/bang/issues/61
-#         Type.classes.insert(cls)
-
     def absolute_url(self, url):
         """normalizes the url into a full url using this Type as a base"""
         if not Url.is_url(url):
@@ -436,9 +427,7 @@ class Type(object):
         return url
 
     def __str__(self):
-        #input_relpath = self.input_file.relative_to(self.config.input_dir)
         output_relpath = self.output_file.relative_to(self.config.output_dir)
-        #return f"{self.name}: {input_relpath} -> {output_relpath}"
         return f"{self.name}: {self.input_file} -> {output_relpath}"
 
 
@@ -568,9 +557,7 @@ class Page(Other):
         """this is the template that will be used to compile the post
         into html"""
         ret = []
-        subclasses = OrderedSubclasses(Page)
-        subclasses.insert(cls)
-        for c in subclasses:
+        for c in cls.classes.get_mro_classes(Page):
             if hasattr(c, "name"):
                 ret.append(c.name)
         return ret

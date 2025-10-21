@@ -128,7 +128,6 @@ class Config(ContextNamespace):
     def page_types(self):
         """returns types of Page and above (any children of Page)"""
         return [t for t in self.types.get_mro_classes(Page)]
-        #return [t for t in self.types if issubclass(t, Page)]
 
     @property
     def types(self):
@@ -333,5 +332,4 @@ class Theme(object):
             if template_dir.has_file(template_relpath):
                 return True
         return False
-        #return self.template_dir.has_file(template_relpath)
 
