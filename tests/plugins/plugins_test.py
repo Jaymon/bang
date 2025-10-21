@@ -142,6 +142,7 @@ class GoogleAnalyticsTest(TestCase):
 
 class OpenGraphTest(TestCase):
     plugins = "opengraph"
+
     def test_html(self):
         p = self.get_page()
         p.output()

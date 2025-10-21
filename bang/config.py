@@ -6,7 +6,6 @@ from functools import cached_property
 
 from jinja2 import Environment, FileSystemLoader
 from datatypes import (
-    OrderedSubclasses,
     Url,
     ContextNamespace,
     ReflectPath,
@@ -128,7 +127,8 @@ class Config(ContextNamespace):
     @property
     def page_types(self):
         """returns types of Page and above (any children of Page)"""
-        return [t for t in self.types if issubclass(t, Page)]
+        return [t for t in self.types.get_mro_classes(Page)]
+        #return [t for t in self.types if issubclass(t, Page)]
 
     @property
     def types(self):

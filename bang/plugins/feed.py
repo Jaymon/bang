@@ -99,7 +99,7 @@ def output_feed(event):
             ))
             #fp.write(u"    <atom:link href=\"{}\" rel=\"alternate\"/>\n".format(main_url))
 
-            dt = datetime.datetime.utcnow()
+            dt = datetime.datetime.now(datetime.timezone.utc)
             fp.write("    <pubDate>{}</pubDate>\n".format(get_datestr(dt)))
             fp.write("    <lastBuildDate>{}</lastBuildDate>\n".format(
                 get_datestr(dt)

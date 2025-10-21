@@ -68,7 +68,7 @@ class Project(object):
         """return the instances of type_name found during project compile"""
         types = self.types.get(type_name, None)
         if types is None:
-            for type_class in self.config.types:
+            for type_class in self.config.types.get_mro_classes():
                 if type_name == type_class.name:
                     types = type_class.instances_class(self.config)
                     self.types[type_name] = types
@@ -125,7 +125,7 @@ class Project(object):
         type_classes = self.config.types
 
         for relpath, input_file, output_dir in self:
-            for type_class in type_classes:
+            for type_class in type_classes.get_mro_classes():
                 if type_class.match(input_file.basename):
                     types = self.get_types(type_class.name)
                     instance = type_class(input_file, output_dir, self.config)

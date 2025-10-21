@@ -50,7 +50,7 @@ class MarkdownTest(TestCase):
 
     def test_image_full_path(self):
         p = self.get_page('![this is the file](images/che.jpg)')
-        self.assertRegexpMatches(
+        self.assertRegex(
             p.html,
             r'//{}/[^/]+/images/che.jpg'.format(p.config.host)
         )
@@ -60,7 +60,7 @@ class MarkdownTest(TestCase):
             "![this is the caption](foo.jpg)",
         ])
         r = p.html
-        self.assertRegex(r, '<figure[^>]*><img alt="foo.jpg"')
+        self.assertRegex(r, r'<figure[^>]*><img alt="foo.jpg"')
 
     def test_image_figure_mixed(self):
         p = self.get_page([
@@ -77,7 +77,7 @@ class MarkdownTest(TestCase):
             "![](baz.jpg) this text after an image with [link](http://baz.com)",
         ])
         r = p.html
-        self.assertRegex(r, '<figure[^>]*><img alt="foo.jpg"')
+        self.assertRegex(r, r'<figure[^>]*><img alt="foo.jpg"')
         self.assertTrue('<p>This text has an image <img alt="bar.jpg" ' in r)
         self.assertTrue('<p><img alt="che.jpg" ' in r)
         self.assertTrue('<p><img alt="baz.jpg" ' in r)
@@ -315,8 +315,8 @@ class MarkdownTest(TestCase):
         for x in ["1", "2", "foo"]:
             #self.assertTrue("#fn-2-{}".format(x) in r)
             #self.assertTrue("#fnref-2-{}".format(x) in r)
-            self.assertRegexpMatches(r, "#fn-.+?-{}".format(x))
-            self.assertRegexpMatches(r, "#fnref-.+?-{}".format(x))
+            self.assertRegex(r, r"#fn-.+?-{}".format(x))
+            self.assertRegex(r, r"#fnref-.+?-{}".format(x))
 
     def test_uniq_footnotes(self):
         ps = self.get_pages({

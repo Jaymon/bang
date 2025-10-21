@@ -8,6 +8,7 @@ import inspect
 import random
 
 from datatypes.reflection import OrderedSubclasses
+from datatypes.reflection import ClassKeyFinder
 from datatypes import (
     Url,
     HTML,
@@ -25,6 +26,20 @@ from .event import event
 
 
 logger = logging.getLogger(__name__)
+
+
+
+class ClassKeyFinder(ClassKeyFinder):
+    def __init__(self, cutoff_class=None):
+        super().__init__()
+
+        if not cutoff_class:
+            cutoff_class = Type
+
+        self.set_cutoff_class(cutoff_class)
+
+    def get_class_keys(self, type_class):
+        return [type_class.name]
 
 
 class TypeIterator(object):
@@ -384,13 +399,24 @@ class Type(object):
         """
         https://peps.python.org/pep-0487/
         """
-        super().__init_subclass__(*args, **kwargs)
-
         if not Type.classes:
-            Type.classes = OrderedSubclasses(Type)
+            Type.classes = ClassKeyFinder(Type)
 
         # https://github.com/Jaymon/bang/issues/61
-        Type.classes.insert(cls)
+        Type.classes.add_class(cls)
+
+
+#     def __init_subclass__(cls, *args, **kwargs):
+#         """
+#         https://peps.python.org/pep-0487/
+#         """
+#         super().__init_subclass__(*args, **kwargs)
+# 
+#         if not Type.classes:
+#             Type.classes = OrderedSubclasses(Type)
+# 
+#         # https://github.com/Jaymon/bang/issues/61
+#         Type.classes.insert(cls)
 
     def absolute_url(self, url):
         """normalizes the url into a full url using this Type as a base"""

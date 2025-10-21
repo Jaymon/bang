@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from datatypes import Event, Extend
-
-from .compat import *
+from datatypes import Events
 
 
-event = Event()
-extend = Extend()
+event = Events()
 
