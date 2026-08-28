@@ -70,7 +70,7 @@ class Bangfile(object):
 
 class Config(ContextNamespace):
     """A context aware configuration class, really this is a glorified
-    getter/setter but you can change the context using with .context(name)
+    getter/setter but you can change the context using `with .context(name)`
     which means you can change values and then when you switch contexts the
     values will reset to what they were, this is handy for having a little
     different configuration in your feed as opposed to your web
@@ -134,7 +134,8 @@ class Config(ContextNamespace):
         return Type.classes
 
     def __init__(self, project):
-        super().__init__("global")
+        self._global_context_name = "global"
+        super().__init__(self._global_context_name)
 
         # we set support properties directly on the __dict__ so __setattr__
         # doesn't infinite loop, context properties can just be set normally
@@ -185,13 +186,21 @@ class Config(ContextNamespace):
         :param themes_dir: Directory, a directory where themes can be found
         """
         # we always add the themes to the global context
-        context = self.get_context(self._context_names[0])
-        context.setdefault("themes", self.context_class())
+        with super().context(self._global_context_name):
+            self.setdefault("themes", {})
 
-        themes_dir = Dirpath(themes_dir)
-        for theme_dir in themes_dir.dirs().depth(1):
-            t = Theme(theme_dir, self)
-            self.themes[t.name] = t
+            themes_dir = Dirpath(themes_dir)
+            for theme_dir in themes_dir.dirs().depth(1):
+                t = Theme(theme_dir, self)
+                self.themes[t.name] = t
+
+#         context = self.get_context(self._context_names[0])
+#         context.setdefault("themes", self.context_class())
+# 
+#         themes_dir = Dirpath(themes_dir)
+#         for theme_dir in themes_dir.dirs().depth(1):
+#             t = Theme(theme_dir, self)
+#             self.themes[t.name] = t
 
     def set(self, k, v):
         self[k] = v
@@ -204,6 +213,10 @@ class Config(ContextNamespace):
         for k, v in os.environ.items():
             if k.startswith(prefix):
                 self.set(k[len(prefix):].lower(), v)
+
+    def is_context(self, context_name: str) -> bool:
+        """Return True if `context_name` is the currently active context"""
+        return self.context_name() == context_name
 
 
 class Theme(object):
