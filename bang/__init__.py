@@ -8,7 +8,7 @@ from .event import event
 from .decorators import once
 
 
-__version__ = "3.0.0"
+__version__ = "3.1.0"
 
 
 logger = logging.getLogger(__name__)
@@ -52,7 +52,7 @@ class Project(object):
         """
         is_private_cb = self.config.get(
             "is_private_callback",
-            self.is_private_basename
+            self.is_private_basename,
         )
 
         for input_dir in self.input_dirs:

@@ -624,54 +624,6 @@ class Page(Other):
 
         return cache["title"], cache["html"], cache["meta"]
 
-#         cache = getattr(self, "_cache", None)
-#         if not cache:
-#             cache = ContextNamespace(cascade=False)
-# 
-#         context_name = self.config.context_name()
-#         cache.switch_context(context_name)
-# 
-#         if "html" not in cache:
-#             logger.debug("Rendering html[{}]: {}".format(
-#                 context_name,
-#                 self.uri
-#             ))
-# 
-#             try:
-#                 md = self.markdown
-#                 html = md.output(self)
-#                 meta = getattr(md, "Meta", {})
-# 
-#                 title = meta.get("title", "")
-#                 if not title:
-#                     m = re.match(
-#                         r"^\s*<h1[^>]*>([^<]*)</h1>\s*",
-#                         html,
-#                         flags=re.I | re.M
-#                     )
-#                     if m:
-#                         title = m.group(1).strip()
-# 
-#                         # we actually remove the title from the html since it
-#                         # will be available in .title
-#                         html = html[:m.start()] + html[m.end():]
-# 
-#                     else:
-#                         title = self.find_title(html)
-# 
-#                 cache["html"] = html
-#                 cache["meta"] = meta
-#                 cache["title"] = title
-#                 self._cache = cache
-# 
-#             except AttributeError as e:
-#                 # there might be attribute errors deep into Markdown that would
-#                 # be suppressed if they bubbled up from here
-#                 logger.exception(e)
-#                 raise ValueError(e) from e
-# 
-#         return cache["title"], cache["html"], cache["meta"]
-
     def find_title(self, html):
         """Find an appropriate title for this page, this is called in the
         .compile() method when a suitable title can't be found and it's a

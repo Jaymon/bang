@@ -194,14 +194,6 @@ class Config(ContextNamespace):
                 t = Theme(theme_dir, self)
                 self.themes[t.name] = t
 
-#         context = self.get_context(self._context_names[0])
-#         context.setdefault("themes", self.context_class())
-# 
-#         themes_dir = Dirpath(themes_dir)
-#         for theme_dir in themes_dir.dirs().depth(1):
-#             t = Theme(theme_dir, self)
-#             self.themes[t.name] = t
-
     def set(self, k, v):
         self[k] = v
 
