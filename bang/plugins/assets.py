@@ -125,6 +125,10 @@ class Assets(object):
         :param path: str, this directory path will be checked for a
         .DIRNAME directory inside of it
         """
+#         assets_dir = Dirpath(path)
+#         if assets_dir.basename != self.dirname:
+#             assets_dir = Dirpath(path, self.dirname)
+
         assets_dir = Dirpath(path, self.dirname)
         if assets_dir.exists():
             for path in assets_dir.files(depth=0):
@@ -341,7 +345,6 @@ def configure_assets(event):
     assets.add_dir(config.theme.theme_dir)
     assets.add_dir(config.project.project_dir)
     config.assets = assets
-
     event.event.broadcast("configure.assets")
 
 
@@ -349,7 +352,7 @@ def configure_assets(event):
 def compile_assets(event):
     config = event.config
     config.assets.compile()
-
+    event.event.broadcast("compile.assets")
 
 @event('output.start')
 def output_assets(event):

@@ -3,7 +3,7 @@
 import testdata
 
 from bang.compat import *
-from bang.plugins import favicon
+from bang.plugins import favicon, assets
 from .. import TestCase
 
 
@@ -103,9 +103,12 @@ class FaviconTest(TestCase):
 
         return project_dir, output_dir
 
-    def get_favicons(self):
-        p = self.get_project()
-        f = favicon.Favicons(p.input_dirs)
+    def get_favicons(self, project=None):
+        p = project or self.get_project()
+        f = favicon.Favicons()
+        for input_dir in p.input_dirs:
+            f.add_dir(input_dir)
+
         return f
 
     def test_get_info(self):
@@ -129,7 +132,6 @@ class FaviconTest(TestCase):
         self.assertTrue('rel="apple-touch-icon"' in html)
 
     def test_android_chrome(self):
-
         p = self.get_project()
         d = p.input_dirs[0]
         # clear all the previous favicons
@@ -159,11 +161,25 @@ class FaviconTest(TestCase):
         self.create_png("favicon-16x16.png", tmpdir=d, width=16, height=16)
         self.create_png("favicon-32x32.png", tmpdir=d, width=32, height=32)
 
-        f = favicon.Favicons(p.input_dirs)
+        f = self.get_favicons(p)
         html = f.html()
         self.assertEqual(2, html.count("shortcut-icon"))
         self.assertEqual(1, html.count("\"apple-touch-icon\""))
         self.assertEqual(3, html.count("\"icon\""))
+
+    def test_configure_favicon_assets(self):
+        self.plugins = [self.plugins, "assets"]
+        p = self.get_project(
+            project_files={
+                "assets/android-chrome.png": None,
+                "assets/apple-touch-icon.png": None,
+                "input/page.md": "this is the root index.html",
+            },
+        )
+
+        p.output()
+        html = p.output_dir.file_text("index.html")
+        self.assertEqual(2, html.count("href=\"/assets/"))
 
 
 class GoogleAnalyticsTest(TestCase):

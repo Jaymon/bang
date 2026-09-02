@@ -27,11 +27,12 @@ These are the links I used to figure out what to support:
     https://www.emergeinteractive.com/insights/detail/the-essentials-of-favicons/
     https://github.com/audreyr/favicon-cheat-sheet
 """
+import re
 from collections import OrderedDict
 
 from ..compat import *
 from ..event import event
-from ..path import Imagepath
+from ..path import Imagepath, Dirpath
 from ..utils import Url
 
 
@@ -41,16 +42,9 @@ class Favicons(object):
     # automatically
     regex = r"^(favicon\S+|apple-touch-icon\S+|android-chrome\S+)$"
 
-    def __init__(self, input_dirs, *paths, **kwargs):
+    def __init__(self, **kwargs):
         self.images = []
-        self.input_dirs = input_dirs
-
-        regex = kwargs.get("regex", self.regex)
-        for input_dir in self.input_dirs:
-            for f in input_dir.files().regex(regex, filename=True):
-                im = Imagepath(f)
-                im.input_dir = input_dir
-                self.images.append(im)
+        self.regex = kwargs.get("regex", self.regex)
 
     def __str__(self):
         return self.html()
@@ -60,6 +54,12 @@ class Favicons(object):
 
     def __bool__(self):
         return len(self.images) > 0
+
+    def add_dir(self, path: Dirpath):
+        for f in path.files().regex(self.regex, filename=True):
+            im = Imagepath(f)
+            im.base_dir = path
+            self.images.append(im)
 
     def icon_sizes(self, imagepath):
         """produce sizes WxH for link sizes attribute
@@ -81,17 +81,17 @@ class Favicons(object):
                     ("rel", "icon"),
                     ("href", Url(
                         "/",
-                        im.relative_to(im.input_dir),
+                        im.relative_to(im.base_dir),
                     )),
                     ("type", "image/x-icon"),
                     ("sizes", self.icon_sizes(im)),
                 ]))
 
             else:
-                if im.basename.startswith("apple-touch"):
+                if "apple-touch-icon" in im.basename:
                     rel = "apple-touch-icon"
 
-                elif im.basename.startswith("android-chrome"):
+                elif "android-chrome" in im.basename:
                     rel = "shortcut-icon"
 
                 else:
@@ -135,7 +135,7 @@ class Favicons(object):
                     ("rel", rel),
                     ("href", Url(
                         "/",
-                        im.relative_to(im.input_dir),
+                        im.relative_to(im.base_dir),
                     )),
                     ("sizes", self.icon_sizes(im)),
                 ]))
@@ -157,12 +157,28 @@ class Favicons(object):
 @event("configure.plugins")
 def configure_favicon(event):
     config = event.config
-    config.favicons = Favicons(config.project.input_dirs)
-    config.favicons_html = config.favicons.html()
+    config.favicons = Favicons()
+
+    for input_dir in config.project.input_dirs:
+        config.favicons.add_dir(input_dir)
 
 
 @event("output.template")
 def template_output_favicon(event):
     config = event.config
-    event.html = event.html.inject_into_head(config.favicons_html)
+    event.html = event.html.inject_into_head(config.favicons.html())
+
+
+@event("compile.assets")
+def configure_favicon_assets(event):
+    """Hook into the `assets` plugin to allow favicons to be found in the
+    assets directories also."""
+    favicons = event.config.favicons
+
+    if assets := event.config.assets:
+        for basename, asset in assets.other.items():
+            if re.match(favicons.regex, basename):
+                im = Imagepath(asset.output_file)
+                im.base_dir = event.config.project.output_dir
+                favicons.images.append(im)
 
