@@ -39,37 +39,7 @@ class Favicons(object):
 
     # safari requests apple-touch-icon.png and apple-touch-icon-precomposed.png
     # automatically
-    regex = r"^(favicon\S*\.\S+|apple-touch-icon\S*.png)$"
-
-    @property
-    def outline(self):
-        d = OrderedDict()
-
-        # generic
-        d["icon"] = [
-            32,
-            57,
-            76,
-            96,
-            128,
-            192,
-            228,
-            1024
-        ]
-
-        # android
-        d["shortcut-icon"] = [
-            196
-        ]
-
-        # iOS
-        d["apple-touch-icon"] = [
-            120,
-            152,
-            180,
-        ]
-
-        return d
+    regex = r"^(favicon\S+|apple-touch-icon\S+|android-chrome\S+)$"
 
     def __init__(self, input_dirs, *paths, **kwargs):
         self.images = []
@@ -83,27 +53,13 @@ class Favicons(object):
                 self.images.append(im)
 
     def __str__(self):
-        return self.__bytes__() if is_py2 else self.__unicode__()
-
-    def __unicode__(self):
         return self.html()
 
     def __bytes__(self):
-        return ByteString(self.unicode())
+        return ByteString(self.__str__())
 
     def __bool__(self):
         return len(self.images) > 0
-    __nonzero__ = __bool__
-
-    def get_image_info(self):
-        d = {}
-        for im in self.images:
-            if im.is_favicon():
-                d["favicon"] = im
-            else:
-                d[im.width] = im
-
-        return d
 
     def icon_sizes(self, imagepath):
         """produce sizes WxH for link sizes attribute
@@ -117,33 +73,72 @@ class Favicons(object):
         return " ".join(sizes)
 
     def get_info(self):
-
         ret = []
-        image_d = self.get_image_info()
-        outline_d = self.outline
 
-        if "favicon" in image_d:
-            ret.append(OrderedDict([
-                ("rel", "icon"),
-                ("href", Url(
-                    "/",
-                    image_d["favicon"].relative_to(image_d["favicon"].input_dir)
-                )),
-                ("type", "image/x-icon"),
-                ("sizes", self.icon_sizes(image_d["favicon"])),
-            ]))
+        for im in self.images:
+            if im.is_favicon():
+                ret.append(OrderedDict([
+                    ("rel", "icon"),
+                    ("href", Url(
+                        "/",
+                        im.relative_to(im.input_dir),
+                    )),
+                    ("type", "image/x-icon"),
+                    ("sizes", self.icon_sizes(im)),
+                ]))
 
-        for rel, sizes in outline_d.items():
-            for size in sizes:
-                if size in image_d:
-                    ret.append(OrderedDict([
-                        ("rel", rel),
-                        ("href", Url(
-                            "/",
-                            image_d[size].relative_to(image_d[size].input_dir)
-                        )),
-                        ("sizes", self.icon_sizes(image_d[size])),
-                    ]))
+            else:
+                if im.basename.startswith("apple-touch"):
+                    rel = "apple-touch-icon"
+
+                elif im.basename.startswith("android-chrome"):
+                    rel = "shortcut-icon"
+
+                else:
+                    rel = ""
+
+                    outline_d = {
+                        "icon": [ # generic
+                            32,
+                            57,
+                            76,
+                            96,
+                            128,
+                            192,
+                            228,
+                            1024,
+                        ],
+                        "shortcut-icon": [ # android
+                            196,
+                        ],
+                        "apple-touch-icon": [ # iOS
+                            120,
+                            152,
+                            180,
+                        ],
+                    }
+
+                    im_size = im.width
+                    for size_rel, sizes in outline_d.items():
+                        for size in sizes:
+                            if size == im_size:
+                                rel = size_rel
+                                break
+
+                        if rel:
+                            break
+
+                    if not rel:
+                        rel = "icon"
+
+                ret.append(OrderedDict([
+                    ("rel", rel),
+                    ("href", Url(
+                        "/",
+                        im.relative_to(im.input_dir),
+                    )),
+                    ("sizes", self.icon_sizes(im)),
+                ]))
 
         return ret
 

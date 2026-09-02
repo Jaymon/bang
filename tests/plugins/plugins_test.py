@@ -94,12 +94,12 @@ class FaviconTest(TestCase):
         project_dir, output_dir = super().get_dirs(project_files)
 
         d = String(project_dir.child_dir("input"))
-        testdata.create_ico("favicon.ico", tmpdir=d),
-        testdata.create_png("favicon-32.png", tmpdir=d, width=32, height=32),
-        testdata.create_png("favicon-192.png", tmpdir=d, width=192, height=192),
-        testdata.create_png("favicon-228.png", tmpdir=d, width=228, height=228),
-        testdata.create_png("favicon-196.png", tmpdir=d, width=196, height=196),
-        testdata.create_png("favicon-180.png", tmpdir=d, width=180, height=180),
+        testdata.create_ico("favicon.ico", tmpdir=d)
+        testdata.create_png("favicon-32.png", tmpdir=d, width=32, height=32)
+        testdata.create_png("favicon-192.png", tmpdir=d, width=192, height=192)
+        testdata.create_png("favicon-228.png", tmpdir=d, width=228, height=228)
+        testdata.create_png("favicon-196.png", tmpdir=d, width=196, height=196)
+        testdata.create_png("favicon-180.png", tmpdir=d, width=180, height=180)
 
         return project_dir, output_dir
 
@@ -127,6 +127,43 @@ class FaviconTest(TestCase):
         self.assertTrue('rel="icon"' in html)
         self.assertTrue('rel="shortcut-icon"' in html)
         self.assertTrue('rel="apple-touch-icon"' in html)
+
+    def test_android_chrome(self):
+
+        p = self.get_project()
+        d = p.input_dirs[0]
+        # clear all the previous favicons
+        for favicon_path in d.glob("favicon*"):
+            favicon_path.rm()
+
+        # now add the favicons we want to test (these correspond to favicon.io)
+        self.create_ico("favicon.ico", tmpdir=d),
+        self.create_png(
+            "android-chrome-192x192.png",
+            tmpdir=d,
+            width=192,
+            height=192,
+        )
+        self.create_png(
+            "android-chrome-512x512.png",
+            tmpdir=d,
+            width=512,
+            height=512,
+        )
+        self.create_png(
+            "apple-touch-icon.png",
+            tmpdir=d,
+            width=192,
+            height=192,
+        )
+        self.create_png("favicon-16x16.png", tmpdir=d, width=16, height=16)
+        self.create_png("favicon-32x32.png", tmpdir=d, width=32, height=32)
+
+        f = favicon.Favicons(p.input_dirs)
+        html = f.html()
+        self.assertEqual(2, html.count("shortcut-icon"))
+        self.assertEqual(1, html.count("\"apple-touch-icon\""))
+        self.assertEqual(3, html.count("\"icon\""))
 
 
 class GoogleAnalyticsTest(TestCase):
